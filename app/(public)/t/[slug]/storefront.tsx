@@ -5,6 +5,7 @@ import {
   SectionFallback,
   StoreSection,
 } from '@/components/store/section-registry'
+import { SiteFooter } from '@/components/layout/site-footer'
 import { StoreCart } from '@/components/store/store-cart'
 import { StoreHeader } from '@/components/store/store-header'
 import { StoreLive } from '@/components/store/store-live'
@@ -142,6 +143,8 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
           <StoreSection name={name} context={context} />
         </Suspense>
       ))}
+
+      <SiteFooter tone="store" />
 
       <StoreCart
         minOrder={store.min_order === null ? null : Number(store.min_order)}

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { SiteFooter } from '@/components/layout/site-footer'
 import { ForbiddenToast } from './forbidden-toast'
 import {
   StoreGrid,
@@ -231,6 +232,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <StoreSections category={category} />
         </Suspense>
       </section>
+
+      <SiteFooter />
     </>
   )
 }
