@@ -107,9 +107,26 @@ const SERIF_FONTS: ReadonlySet<ThemeFont> = new Set([
   'Playfair Display',
 ])
 
+/**
+ * next/font never registers a face under its human name — it generates an
+ * internal family and exposes it through a CSS variable — so naming the family
+ * directly would fall through to the fallback on every device that does not
+ * happen to have the font installed. The variables are declared in
+ * app/layout.tsx and asserted by tests/theme-fonts.test.ts.
+ */
+const FONT_VARIABLE: Readonly<Record<ThemeFont, string>> = {
+  Fraunces: '--font-fraunces',
+  'Instrument Serif': '--font-instrument-serif',
+  'Playfair Display': '--font-playfair-display',
+  Inter: '--font-inter',
+  Geist: '--font-geist',
+  'DM Sans': '--font-dm-sans',
+  'Space Grotesk': '--font-space-grotesk',
+}
+
 export function fontFamilyStack(font: ThemeFont): string {
   const fallback = SERIF_FONTS.has(font) ? SERIF_STACK : SANS_STACK
-  return `"${font}", ${fallback}`
+  return `var(${FONT_VARIABLE[font]}), ${fallback}`
 }
 
 // ---------------------------------------------------------------------------

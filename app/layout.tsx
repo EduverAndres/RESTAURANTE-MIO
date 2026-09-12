@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Fraunces, Inter } from 'next/font/google'
+import {
+  DM_Sans,
+  Fraunces,
+  Geist,
+  Instrument_Serif,
+  Inter,
+  Playfair_Display,
+  Space_Grotesk,
+} from 'next/font/google'
 import { AccessibilityAttributes } from '@/components/a11y/accessibility-attributes'
 import { RealtimeProvider } from '@/components/providers/realtime-provider'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
@@ -23,6 +31,55 @@ const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
 })
+
+// The remaining theme faces are only reached when a merchant picks them, so
+// they are declared but not preloaded: the browser fetches a file only when a
+// storefront actually renders text in that family.
+const instrumentSerif = Instrument_Serif({
+  variable: '--font-instrument-serif',
+  subsets: ['latin'],
+  weight: '400',
+  display: 'swap',
+  preload: false,
+})
+
+const playfairDisplay = Playfair_Display({
+  variable: '--font-playfair-display',
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+})
+
+const geist = Geist({
+  variable: '--font-geist',
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+})
+
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+})
+
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-space-grotesk',
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+})
+
+const THEME_FONT_VARIABLES = [
+  fraunces.variable,
+  inter.variable,
+  instrumentSerif.variable,
+  playfairDisplay.variable,
+  geist.variable,
+  dmSans.variable,
+  spaceGrotesk.variable,
+].join(' ')
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
@@ -65,7 +122,7 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${fraunces.variable} ${inter.variable}`}
+      className={`${THEME_FONT_VARIABLES}`}
     >
       <head>
         {/*
