@@ -47,3 +47,5 @@ next-env.d.ts
 
 # CodeGraph index: per-checkout, never shared.
 /.codegraph/
+
+certificates
