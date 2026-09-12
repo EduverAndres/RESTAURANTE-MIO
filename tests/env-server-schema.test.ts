@@ -1,0 +1,89 @@
+import { describe, expect, it } from 'vitest'
+import {
+  parseServerEnv,
+  pushConfiguredFrom,
+  wompiConfiguredFrom,
+} from '@/lib/env.server-schema'
+
+describe('parseServerEnv', () => {
+  it('accepts an empty environment: every server secret is optional', () => {
+    const parsed = parseServerEnv({})
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data.WOMPI_PUBLIC_KEY).toBeUndefined()
+    expect(parsed.data.SUPABASE_SECRET_KEY).toBeUndefined()
+  })
+
+  it('accepts a fully configured sandbox environment', () => {
+    const parsed = parseServerEnv({
+      SUPABASE_SECRET_KEY: 'sb_secret_x',
+      PAYMENT_PROVIDER: 'wompi',
+      WOMPI_PUBLIC_KEY: 'pub_test_abc',
+      WOMPI_PRIVATE_KEY: 'prv_test_abc',
+      WOMPI_EVENTS_SECRET: 'test_events_abc',
+      WOMPI_INTEGRITY_SECRET: 'test_integrity_abc',
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'vapid_pub',
+      VAPID_PRIVATE_KEY: 'vapid_priv',
+      VAPID_SUBJECT: 'mailto:ops@tienda.app',
+    })
+    expect(parsed.success).toBe(true)
+  })
+
+  it('rejects a Wompi public key without the expected prefix', () => {
+    const parsed = parseServerEnv({ WOMPI_PUBLIC_KEY: 'not-a-key' })
+    expect(parsed.success).toBe(false)
+  })
+
+  it('rejects a malformed VAPID_SUBJECT', () => {
+    const parsed = parseServerEnv({ VAPID_SUBJECT: 'ops@tienda.app' })
+    expect(parsed.success).toBe(false)
+  })
+
+  it('falls back to SUPABASE_SERVICE_ROLE_KEY when present', () => {
+    const parsed = parseServerEnv({
+      SUPABASE_SERVICE_ROLE_KEY: 'legacy-jwt',
+    })
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data.SUPABASE_SERVICE_ROLE_KEY).toBe('legacy-jwt')
+  })
+})
+
+describe('wompiConfiguredFrom', () => {
+  it('is false when any Wompi key is missing', () => {
+    expect(wompiConfiguredFrom({})).toBe(false)
+    expect(
+      wompiConfiguredFrom({
+        WOMPI_PUBLIC_KEY: 'pub_test_a',
+        WOMPI_PRIVATE_KEY: 'prv_test_a',
+      }),
+    ).toBe(false)
+  })
+
+  it('is true once every Wompi key is set', () => {
+    expect(
+      wompiConfiguredFrom({
+        WOMPI_PUBLIC_KEY: 'pub_test_a',
+        WOMPI_PRIVATE_KEY: 'prv_test_a',
+        WOMPI_EVENTS_SECRET: 'test_events_a',
+        WOMPI_INTEGRITY_SECRET: 'test_integrity_a',
+      }),
+    ).toBe(true)
+  })
+})
+
+describe('pushConfiguredFrom', () => {
+  it('is false when any push key is missing', () => {
+    expect(pushConfiguredFrom({})).toBe(false)
+  })
+
+  it('is true once every push key is set', () => {
+    expect(
+      pushConfiguredFrom({
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'vapid_pub',
+        VAPID_PRIVATE_KEY: 'vapid_priv',
+        VAPID_SUBJECT: 'mailto:ops@tienda.app',
+      }),
+    ).toBe(true)
+  })
+})

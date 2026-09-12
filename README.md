@@ -1,0 +1,323 @@
+# Tienda
+
+Multi-tenant food ordering platform. Each restaurant gets its own themed
+storefront (own subdomain, colors and menu), customers order for delivery,
+pickup or dine-in via a table QR code, merchants run their kitchen from a
+live Kanban board, couriers claim and deliver orders, and admins oversee
+stores, users, payouts and platform metrics.
+
+## Features by role
+
+- **Customer**: browse nearby restaurants, order for delivery or pickup, pay
+  with cash, a mock test card or Wompi (card/PSE/Nequi), track an order live,
+  reorder, save addresses, get web push notifications on status changes.
+- **Guest (table order)**: scan a table's QR code, order without creating an
+  account, pay in cash at the table, track the order with a signed cookie
+  instead of a login.
+- **Merchant**: onboard a store, manage menu/categories/products and their
+  option groups, run the order Kanban (accept, prepare, mark ready, hand
+  off), manage tables and their QR codes, view store metrics and payouts.
+- **Courier**: see a pool of unassigned deliveries plus their own, claim and
+  advance an order (picked up → delivered), get push notifications on
+  assignment.
+- **Admin**: review and activate/suspend stores, set commission per store,
+  manage user roles, generate and mark payouts as paid, view platform-wide
+  KPIs.
+
+## Stack
+
+- [Next.js 15](https://nextjs.org) (App Router, React 19, Turbopack)
+- [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) (Radix primitives)
+- [Supabase](https://supabase.com) (Postgres, Auth, Realtime, Storage, RLS)
+- [Zustand](https://zustand-demo.pmnd.rs) for client state (cart)
+- [react-hook-form](https://react-hook-form.com) + [zod](https://zod.dev) v4 for forms and validation
+- [Vitest](https://vitest.dev) + Testing Library for unit tests, [Playwright](https://playwright.dev) for e2e
+- Vanilla Leaflet for maps, [sonner](https://sonner.emilkowal.ski) for toasts
+- [web-push](https://github.com/web-push-libs/web-push) for browser push notifications
+
+No Docker is required to run or test the app. `types/database.ts` is
+hand-maintained (not generated) unless you regenerate it locally with Docker
+available (see [Scripts](#scripts)).
+
+## Architecture
+
+- **Route groups** under `app/`:
+  - `(public)` — home, `/t/[slug]` storefront, `/t/[slug]/mesa/[token]` table
+    entry point and checkout, `/login`, `/register`.
+  - `(protected)` — signed-in customer routes: `/account`, `/checkout`,
+    `/orders/[id]`.
+  - `dashboard/` — merchant back office (orders, menu, tables, metrics,
+    payouts, store settings).
+  - `courier/` — courier delivery pool and order detail.
+  - `admin/` — platform administration (stores, users, payouts, metrics).
+  - `api/webhooks/wompi` — the only route handler; everything else uses
+    server actions.
+- **`lib/`** holds all business logic as small, mostly pure, unit-tested
+  modules (`lib/orders`, `lib/payments`, `lib/payouts`, `lib/push`,
+  `lib/tables`, `lib/subdomain`, `lib/routing`, …); components stay thin and
+  call into `lib/` or server actions.
+- **Server actions** follow one pattern throughout: `'use server'`, a zod
+  `safeParse` on the input, `supabase.auth.getUser()` re-authentication,
+  `console.error` on the raw error with a Spanish message returned to the
+  UI, `revalidatePath`, and `{ ok: true }` on success. See
+  `app/dashboard/actions.ts` and `app/(protected)/account/actions.ts`.
+- **RLS model**: every table has row level security enabled; policies grant
+  the minimum each actor needs (owner reads their own store, customer reads
+  their own orders and addresses, etc.). A handful of security-definer helper
+  functions (`is_admin`, `owns_store`, …) back the policies. Privileged
+  server-side work (courier address lookups, admin actions, the webhook) uses
+  the service-role admin client (`lib/supabase/admin.ts`), which bypasses
+  RLS deliberately and only after a role check.
+- **Payments**: a small provider registry (`lib/payments/index.ts`) maps a
+  `payment_method` to a `PaymentProvider` (`createPayment` /
+  `verifyPayment`). `cash` and `mock` always work; `wompi` activates once its
+  server secrets are set (`wompiConfigured()`). The Wompi webhook
+  (`app/api/webhooks/wompi/route.ts`) verifies the event checksum, stores it
+  in `payment_events` for idempotency and audit, and applies status changes
+  through a small state machine (`lib/payments/transitions.ts`) that refuses
+  to downgrade a `paid` order. The order page also reconciles a pending
+  Wompi payment on return, in case the webhook has not arrived yet.
+- **Push notifications**: `lib/push/send.ts` sends web push via VAPID keys
+  and prunes subscriptions that come back 404/410; hooked into order status
+  changes, new orders and courier assignment through `after()` so it never
+  blocks the response.
+- **PWA**: `app/manifest.ts`, a hand-written `public/sw.js` (network-first
+  navigation, falls back to `/offline`), an install prompt component, and
+  icons generated by `scripts/icons.mjs`.
+- **Subdomains**: `lib/subdomain.ts` is pure and unit-tested;
+  `middleware.ts` rewrites `<slug>.<root-domain>` to `/t/<slug>` before the
+  role gate runs. `storePublicUrl()` builds the right link (subdomain in
+  production, `/t/<slug>` in local dev where `NEXT_PUBLIC_ROOT_DOMAIN` is not
+  a real domain) and is used everywhere a store link is generated (QR codes,
+  admin store list, etc.).
+
+## Local setup
+
+1. Install Node 22 (see `.nvmrc`) and run `npm install`.
+2. Create a Supabase project and copy `.env.example` to `.env.local`, filling
+   in at least the Supabase URL/keys and the two `NEXT_PUBLIC_*` site vars
+   (see the [environment variables](#environment-variables) table below).
+3. Apply migrations and seed data against that project:
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+4. Start the dev server: `npm run dev` and open http://localhost:3000.
+5. Log in with any of the [seed users](#seed-users); password
+   `Tienda123!` for all of them.
+
+## Environment variables
+
+All variables are read and validated in `lib/env.ts` (public) and
+`lib/env.server.ts` / `lib/env.server-schema.ts` (server secrets — every key
+there is optional, so the app runs with cash/mock payments and no push
+notifications configured at all).
+
+| Name                                   | Scope            | Required                                        | Purpose                                                                                                                                                |
+| -------------------------------------- | ---------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_APP_NAME`                 | public           | no (defaults to `Tienda`)                       | Brand name shown in the UI, metadata and manifest.                                                                                                     |
+| `NEXT_PUBLIC_SITE_URL`                 | public           | yes                                             | Absolute base URL used for redirect URLs, payment return URLs and QR targets.                                                                          |
+| `NEXT_PUBLIC_ROOT_DOMAIN`              | public           | yes                                             | Root domain for store subdomains (e.g. `tienda.app`); use `localhost` in local dev to disable subdomain routing.                                       |
+| `NEXT_PUBLIC_SUPABASE_URL`             | public           | yes                                             | Supabase project URL.                                                                                                                                  |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public           | one of this or the anon key                     | Supabase publishable (new-style) key for browser/SSR clients.                                                                                          |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | public           | one of this or the publishable key              | Legacy Supabase anon JWT, used as a fallback.                                                                                                          |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         | public           | no                                              | VAPID public key; enables the push subscription UI on the client.                                                                                      |
+| `NEXT_PUBLIC_ENABLE_SW`                | public           | no (`true`/`false`, defaults to off)            | Set to `true` to register the service worker outside production (e.g. to test push/offline locally).                                                   |
+| `SUPABASE_SECRET_KEY`                  | server           | one of this or the service-role key             | Supabase secret (new-style) key for the admin client.                                                                                                  |
+| `SUPABASE_SERVICE_ROLE_KEY`            | server           | one of this or the secret key                   | Legacy Supabase service-role JWT, used as a fallback.                                                                                                  |
+| `SUPABASE_DB_URL`                      | server (tooling) | yes, for `db:*` scripts                         | Direct Postgres connection string used by `scripts/db.mjs` (push/seed/types), read from `.env.local` or the environment; never used by the app itself. |
+| `PAYMENT_PROVIDER`                     | server           | no                                              | Reserved for selecting a default payment provider; not currently branched on.                                                                          |
+| `WOMPI_PUBLIC_KEY`                     | server           | no (all four required together to enable Wompi) | Wompi public key (`pub_test_…` / `pub_prod_…`), also picks sandbox vs. production.                                                                     |
+| `WOMPI_PRIVATE_KEY`                    | server           | no                                              | Wompi private key, used to query transaction status.                                                                                                   |
+| `WOMPI_EVENTS_SECRET`                  | server           | no                                              | Verifies the webhook checksum sent by Wompi.                                                                                                           |
+| `WOMPI_INTEGRITY_SECRET`               | server           | no                                              | Signs the Web Checkout integrity hash.                                                                                                                 |
+| `VAPID_PRIVATE_KEY`                    | server           | no (required with the two below to enable push) | VAPID private key used to sign push payloads.                                                                                                          |
+| `VAPID_SUBJECT`                        | server           | no                                              | `mailto:` contact required by the push protocol.                                                                                                       |
+| `OSRM_BASE_URL`                        | server           | no (defaults to the public OSRM demo server)    | Base URL of an OSRM instance for delivery routing/ETA.                                                                                                 |
+| `ROUTING_PROVIDER`                     | server           | no (defaults to `osrm`)                         | `osrm`, `ors` or `haversine`; falls back to `haversine` automatically on failure.                                                                      |
+| `ORS_API_KEY`                          | server           | no (only used when `ROUTING_PROVIDER=ors`)      | OpenRouteService API key.                                                                                                                              |
+| `TZ`                                   | process          | no, but recommended (`America/Bogota`)          | Node's runtime time zone; date-only logic (payout periods, "today" metrics) is computed in local time, so this decides what "today" means.             |
+
+## Scripts
+
+| Script                            | Purpose                                                                                                                                                                          |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                     | Start the dev server (Turbopack).                                                                                                                                                |
+| `npm run build`                   | Production build (Turbopack).                                                                                                                                                    |
+| `npm run start`                   | Start the production server after a build.                                                                                                                                       |
+| `npm run lint`                    | ESLint.                                                                                                                                                                          |
+| `npm run typecheck`               | `tsc --noEmit`.                                                                                                                                                                  |
+| `npm test` / `npm run test:watch` | Unit tests (Vitest).                                                                                                                                                             |
+| `npm run test:e2e`                | End-to-end tests (Playwright); starts the dev server automatically.                                                                                                              |
+| `npm run db:push`                 | Apply pending migrations in `supabase/migrations/` to `SUPABASE_DB_URL`.                                                                                                         |
+| `npm run db:seed`                 | Run `supabase/seed.sql` against `SUPABASE_DB_URL` (idempotent).                                                                                                                  |
+| `npm run db:types`                | Regenerate `types/database.ts` (requires Docker locally; otherwise keep the hand-maintained file in sync by hand).                                                               |
+| `npm run db:config`               | Push the auth settings and email templates in `supabase/config.toml` to the hosted project (shows the diff, then requires `yes` or `-- --yes`). See [Auth emails](#auth-emails). |
+| `npm run push:keys`               | Print a fresh VAPID key pair to paste into `.env.local`. Never writes any file.                                                                                                  |
+| `npm run icons`                   | Regenerate the PWA icon set in `public/icons/` from `public/icon.svg`.                                                                                                           |
+| `npm run format`                  | Prettier, writes in place.                                                                                                                                                       |
+
+## Database
+
+All schema changes live in `supabase/migrations/`, applied in order by
+`npm run db:push`:
+
+1. `20260910000100_extensions_and_enums.sql` — extensions and enum types.
+2. `20260910000200_tables.sql` — core tables and indexes.
+3. `20260910000300_functions_and_triggers.sql` — auth sync, order lifecycle,
+   ratings and geo-search helpers.
+4. `20260910000400_rls.sql` — row level security policies for every table.
+5. `20260910000500_storage.sql` — storage buckets for store branding/product
+   images.
+6. `20260910000600_orders_short_code_default.sql` — column default for
+   `orders.short_code`.
+7. `20260910000700_role_claim.sql` — mirrors `profiles.role` into
+   `auth.users.raw_app_meta_data` so middleware can read it from the JWT.
+8. `20260912000100_store_tables_token_lookup.sql` — stops exposing table QR
+   tokens through the public REST read policy.
+9. `20260912000200_payment_events.sql` — Wompi webhook event log, used for
+   idempotency and audit.
+10. `20260912000300_push_subscriptions.sql` — web push subscription storage.
+11. `20260912000400_payouts_unique_period.sql` — uniqueness guard so
+    generating payouts twice for the same store/period is a no-op.
+
+`supabase/seed.sql` is safe to re-run (fixed UUIDs, `on conflict do
+nothing`). Every seeded user shares the password `Tienda123!`:
+
+| Email                                         | Role     | Notes                               |
+| --------------------------------------------- | -------- | ----------------------------------- |
+| `admin@tienda.app`                            | admin    | Platform administrator.             |
+| `owner1@tienda.app` … `owner6@tienda.app`     | merchant | Each owns one seeded store.         |
+| `cliente1@tienda.app` … `cliente3@tienda.app` | customer | Seeded addresses and order history. |
+| `courier1@tienda.app`, `courier2@tienda.app`  | courier  | Assigned to some seeded deliveries. |
+
+## Auth emails
+
+Confirmation, password recovery, magic link, email change, invite and
+reauthentication emails use the branded Spanish templates in
+`supabase/templates/`, declared under `[auth.email.template.*]` in
+`supabase/config.toml`. Every link is built as
+`{{ .SiteURL }}/auth/callback?token_hash=…&type=…` (plus a `next` for
+recovery, invite and email change), so it is verified server-side by our own
+callback and works from any device or browser (not only the one that signed
+up). The templates deliberately never use `{{ .RedirectTo }}`: it silently
+falls back to the bare Site URL when the app's redirect is not allow-listed,
+which would produce a malformed link. A stale or reused link lands on
+`/login?error=expired` with a clear message and a "Reenviar correo" button
+on the register page.
+
+- Apply the templates (and the auth settings in the same file: confirmations
+  on, 24 h link expiry, 60 s resend interval, redirect allow-list) with
+  `npm run db:config`. It needs a CLI session (`npx supabase login`, or
+  `SUPABASE_ACCESS_TOKEN`) and resolves the project ref from
+  `SUPABASE_PROJECT_REF` or `NEXT_PUBLIC_SUPABASE_URL`. It prints the diff
+  first and only pushes after you type `yes` (or pass
+  `npm run db:config -- --yes`, e.g. in CI); review that diff, because
+  `config.toml` also declares local-dev defaults that could overwrite a
+  hosted setting you customised by hand.
+- In the Supabase dashboard (Authentication → URL Configuration) the **Site
+  URL** must be the canonical app URL (the same value as
+  `NEXT_PUBLIC_SITE_URL`): every email link is built from it. The
+  **Redirect URLs** allow-list must still include every host you open the app
+  from, e.g. `http://localhost:3000/**`, `http://127.0.0.1:3000/**` and your
+  LAN address (`http://192.168.1.16:3000/**`), plus the production domain, so
+  OAuth and the stock `ConfirmationURL` path can return there.
+- Redirects issued by the app (`/auth/callback`, sign-out, the middleware
+  gate) are built from the browser's `Host`/`X-Forwarded-*` headers via
+  `lib/http/request-origin.ts`, never from the server bind address, so
+  `next dev -H 0.0.0.0` and reverse proxies keep the session cookies on the
+  host the user is actually on. The header is allow-listed: only the
+  `NEXT_PUBLIC_SITE_URL` host is accepted in production, plus loopback and
+  private LAN hosts outside production; anything else falls back to
+  `NEXT_PUBLIC_SITE_URL`.
+
+## Testing
+
+- **Unit tests** (`npm test`): Vitest + Testing Library, colocated under
+  `tests/*.test.ts`. Pure `lib/` modules are developed test-first.
+- **End-to-end tests** (`npm run test:e2e`): Playwright, chromium only,
+  against the dev server and the seeded Supabase project (see
+  `playwright.config.ts`; set `PLAYWRIGHT_BASE_URL` to target another
+  environment). `e2e/fixtures.ts` centralizes seeded-user login. Specs run
+  against remote, shared seed data and are written to tolerate pre-existing
+  rows (no exact-count assertions).
+  - `checkout.spec.ts` — pickup order with the mock card, and the anonymous
+    checkout redirect.
+  - `storefront.spec.ts` — home page store listing and a store page's menu
+    and cart.
+  - `table-order.spec.ts` — anonymous QR entry, a cash table order, and the
+    guest tracking page.
+  - `merchant-kanban.spec.ts` — the order board renders and, when a pending
+    order exists at run time, a merchant can accept it.
+  - `admin.spec.ts` — an admin reaches `/admin/stores`; a non-admin is
+    redirected away from `/admin`.
+
+## Deployment runbook
+
+1. **Supabase**: create a project, then run `npm run db:push` and
+   `npm run db:seed` (or your own data) against it with `SUPABASE_DB_URL`
+   set to that project's connection string.
+2. **Vercel**: import the repository, set Node 22, and configure every
+   environment variable from the table above that applies to your
+   deployment (at minimum the public Supabase vars, `NEXT_PUBLIC_SITE_URL`
+   and `NEXT_PUBLIC_ROOT_DOMAIN`; add the Wompi and VAPID secrets to enable
+   those features). Set `TZ=America/Bogota`. Deploy.
+3. **Wildcard subdomains**: add `*.<root-domain>` as a domain on the Vercel
+   project (in addition to the apex/root domain) and point its DNS at
+   Vercel per their instructions, so `<slug>.<root-domain>` resolves to the
+   app and the middleware rewrite in `lib/subdomain.ts` takes over.
+4. **Wompi**: in the Wompi dashboard, set the events webhook URL to
+   `https://<site>/api/webhooks/wompi` and the redirect URL to your site;
+   copy the public/private/events/integrity keys into the matching
+   `WOMPI_*` environment variables.
+5. **Web push**: run `npm run push:keys` locally and paste the resulting
+   `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` (plus a
+   `VAPID_SUBJECT` of `mailto:you@example.com`) into the deployment's
+   environment variables.
+6. **Icons**: run `npm run icons` once and commit the generated files in
+   `public/icons/` if you changed `public/icon.svg`.
+7. **CI**: `.github/workflows/ci.yml` runs typecheck, lint, unit tests and a
+   build with dummy public env values on every push/PR; it does not deploy.
+   There is no `vercel.json`: the project needs no build/route overrides
+   beyond what Vercel's Next.js detection already provides.
+
+## Phase log
+
+1. **Phase 1** — Foundations: schema, RLS, auth, roles, base UI kit and
+   design tokens.
+2. **Phase 2** — Storefront and ordering: store theming, menu/product
+   browsing, cart, delivery/pickup checkout with mock payments, live order
+   tracking.
+3. **Phase 3** — Merchant back office: onboarding, menu management, the
+   order Kanban board, store settings.
+4. **Phase 4** — Courier and table ordering: courier delivery pool and
+   flow, table QR entry point and dine-in ordering, ratings.
+5. **Phase 5** — Production: Wompi payments and hardening (webhook,
+   reconciliation, transition safety), web push notifications and PWA
+   installability, store subdomains, the admin area (stores, users,
+   payouts, metrics) and payout generation, e2e coverage across every role,
+   this README, and CI.
+
+## Known limitations
+
+- Couriers read customer addresses through the service-role admin client
+  (`lib/courier/server.ts`) rather than RLS, because a courier is not the
+  address owner; access is scoped to orders assigned to (or poolable by)
+  that courier at the application layer, not by a row policy.
+- Date-only logic (payout periods, "today"/"7d"/"30d" metrics windows) uses
+  the server's local time zone (`lib/dates.ts`), so the deployment's `TZ`
+  environment variable determines what "today" means; it is not computed
+  per store or per user.
+- Only `cash`, `mock` (a test card that always approves) and `wompi` are
+  implemented; Mercado Pago is referenced in the payment provider registry
+  as a future addition but not implemented.
+- `types/database.ts` is hand-maintained; there is no CI check that it
+  matches the live schema, so a migration author must update it in the same
+  change.
+- An abandoned Wompi checkout (the customer never finishes paying) leaves
+  the order as `pending` with `payment_status = pending` until the merchant
+  rejects it from the Kanban; the payment link itself expires 30 minutes
+  after it is created, but nothing cancels the order automatically. A late
+  approval on an order that was auto-cancelled by a declined attempt
+  reopens it as `pending` and notifies the merchant again.
+# RESTAURANTE-MIO

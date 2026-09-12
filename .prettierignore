@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+build
+coverage
+package-lock.json
+types/database.ts
+supabase/.temp
+# Email templates: inline-CSS table layouts with Go template tags that must stay on one line.
+supabase/templates
