@@ -1,3 +1,4 @@
+import { CheckIcon } from 'lucide-react'
 import { Wordmark } from '@/components/layout/site-header'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { APP_NAME } from '@/lib/env'
@@ -34,26 +35,54 @@ function DecorativePattern() {
   )
 }
 
+const PROOF = [
+  'Pagas y sigues el pedido en la misma pantalla.',
+  'Cada restaurante con su propia tienda y su carta.',
+  'Sin apps que instalar.',
+]
+
+/**
+ * The split screen.
+ *
+ * Half the window is the brand: an illustration, a line that says what this
+ * place is, and three sentences of proof. The other half is the shortest
+ * form we can get away with. Everything on the left is decorative or
+ * supporting copy, so a narrow screen simply drops it — a phone gets the
+ * form and nothing between it and the keyboard.
+ */
 export default function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-      <aside className="bg-secondary/60 relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <aside className="from-secondary/70 via-secondary/40 to-background relative hidden overflow-hidden bg-gradient-to-br lg:flex lg:flex-col lg:justify-between lg:p-12">
         <DecorativePattern />
         <div className="relative">
           <Wordmark className="text-3xl" />
         </div>
-        <div className="relative max-w-lg space-y-5">
-          <h2 className="font-display font-display-soft text-5xl leading-[1.02] font-semibold tracking-tight xl:text-6xl">
+        <div className="relative max-w-lg space-y-6">
+          <h2 className="text-display font-display font-display-soft font-semibold">
             Tu comida favorita,
             <br />
-            <span className="text-primary">a dos toques</span> de distancia.
+            <span className="text-primary">a dos toques</span>
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lead">
             Guarda tu dirección y tu método de pago una vez. Después, pedir en{' '}
             {APP_NAME} toma menos de un minuto.
           </p>
+          <ul className="space-y-2.5">
+            {PROOF.map((line) => (
+              <li key={line} className="flex items-start gap-3 text-sm">
+                <span
+                  aria-hidden="true"
+                  className="bg-primary/12 text-primary-on-tint mt-0.5 grid size-6 shrink-0 place-items-center rounded-full"
+                >
+                  <CheckIcon className="size-3.5" />
+                </span>
+                <span className="text-muted-foreground">{line}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         <p className="text-muted-foreground relative text-sm">
           Restaurantes independientes, con identidad propia.

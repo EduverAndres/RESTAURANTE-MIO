@@ -46,12 +46,32 @@ self.addEventListener('fetch', (event) => {
   if (request.mode !== 'navigate') return
 
   event.respondWith(
-    fetch(request).catch(
-      () => caches.match(OFFLINE_URL).then((response) => response ?? Response.error()),
+    fetch(request).catch(() =>
+      caches
+        .match(OFFLINE_URL)
+        .then((response) => response ?? Response.error()),
     ),
   )
 })
 
+/** True when `clientUrl` is already showing the page the push points at. */
+function showsTarget(clientUrl, targetUrl) {
+  try {
+    const client = new URL(clientUrl)
+    const target = new URL(targetUrl, client.origin)
+    if (client.origin !== target.origin) return false
+    const normalize = (path) => path.replace(/\/+$/, '') || '/'
+    return normalize(client.pathname) === normalize(target.pathname)
+  } catch {
+    return false
+  }
+}
+
+// Realtime and push must not both announce the same transition. The page the
+// push points at is the page that already has a realtime subscription, so when
+// a visible tab is on it the OS notification is dropped and that tab is told
+// instead (the provider turns the message into a refresh). Every other case —
+// no window, another page, a hidden tab — still gets the notification.
 self.addEventListener('push', (event) => {
   if (!event.data) return
   let payload
@@ -61,29 +81,45 @@ self.addEventListener('push', (event) => {
     return
   }
   const { title, body, url, tag } = payload
+
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      data: { url },
-      icon: '/icons/icon-192.png',
-      badge: '/icons/badge-96.png',
-      tag,
-    }),
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        const watching = clients.filter(
+          (client) =>
+            client.visibilityState === 'visible' &&
+            showsTarget(client.url, url),
+        )
+        if (watching.length > 0) {
+          for (const client of watching) {
+            client.postMessage({ type: 'push-suppressed', payload })
+          }
+          return undefined
+        }
+        return self.registration.showNotification(title, {
+          body,
+          data: { url },
+          icon: '/icons/icon-192.png',
+          badge: '/icons/badge-96.png',
+          tag,
+        })
+      }),
   )
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const targetUrl = event.notification.data && event.notification.data.url
-    ? event.notification.data.url
-    : '/'
+  const targetUrl =
+    event.notification.data && event.notification.data.url
+      ? event.notification.data.url
+      : '/'
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clients) => {
         for (const client of clients) {
-          const clientUrl = new URL(client.url)
-          if (clientUrl.pathname === targetUrl && 'focus' in client) {
+          if (showsTarget(client.url, targetUrl) && 'focus' in client) {
             return client.focus()
           }
         }

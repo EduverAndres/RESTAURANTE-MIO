@@ -1,11 +1,11 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
-import { CheckIcon, MinusIcon, PlusIcon } from 'lucide-react'
-import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { CheckIcon } from 'lucide-react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { QuantityStepper } from '@/components/store/quantity-stepper'
+import { StoreImage } from '@/components/store/store-image'
 import {
   Drawer,
   DrawerContent,
@@ -18,12 +18,18 @@ import { Textarea } from '@/components/ui/textarea'
 import type { CartStoreRef } from '@/lib/cart'
 import { formatCOP } from '@/lib/format'
 import { computeLineTotal } from '@/lib/pricing'
+import { themeToCssVars } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart.store'
-import type { OrderItemOption, ProductWithOptions } from '@/types/app'
+import type {
+  OrderItemOption,
+  ProductWithOptions,
+  StoreTheme,
+} from '@/types/app'
 
 interface ProductDrawerProps {
   product: ProductWithOptions | null
+  theme: StoreTheme
   store: CartStoreRef & { isOpen: boolean }
   onClose: () => void
 }
@@ -38,10 +44,22 @@ function initialSelection(product: ProductWithOptions | null): Selection {
   return selection
 }
 
-export function ProductDrawer({ product, store, onClose }: ProductDrawerProps) {
+/**
+ * The configuration surface: only opened for a product that actually has
+ * choices to make. Vaul owns the focus trap, the Escape key and returning
+ * focus to the card that opened it; everything here is about making the
+ * choices big enough to hit and the running total impossible to miss.
+ */
+export function ProductDrawer({
+  product,
+  theme,
+  store,
+  onClose,
+}: ProductDrawerProps) {
   const add = useCartStore((state) => state.add)
   const setCartOpen = useCartStore((state) => state.setOpen)
   const reduceMotion = useReducedMotion()
+  const animate = !reduceMotion && theme.motion !== 'none'
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
   const [selection, setSelection] = useState<Selection>({})
@@ -149,34 +167,42 @@ export function ProductDrawer({ product, store, onClose }: ProductDrawerProps) {
 
   return (
     <Drawer open={product !== null} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="mx-auto max-h-[92dvh] max-w-lg rounded-t-[var(--store-radius)] bg-[var(--store-surface)] text-[var(--store-text)]">
+      {/* The drawer is portalled to the body, outside the storefront wrapper,
+          so it has to carry the tenant skin itself or it would render in the
+          app's default palette. */}
+      <DrawerContent
+        data-store-theme
+        style={themeToCssVars(theme) as CSSProperties}
+        className="mx-auto flex max-h-[94dvh] max-w-lg flex-col rounded-t-[var(--store-radius)] bg-[var(--store-surface)] text-[var(--store-text)]"
+      >
         {product ? (
           <>
-            <div className="overflow-y-auto">
-              {product.image_url ? (
-                <div className="relative aspect-[4/3] w-full overflow-hidden">
-                  <Image
-                    src={product.image_url}
-                    alt={product.name}
-                    fill
-                    sizes="(min-width: 640px) 512px, 100vw"
-                    className="object-cover"
-                  />
-                </div>
-              ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[3/2]">
+                <StoreImage
+                  src={product.image_url}
+                  alt={product.name}
+                  seed={product.id}
+                  color={theme.primary}
+                  label={product.name}
+                  sizes="(min-width: 640px) 512px, 100vw"
+                  initialScale={2.2}
+                />
+              </div>
+
               <DrawerHeader className="text-left">
-                <DrawerTitle className="font-[family-name:var(--store-font-display)] text-2xl font-semibold">
+                <DrawerTitle className="store-heading text-h2">
                   {product.name}
                 </DrawerTitle>
                 <DrawerDescription className="text-[rgb(var(--store-text-rgb)/0.7)]">
                   {product.description ?? 'Sin descripción.'}
                 </DrawerDescription>
-                <p className="pt-1 text-lg font-semibold text-[var(--store-primary)]">
+                <p className="text-lead pt-1 font-semibold text-[var(--store-primary)]">
                   {formatCOP(Number(product.price))}
                 </p>
               </DrawerHeader>
 
-              <div className="space-y-6 px-4 pb-4">
+              <div className="space-y-6 px-4 pb-6">
                 {options.map((option) => {
                   const max = Math.max(1, option.max)
                   const values = [...option.product_option_values].sort(
@@ -187,12 +213,16 @@ export function ProductDrawer({ product, store, onClose }: ProductDrawerProps) {
                     <fieldset key={option.id} className="space-y-2">
                       <legend className="flex w-full items-baseline justify-between text-sm font-semibold">
                         {option.name}
-                        <span className="text-xs font-normal text-[rgb(var(--store-text-rgb)/0.6)]">
+                        <span className="text-xs font-normal text-[rgb(var(--store-text-rgb)/0.75)]">
                           {option.required ? 'Obligatorio' : 'Opcional'}
                           {max > 1 ? ` · hasta ${max}` : ''}
                         </span>
                       </legend>
-                      <div className="grid gap-1.5">
+                      <div
+                        role={max > 1 ? 'group' : 'radiogroup'}
+                        aria-label={option.name}
+                        className="grid gap-2"
+                      >
                         {values.map((value) => {
                           const checked = (selection[option.id] ?? []).includes(
                             value.id,
@@ -205,30 +235,33 @@ export function ProductDrawer({ product, store, onClose }: ProductDrawerProps) {
                               aria-checked={checked}
                               onClick={() => toggle(option.id, value.id, max)}
                               className={cn(
-                                'flex items-center justify-between rounded-[var(--store-button-radius)] border px-3 py-2.5 text-left text-sm transition-colors',
+                                // 44px minimum: this is the control people
+                                // actually tap, often one-handed.
+                                'flex min-h-[44px] items-center justify-between gap-3 rounded-[var(--store-button-radius)] border px-4 py-3 text-left text-sm transition-colors',
                                 checked
-                                  ? 'border-[var(--store-primary)] bg-[rgb(var(--store-primary-rgb)/0.08)]'
+                                  ? 'border-[var(--store-primary)] bg-[rgb(var(--store-primary-rgb)/0.1)]'
                                   : 'border-[rgb(var(--store-text-rgb)/0.12)] hover:bg-[rgb(var(--store-text-rgb)/0.04)]',
                               )}
                             >
-                              <span className="flex items-center gap-2">
+                              <span className="flex items-center gap-3">
                                 <span
                                   aria-hidden="true"
                                   className={cn(
-                                    'flex size-5 items-center justify-center rounded-full border',
+                                    'flex size-6 shrink-0 items-center justify-center border transition-colors',
+                                    max > 1 ? 'rounded-md' : 'rounded-full',
                                     checked
-                                      ? 'border-[var(--store-primary)] bg-[var(--store-primary)] text-white'
+                                      ? 'border-[var(--store-primary)] bg-[var(--store-primary)] text-[var(--store-on-primary)]'
                                       : 'border-[rgb(var(--store-text-rgb)/0.3)]',
                                   )}
                                 >
                                   {checked ? (
-                                    <CheckIcon className="size-3.5" />
+                                    <CheckIcon className="size-4" />
                                   ) : null}
                                 </span>
                                 {value.name}
                               </span>
                               {Number(value.price_delta) !== 0 ? (
-                                <span className="text-xs text-[rgb(var(--store-text-rgb)/0.7)]">
+                                <span className="text-xs text-[rgb(var(--store-text-rgb)/0.7)] tabular-nums">
                                   {Number(value.price_delta) > 0 ? '+' : ''}
                                   {formatCOP(Number(value.price_delta))}
                                 </span>
@@ -265,45 +298,42 @@ export function ProductDrawer({ product, store, onClose }: ProductDrawerProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 border-t border-[rgb(var(--store-text-rgb)/0.1)] p-4">
-              <div className="flex items-center rounded-[var(--store-button-radius)] border border-[rgb(var(--store-text-rgb)/0.15)]">
-                <button
-                  type="button"
-                  aria-label="Quitar uno"
-                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                  className="flex size-10 items-center justify-center"
-                >
-                  <MinusIcon aria-hidden="true" className="size-4" />
-                </button>
-                <span
-                  aria-live="polite"
-                  className="w-8 text-center text-sm font-semibold tabular-nums"
-                >
-                  {quantity}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Agregar uno"
-                  onClick={() =>
-                    setQuantity((value) => Math.min(50, value + 1))
-                  }
-                  className="flex size-10 items-center justify-center"
-                >
-                  <PlusIcon aria-hidden="true" className="size-4" />
-                </button>
-              </div>
-              <motion.div
-                className="flex-1"
-                whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+            <div className="flex shrink-0 items-center gap-3 border-t border-[rgb(var(--store-text-rgb)/0.1)] bg-[var(--store-surface)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <QuantityStepper
+                size="md"
+                quantity={quantity}
+                allowRemove={false}
+                itemLabel={product.name}
+                onDecrement={() =>
+                  setQuantity((value) => Math.max(1, value - 1))
+                }
+                onIncrement={() =>
+                  setQuantity((value) => Math.min(50, value + 1))
+                }
+                className="bg-transparent text-[var(--store-text)] shadow-none [border:1px_solid_rgb(var(--store-text-rgb)/0.15)]"
+              />
+              <motion.button
+                type="button"
+                onClick={submit}
+                whileTap={animate ? { scale: 0.97 } : undefined}
+                data-table-primary=""
+                className="store-btn h-12 flex-1 text-base"
               >
-                <Button
-                  type="button"
-                  onClick={submit}
-                  className="h-12 w-full rounded-[var(--store-button-radius)] bg-[var(--store-primary)] text-base text-white hover:bg-[var(--store-primary)]/90"
-                >
-                  Agregar · {formatCOP(lineTotal)}
-                </Button>
-              </motion.div>
+                Agregar ·{' '}
+                <span className="relative inline-flex tabular-nums">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={lineTotal}
+                      initial={animate ? { y: 10, opacity: 0 } : false}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={animate ? { y: -10, opacity: 0 } : { opacity: 0 }}
+                      transition={{ duration: 0.16 }}
+                    >
+                      {formatCOP(lineTotal)}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
+              </motion.button>
             </div>
           </>
         ) : null}

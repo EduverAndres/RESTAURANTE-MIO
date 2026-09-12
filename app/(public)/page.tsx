@@ -1,11 +1,6 @@
-import {
-  ArrowRightIcon,
-  HeartIcon,
-  RotateCcwIcon,
-  StoreIcon,
-} from 'lucide-react'
-import Link from 'next/link'
+import { HeartIcon, RotateCcwIcon } from 'lucide-react'
 import { Suspense } from 'react'
+import { SiteFooter } from '@/components/layout/site-footer'
 import { ForbiddenToast } from './forbidden-toast'
 import {
   StoreGrid,
@@ -13,15 +8,14 @@ import {
   fetchStores,
   readVisitorLocation,
 } from './store-grid'
-import { AddressPicker } from '@/components/home/address-picker'
 import { CategoryCarousel } from '@/components/home/category-carousel'
-import { SearchBox } from '@/components/home/search-box'
-import { FadeIn } from '@/components/motion/fade-in'
-import { StoreCard, type StoreCardData } from '@/components/store/store-card'
+import { HomeHero } from '@/components/home/home-hero'
+import { HowItWorks } from '@/components/home/how-it-works'
+import { StoreRail } from '@/components/home/store-rail'
+import { type StoreCardData } from '@/components/store/store-card'
 import { StoreGridSkeleton } from '@/components/store/store-card-skeleton'
-import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getCurrentUser } from '@/lib/auth'
-import { APP_NAME } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +23,9 @@ export const dynamic = 'force-dynamic'
 interface HomePageProps {
   searchParams: Promise<{ error?: string; categoria?: string }>
 }
+
+/** How many stores the rail shows before the full grid takes over. */
+const NEARBY_SHORTLIST = 8
 
 /** Stores the customer ordered from recently, most recent first. */
 async function fetchReorderStores(
@@ -54,6 +51,30 @@ async function fetchReorderStores(
   return ordered
 }
 
+function ShortcutSection({
+  id,
+  title,
+  icon,
+  stores,
+}: {
+  id: string
+  title: string
+  icon: React.ReactNode
+  stores: StoreCardData[]
+}) {
+  return (
+    <section aria-labelledby={`${id}-title`} className="mb-10">
+      <div className="mb-4 flex items-center gap-2">
+        {icon}
+        <h2 id={`${id}-title`} className="text-h3 font-display font-semibold">
+          {title}
+        </h2>
+      </div>
+      <StoreRail stores={stores} label={title} />
+    </section>
+  )
+}
+
 async function StoreSections({ category }: { category: string | null }) {
   const [location, current] = await Promise.all([
     readVisitorLocation(),
@@ -65,76 +86,91 @@ async function StoreSections({ category }: { category: string | null }) {
   const reorder = current
     ? await fetchReorderStores(current.user.id, stores)
     : []
+  const nearby = stores.slice(0, NEARBY_SHORTLIST)
 
   return (
     <>
-      <div className="mb-8 space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchBox className="flex-1" />
-          <AddressPicker initial={location} className="sm:max-w-xs" />
-        </div>
+      <div className="mb-8">
         <CategoryCarousel categories={categories} />
       </div>
 
       {!category && reorder.length > 0 ? (
-        <section aria-labelledby="reorder-title" className="mb-12">
-          <div className="mb-4 flex items-center gap-2">
+        <ShortcutSection
+          id="reorder"
+          title="Vuelve a pedir"
+          icon={
             <RotateCcwIcon aria-hidden="true" className="text-primary size-4" />
-            <h2
-              id="reorder-title"
-              className="font-display text-2xl font-semibold"
-            >
-              Vuelve a pedir
-            </h2>
-          </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {reorder.map((store) => (
-              <StoreCard key={store.id} store={store} />
-            ))}
-          </div>
-        </section>
+          }
+          stores={reorder}
+        />
       ) : null}
 
       {!category && favorites.length > 0 ? (
-        <section aria-labelledby="favorites-title" className="mb-12">
-          <div className="mb-4 flex items-center gap-2">
+        <ShortcutSection
+          id="favorites"
+          title="Tus favoritos"
+          icon={
             <HeartIcon aria-hidden="true" className="text-primary size-4" />
-            <h2
-              id="favorites-title"
-              className="font-display text-2xl font-semibold"
-            >
-              Tus favoritos
-            </h2>
+          }
+          stores={favorites}
+        />
+      ) : null}
+
+      {/*
+        The shortlist, as a rail. On a phone a single column of tall cards
+        makes people scroll blind: they pass three restaurants before
+        learning there was a fourth. The rail shows the next card's edge,
+        which is the whole invitation; from `lg` there is room for a grid and
+        the same markup lays itself out.
+      */}
+      {!category && nearby.length > 1 ? (
+        <section aria-labelledby="cerca-title" className="mb-10">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-primary-on-tint text-sm font-medium">
+                {location
+                  ? location.label || 'Tu ubicación'
+                  : 'Mejor valorados'}
+              </p>
+              <h2
+                id="cerca-title"
+                className="text-h2 font-display font-semibold"
+              >
+                {location ? 'Cerca de ti' : 'Los favoritos de la zona'}
+              </h2>
+            </div>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              {location
+                ? 'Ordenados por distancia, con tiempo estimado de llegada.'
+                : 'Elige tu ubicación para ver distancias y tiempos de entrega.'}
+            </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {favorites.map((store) => (
-              <StoreCard key={store.id} store={store} />
-            ))}
-          </div>
+          <StoreRail stores={nearby} label="Cerca de ti" priority />
         </section>
       ) : null}
 
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-primary text-sm font-medium">
-            {location
-              ? `Cerca de ${location.label || 'tu ubicación'}`
-              : 'Mejor valorados'}
-          </p>
-          <h2
-            id="restaurantes-title"
-            className="font-display text-3xl font-semibold tracking-tight sm:text-4xl"
-          >
-            {category ? category : 'Restaurantes para pedir hoy'}
-          </h2>
-        </div>
-        <p className="text-muted-foreground max-w-sm text-sm">
-          {location
-            ? 'Ordenados por distancia, con tiempo estimado de llegada.'
-            : 'Elige tu ubicación para ver distancias y tiempos de entrega.'}
-        </p>
+      <div className="mb-5">
+        <h2
+          id="restaurantes-title"
+          className="text-h2 font-display font-semibold"
+        >
+          {category ? category : 'Todos los restaurantes'}
+        </h2>
       </div>
       <StoreGrid stores={stores} category={category} />
+    </>
+  )
+}
+
+function SectionsSkeleton() {
+  return (
+    <>
+      <div aria-hidden="true" className="mb-8 flex gap-2 overflow-hidden">
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="rounded-pill h-12 w-32 shrink-0" />
+        ))}
+      </div>
+      <StoreGridSkeleton />
     </>
   )
 }
@@ -142,95 +178,29 @@ async function StoreSections({ category }: { category: string | null }) {
 export default async function HomePage({ searchParams }: HomePageProps) {
   const { error, categoria } = await searchParams
   const category = categoria?.trim() || null
+  // A cookie read, so the hero — and its search box — paint immediately while
+  // the store query streams in below.
+  const location = await readVisitorLocation()
 
   return (
     <>
       <ForbiddenToast error={error} />
 
-      <section className="container-page grid items-center gap-10 py-12 lg:grid-cols-[1.2fr_1fr] lg:py-20">
-        <FadeIn className="space-y-7">
-          <p className="rounded-pill bg-primary/10 text-primary inline-flex items-center gap-2 px-3 py-1 text-xs font-medium">
-            <StoreIcon aria-hidden="true" className="size-3.5" />
-            Restaurantes con identidad propia
-          </p>
-          <h1 className="font-display font-display-soft text-5xl leading-[0.95] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-            Pide a tu restaurante favorito.
-            <br />
-            <span className="text-primary">Con su propia identidad.</span>
-          </h1>
-          <p className="text-muted-foreground max-w-xl text-lg">
-            En {APP_NAME} cada restaurante tiene su tienda, sus colores y su
-            carta. Tú eliges, pagas en dos toques y sigues el pedido en vivo.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              asChild
-              size="lg"
-              className="rounded-pill h-12 px-6 text-base"
-            >
-              <Link href="#restaurantes">Explorar restaurantes</Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="rounded-pill h-12 px-6 text-base"
-            >
-              <Link href="/register?role=merchant">
-                Tengo un restaurante
-                <ArrowRightIcon aria-hidden="true" />
-              </Link>
-            </Button>
-          </div>
-        </FadeIn>
-
-        <FadeIn delay={0.15} className="hidden lg:block">
-          <ul className="grid gap-4">
-            {[
-              {
-                title: 'Dos toques',
-                text: 'Dirección y pago guardados desde tu primera compra.',
-              },
-              {
-                title: 'En vivo',
-                text: 'Sigue tu pedido estado por estado y habla con el restaurante.',
-              },
-              {
-                title: 'Sin intermediarios raros',
-                text: 'Comisión clara del 6 % que el restaurante conoce.',
-              },
-            ].map((item, index) => (
-              <li
-                key={item.title}
-                className="rounded-card bg-card shadow-soft ring-foreground/5 flex gap-4 p-5 ring-1"
-                style={{ marginLeft: `${index * 24}px` }}
-              >
-                <span className="rounded-control bg-primary/10 font-display text-primary flex size-10 shrink-0 items-center justify-center text-lg font-semibold">
-                  {index + 1}
-                </span>
-                <span>
-                  <span className="font-display block text-xl font-semibold">
-                    {item.title}
-                  </span>
-                  <span className="text-muted-foreground block text-sm">
-                    {item.text}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </FadeIn>
-      </section>
+      <HomeHero location={location} />
 
       <section
         id="restaurantes"
-        className="container-page scroll-mt-24 pb-20"
+        className="container-page scroll-mt-24 py-10 lg:py-14"
         aria-labelledby="restaurantes-title"
       >
-        <Suspense fallback={<StoreGridSkeleton />}>
+        <Suspense fallback={<SectionsSkeleton />}>
           <StoreSections category={category} />
         </Suspense>
       </section>
+
+      <HowItWorks />
+
+      <SiteFooter />
     </>
   )
 }

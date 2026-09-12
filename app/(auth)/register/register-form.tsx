@@ -19,6 +19,7 @@ import { resendConfirmation, signUp } from '../actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { describedBy } from '@/lib/a11y/forms'
 import { getRoleHome } from '@/lib/auth/roles'
 import { cn } from '@/lib/utils'
 import {
@@ -166,7 +167,7 @@ export function RegisterForm({ initialRole }: { initialRole: RegisterRole }) {
         role="status"
         className="rounded-card border-border bg-card shadow-soft space-y-4 border p-6 text-center"
       >
-        <span className="rounded-pill bg-primary/10 text-primary mx-auto flex size-14 items-center justify-center">
+        <span className="rounded-pill bg-primary/10 text-primary-on-tint mx-auto flex size-14 items-center justify-center">
           <MailCheckIcon aria-hidden="true" className="size-7" />
         </span>
         <h2 className="font-display text-2xl font-semibold">
@@ -196,12 +197,21 @@ export function RegisterForm({ initialRole }: { initialRole: RegisterRole }) {
         name="role"
         render={({ field }) => (
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">
+            <legend id="register-role-label" className="text-sm font-medium">
               ¿Cómo quieres usar la plataforma?
             </legend>
+            {/*
+              The legend names the group: an `aria-label` here would replace
+              the visible question with different words, and would leave the
+              error below unreachable.
+            */}
             <div
               role="radiogroup"
-              aria-label="Tipo de cuenta"
+              aria-labelledby="register-role-label"
+              aria-invalid={Boolean(errors.role)}
+              aria-describedby={describedBy(
+                Boolean(errors.role) && 'role-error',
+              )}
               className="grid gap-2"
             >
               {ROLE_OPTIONS.map(({ value, title, description, icon: Icon }) => {

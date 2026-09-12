@@ -12,7 +12,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 
 export const STORE_CARD_COLUMNS =
-  'id, slug, name, category, cover_url, rating_avg, rating_count, prep_time_min, delivery_fee, is_open'
+  'id, slug, name, category, logo_url, cover_url, rating_avg, rating_count, prep_time_min, delivery_fee, is_open'
 
 const NEARBY_RADIUS_KM = 15
 
@@ -57,6 +57,7 @@ export async function fetchStores(
         slug: store.slug,
         name: store.name,
         category: store.category,
+        logo_url: store.logo_url,
         cover_url: store.cover_url,
         rating_avg: store.rating_avg,
         rating_count: store.rating_count,
@@ -140,9 +141,11 @@ export function StoreGrid({ stores, category }: StoreGridProps) {
   }
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {visible.map((store, index) => (
-        <StoreCard key={store.id} store={store} priority={index < 3} />
+    <div className="gap-card grid sm:grid-cols-2 lg:grid-cols-3">
+      {visible.map((store) => (
+        // Nothing here is the LCP any more: the hero's brand line and search
+        // box own the first screen, and this grid sits below the rail.
+        <StoreCard key={store.id} store={store} />
       ))}
     </div>
   )

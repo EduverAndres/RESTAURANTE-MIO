@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
+import { AccessibilityAttributes } from '@/components/a11y/accessibility-attributes'
+import { RealtimeProvider } from '@/components/providers/realtime-provider'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { accessibilityPreferencesScript } from '@/lib/a11y/preferences'
 import { APP_NAME, env } from '@/lib/env'
 import './globals.css'
 
@@ -64,9 +67,30 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${fraunces.variable} ${inter.variable}`}
     >
+      <head>
+        {/*
+          Stamps data-text-size / data-contrast / data-motion on <html> before
+          first paint, so a customer who chose extra-large text or high
+          contrast never sees a frame of the default. It writes data-*
+          attributes only; next-themes owns `class` on the same element.
+        */}
+        {/* Fixed, self-contained source; no user input reaches it. */}
+        <script
+          dangerouslySetInnerHTML={{ __html: accessibilityPreferencesScript() }}
+        />
+      </head>
       <body className="font-sans">
+        <AccessibilityAttributes />
         <ThemeProvider>
-          <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          {/*
+            Realtime consumers live under (protected), /dashboard, /courier and
+            the public storefront, so the root layout is the narrowest shell
+            that covers them all. It is a client boundary that only passes
+            `children` through: the pages below stay server components.
+          */}
+          <RealtimeProvider>
+            <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          </RealtimeProvider>
           <Toaster />
           <InstallPrompt />
           <ServiceWorkerRegister />

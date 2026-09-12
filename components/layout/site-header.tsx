@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AccessibilityMenu } from '@/components/a11y/accessibility-menu'
 import { UserMenu } from '@/components/layout/user-menu'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,16 @@ export async function SiteHeader() {
 
   return (
     <header className="border-border/60 bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
+      {/*
+        First stop for a keyboard user on every page: it is visually hidden
+        until focused, and jumps past the nav to the page's own content.
+      */}
+      <a
+        href="#contenido"
+        className="bg-background text-foreground rounded-control focus-visible:ring-ring sr-only px-4 py-2 text-sm font-medium shadow-lg focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:ring-2"
+      >
+        Saltar al contenido
+      </a>
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Wordmark />
 
@@ -50,6 +61,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <AccessibilityMenu />
           <ThemeToggle />
           {current ? (
             <UserMenu

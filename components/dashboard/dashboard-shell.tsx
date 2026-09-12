@@ -8,6 +8,8 @@ import {
   LogOutIcon,
   MenuIcon,
   PaletteIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   QrCodeIcon,
   ReceiptTextIcon,
   SettingsIcon,
@@ -16,7 +18,7 @@ import {
   UtensilsIcon,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DashboardNav,
   type DashboardNavItem,
@@ -39,6 +41,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { ROLE_LABELS } from '@/lib/orders/status'
+import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types/app'
 
 const MERCHANT_ITEMS: DashboardNavItem[] = [
@@ -77,20 +80,67 @@ interface DashboardShellProps {
   children: React.ReactNode
 }
 
-function SignOutButton({ className }: { className?: string }) {
+function SignOutButton({
+  className,
+  collapsed = false,
+}: {
+  className?: string
+  collapsed?: boolean
+}) {
   return (
     <form action="/auth/sign-out" method="post" className={className}>
       <Button
         type="submit"
         variant="ghost"
         size="sm"
-        className="rounded-control w-full justify-start gap-2"
+        title={collapsed ? 'Cerrar sesión' : undefined}
+        className={cn(
+          'rounded-control w-full gap-2',
+          collapsed ? 'justify-center px-0' : 'justify-start',
+        )}
       >
         <LogOutIcon aria-hidden="true" />
-        Cerrar sesión
+        <span className={cn(collapsed && 'sr-only')}>Cerrar sesión</span>
       </Button>
     </form>
   )
+}
+
+/**
+ * Remembering the choice is the whole point: a merchant who works all day in
+ * Pedidos collapses the rail once and gets the width back for good. It is
+ * read after mount rather than during render so the server and client markup
+ * agree, and the width transition is suppressed until then so the sidebar
+ * does not visibly slide on every page load.
+ */
+const COLLAPSED_KEY = 'dashboard:sidebar-collapsed'
+
+function useSidebarCollapsed() {
+  const [collapsed, setCollapsed] = useState(false)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem(COLLAPSED_KEY) === '1')
+    } catch {
+      // Storage disabled; the rail simply starts expanded.
+    }
+    setReady(true)
+  }, [])
+
+  function toggle() {
+    setCollapsed((current) => {
+      const next = !current
+      try {
+        window.localStorage.setItem(COLLAPSED_KEY, next ? '1' : '0')
+      } catch {
+        // Nothing to do: the preference is a convenience, not state.
+      }
+      return next
+    })
+  }
+
+  return { collapsed, ready, toggle }
 }
 
 export function DashboardShell({
@@ -103,6 +153,7 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const [open, setOpen] = useState(false)
+  const { collapsed, ready, toggle } = useSidebarCollapsed()
   const items = variant === 'admin' ? ADMIN_ITEMS : MERCHANT_ITEMS
   const title = SHELL_TITLES[variant]
   const switcher =
@@ -110,41 +161,104 @@ export function DashboardShell({
       <StoreSwitcher stores={stores} activeId={activeStoreId ?? stores[0].id} />
     ) : null
 
-  const identity = (
-    <div className="rounded-card bg-muted/60 flex items-center gap-3 p-3">
-      <Avatar className="size-9">
-        <AvatarFallback className="bg-primary/12 text-primary text-xs font-semibold">
-          {initialsOf(user.name)}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{user.name}</p>
-        <p className="text-muted-foreground truncate text-xs">
-          {ROLE_LABELS[user.role]}
-        </p>
+  const identity = (compact = false) =>
+    compact ? (
+      <div className="flex justify-center">
+        <Avatar className="size-9">
+          <AvatarFallback
+            className="bg-primary/12 text-primary-on-tint text-xs font-semibold"
+            title={`${user.name} · ${ROLE_LABELS[user.role]}`}
+          >
+            {initialsOf(user.name)}
+          </AvatarFallback>
+        </Avatar>
       </div>
-    </div>
-  )
+    ) : (
+      <div className="rounded-card bg-muted/60 flex items-center gap-3 p-3">
+        <Avatar className="size-9">
+          <AvatarFallback className="bg-primary/12 text-primary-on-tint text-xs font-semibold">
+            {initialsOf(user.name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{user.name}</p>
+          <p className="text-muted-foreground truncate text-xs">
+            {ROLE_LABELS[user.role]}
+          </p>
+        </div>
+      </div>
+    )
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[260px_1fr] print:block">
-      <aside className="border-border/60 bg-sidebar hidden border-r lg:flex lg:flex-col print:hidden">
-        <div className="flex h-16 items-center px-5">
+    <div
+      className={cn(
+        'min-h-dvh print:block',
+        collapsed
+          ? 'lg:grid lg:grid-cols-[4.5rem_1fr]'
+          : 'lg:grid lg:grid-cols-[260px_1fr]',
+        ready &&
+          'lg:ease-out-soft lg:transition-[grid-template-columns] lg:duration-200',
+      )}
+    >
+      <aside
+        id="dashboard-sidebar"
+        className="border-border/60 bg-sidebar hidden border-r lg:flex lg:flex-col print:hidden"
+      >
+        <div
+          className={cn(
+            'flex h-16 items-center',
+            collapsed ? 'justify-center px-0' : 'px-5',
+          )}
+        >
           <Link
             href="/"
             className="font-display font-display-soft text-2xl font-semibold tracking-tight"
           >
-            {appName}
+            {collapsed ? (
+              <>
+                {appName.slice(0, 1)}
+                <span className="sr-only">{appName.slice(1)}</span>
+              </>
+            ) : (
+              appName
+            )}
             <span className="text-primary">.</span>
           </Link>
         </div>
-        <p className="text-muted-foreground px-5 pb-2 text-xs font-medium tracking-wide uppercase">
-          {title}
-        </p>
-        <DashboardNav items={items} className="px-3" />
-        <div className="mt-auto space-y-2 p-3">
-          {identity}
-          <SignOutButton />
+        {collapsed ? null : (
+          <p className="text-muted-foreground px-5 pb-2 text-xs font-medium tracking-wide uppercase">
+            {title}
+          </p>
+        )}
+        <DashboardNav
+          items={items}
+          collapsed={collapsed}
+          className={collapsed ? 'px-2' : 'px-3'}
+        />
+        <div className={cn('mt-auto space-y-2', collapsed ? 'p-2' : 'p-3')}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={toggle}
+            aria-expanded={!collapsed}
+            aria-controls="dashboard-sidebar"
+            className={cn(
+              'rounded-control w-full gap-2',
+              collapsed ? 'justify-center px-0' : 'justify-start',
+            )}
+          >
+            {collapsed ? (
+              <PanelLeftOpenIcon aria-hidden="true" />
+            ) : (
+              <PanelLeftCloseIcon aria-hidden="true" />
+            )}
+            <span className={cn(collapsed && 'sr-only')}>
+              {collapsed ? 'Expandir menú' : 'Contraer menú'}
+            </span>
+          </Button>
+          {identity(collapsed)}
+          <SignOutButton collapsed={collapsed} />
         </div>
       </aside>
 
@@ -176,7 +290,7 @@ export function DashboardShell({
                   onNavigate={() => setOpen(false)}
                 />
                 <div className="mt-auto space-y-2 p-3">
-                  {identity}
+                  {identity()}
                   <SignOutButton />
                 </div>
               </SheetContent>

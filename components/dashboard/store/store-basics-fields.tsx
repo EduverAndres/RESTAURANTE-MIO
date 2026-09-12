@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { describedBy, errorId } from '@/lib/a11y/forms'
 import { isValidSlug } from '@/lib/slug'
 import {
   STORE_CATEGORIES,
@@ -73,29 +74,39 @@ function useSlugAvailability(
   return state
 }
 
-function SlugHint({ state }: { state: SlugState }) {
-  if (state === 'checking')
-    return (
-      <span className="text-muted-foreground flex items-center gap-1 text-xs">
-        <LoaderCircleIcon aria-hidden="true" className="size-3 animate-spin" />
-        Verificando…
-      </span>
-    )
-  if (state === 'available')
-    return (
-      <span className="text-success flex items-center gap-1 text-xs">
-        <CheckCircle2Icon aria-hidden="true" className="size-3" />
-        Disponible
-      </span>
-    )
-  if (state === 'taken')
-    return (
-      <span className="text-destructive flex items-center gap-1 text-xs">
-        <XCircleIcon aria-hidden="true" className="size-3" />
-        En uso
-      </span>
-    )
-  return null
+/**
+ * Availability of the chosen address, resolved asynchronously.
+ *
+ * A live region because it is the answer to something the merchant just did
+ * and nothing else on the page says it: without this, "En uso" appeared next
+ * to the label and a screen reader user typed on unaware.
+ */
+function SlugHint({ state, id }: { state: SlugState; id: string }) {
+  return (
+    <span id={id} role="status" className="flex items-center gap-1 text-xs">
+      {state === 'checking' ? (
+        <span className="text-muted-foreground flex items-center gap-1">
+          <LoaderCircleIcon
+            aria-hidden="true"
+            className="size-3 animate-spin"
+          />
+          Verificando…
+        </span>
+      ) : null}
+      {state === 'available' ? (
+        <span className="text-success flex items-center gap-1">
+          <CheckCircle2Icon aria-hidden="true" className="size-3" />
+          Disponible
+        </span>
+      ) : null}
+      {state === 'taken' ? (
+        <span className="text-destructive flex items-center gap-1">
+          <XCircleIcon aria-hidden="true" className="size-3" />
+          En uso
+        </span>
+      ) : null}
+    </span>
+  )
 }
 
 export function StoreBasicsFields({
@@ -140,7 +151,7 @@ export function StoreBasicsFields({
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <Label htmlFor={`${idPrefix}-slug`}>Dirección web</Label>
-          <SlugHint state={slugState} />
+          <SlugHint state={slugState} id={`${idPrefix}-slug-availability`} />
         </div>
         <div className="flex items-center gap-1">
           <span className="text-muted-foreground text-sm">/t/</span>
@@ -150,7 +161,11 @@ export function StoreBasicsFields({
             spellCheck={false}
             placeholder="la-parrilla-del-norte"
             aria-invalid={Boolean(errors.slug)}
-            aria-describedby={`${idPrefix}-slug-error ${idPrefix}-slug-help`}
+            aria-describedby={describedBy(
+              `${idPrefix}-slug-help`,
+              `${idPrefix}-slug-availability`,
+              Boolean(errors.slug) && errorId(`${idPrefix}-slug`),
+            )}
             className="rounded-control h-11 font-mono text-sm"
             {...form.register('slug', {
               onChange: () => setSlugTouched(true),

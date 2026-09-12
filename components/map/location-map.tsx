@@ -139,8 +139,13 @@ export function LocationMap({
     if (!layer) return
     layer.clearLayers()
     markers.forEach((marker) => {
+      // Leaflet makes every marker a focusable `role="button"`, so it needs a
+      // name: `title` and `alt` both land on the icon element and the tooltip
+      // alone is not one, because it only exists while hovered.
       const leafletMarker = L.marker([marker.lat, marker.lng], {
         icon: iconFor(marker.kind),
+        title: marker.label,
+        alt: marker.label,
       })
       if (marker.label)
         leafletMarker.bindTooltip(marker.label, {
@@ -175,6 +180,8 @@ export function LocationMap({
       const marker = L.marker([pin.lat, pin.lng], {
         icon: iconFor('pin'),
         draggable: true,
+        title: 'Ubicación elegida; arrástrala para ajustarla',
+        alt: 'Ubicación elegida; arrástrala para ajustarla',
       })
       marker.on('dragend', () => {
         const position = marker.getLatLng()

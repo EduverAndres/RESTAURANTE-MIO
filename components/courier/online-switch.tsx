@@ -17,6 +17,9 @@ const STATE_COPY: Record<GeolocationPublisherState, string> = {
   denied:
     'Permiso de ubicación denegado. Revísalo en los ajustes del navegador.',
   unsupported: 'Este dispositivo no permite compartir la ubicación.',
+  insecure:
+    'El navegador bloquea la ubicación en conexiones sin https. Abre la app desde una dirección segura.',
+  timeout: 'La ubicación está tardando demasiado. Seguimos intentando.',
   error: 'Sin señal de ubicación por ahora. Seguimos intentando.',
 }
 

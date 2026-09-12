@@ -15,8 +15,8 @@ const TONE_CLASSES: Record<StatusTone, string> = {
   neutral: 'bg-muted text-muted-foreground',
   info: 'bg-sky-500/12 text-sky-700 dark:text-sky-300',
   warning: 'bg-accent/20 text-amber-800 dark:text-amber-300',
-  primary: 'bg-primary/12 text-primary',
-  success: 'bg-success/12 text-success',
+  primary: 'bg-primary/12 text-primary-on-tint',
+  success: 'bg-success/12 text-success-on-tint',
   destructive: 'bg-destructive/12 text-destructive',
 }
 

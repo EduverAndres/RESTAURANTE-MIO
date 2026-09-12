@@ -30,9 +30,7 @@ export default async function RegisterPage({
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
-          Crea tu cuenta
-        </h1>
+        <h1 className="text-h1 font-display font-semibold">Crea tu cuenta</h1>
         <p className="text-muted-foreground">
           Cuéntanos cómo quieres usar la plataforma y listo.
         </p>

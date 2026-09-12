@@ -44,7 +44,10 @@ export function OrderReceipt({
         {items.map((item) => {
           const options = (item.options ?? []) as unknown as OrderItemOption[]
           return (
-            <li key={item.id} className="flex justify-between gap-3 py-2 text-sm">
+            <li
+              key={item.id}
+              className="flex justify-between gap-3 py-2 text-sm"
+            >
               <span className="min-w-0">
                 <span className="block">
                   {item.quantity}× {item.name_snapshot}
@@ -55,9 +58,7 @@ export function OrderReceipt({
                   </span>
                 ) : null}
               </span>
-              <span className="tabular-nums">
-                {formatCOP(lineTotal(item))}
-              </span>
+              <span className="tabular-nums">{formatCOP(lineTotal(item))}</span>
             </li>
           )
         })}

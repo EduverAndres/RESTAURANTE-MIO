@@ -4,12 +4,21 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import type { LatLng } from '@/lib/geo'
 import {
+  classifyPositionError,
+  detectGeolocationSupport,
+  GeolocationFailureError,
+  type GeolocationSupport,
+} from '@/lib/geo/geolocation-availability'
+import {
   LOCATION_COOKIE,
   LOCATION_COOKIE_MAX_AGE,
   parseLocation,
   serializeLocation,
   type VisitorLocation,
 } from '@/lib/location'
+
+/** `unknown` until the effect runs on the client (SSR renders no verdict). */
+export type GpsSupport = GeolocationSupport | 'unknown'
 
 function readCookie(): VisitorLocation | null {
   if (typeof document === 'undefined') return null
@@ -19,13 +28,22 @@ function readCookie(): VisitorLocation | null {
   return parseLocation(match?.slice(LOCATION_COOKIE.length + 1))
 }
 
+function detectSupport(): GeolocationSupport {
+  return detectGeolocationSupport({
+    isSecureContext: window.isSecureContext,
+    navigator: window.navigator,
+  })
+}
+
 export function useVisitorLocation(initial: VisitorLocation | null = null) {
   const router = useRouter()
   const [location, setLocationState] = useState<VisitorLocation | null>(initial)
+  const [gpsSupport, setGpsSupport] = useState<GpsSupport>('unknown')
 
   useEffect(() => {
     const fromCookie = readCookie()
     if (fromCookie) setLocationState(fromCookie)
+    setGpsSupport(detectSupport())
   }, [])
 
   const setLocation = useCallback(
@@ -41,8 +59,9 @@ export function useVisitorLocation(initial: VisitorLocation | null = null) {
   const locate = useCallback(
     () =>
       new Promise<LatLng>((resolve, reject) => {
-        if (!('geolocation' in navigator)) {
-          reject(new Error('Tu navegador no permite obtener la ubicación.'))
+        const support = detectSupport()
+        if (support !== 'ok') {
+          reject(new GeolocationFailureError(support))
           return
         }
         navigator.geolocation.getCurrentPosition(
@@ -51,11 +70,9 @@ export function useVisitorLocation(initial: VisitorLocation | null = null) {
               lat: position.coords.latitude,
               lng: position.coords.longitude,
             }),
-          () =>
+          (error) =>
             reject(
-              new Error(
-                'No pudimos obtener tu ubicación. Revisa los permisos.',
-              ),
+              new GeolocationFailureError(classifyPositionError(error.code)),
             ),
           { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
         )
@@ -63,5 +80,5 @@ export function useVisitorLocation(initial: VisitorLocation | null = null) {
     [],
   )
 
-  return { location, setLocation, locate }
+  return { location, setLocation, locate, gpsSupport }
 }

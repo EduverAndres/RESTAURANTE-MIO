@@ -8,9 +8,19 @@ import {
   shouldPublishPosition,
   type TimedPosition,
 } from '@/lib/courier/eta'
+import {
+  classifyPositionError,
+  detectGeolocationSupport,
+} from '@/lib/geo/geolocation-availability'
 
 export type GeolocationPublisherState =
-  'idle' | 'watching' | 'denied' | 'unsupported' | 'error'
+  | 'idle'
+  | 'watching'
+  | 'denied'
+  | 'unsupported'
+  | 'insecure'
+  | 'timeout'
+  | 'error'
 
 const THROTTLE = { minMeters: 15, minMs: 4000 }
 const WATCH_OPTIONS: PositionOptions = {
@@ -39,9 +49,17 @@ export function useGeolocationPublisher(
       setState('idle')
       return
     }
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    const support = detectGeolocationSupport(window)
+    if (support === 'unsupported') {
       setState('unsupported')
       toast.error('Tu dispositivo no permite compartir la ubicación.')
+      return
+    }
+    if (support === 'insecure') {
+      setState('insecure')
+      toast.error(
+        'El navegador bloquea la ubicación en conexiones sin https. Abre la app desde una dirección segura.',
+      )
       return
     }
 
@@ -77,12 +95,20 @@ export function useGeolocationPublisher(
       },
       (error) => {
         if (cancelled) return
-        if (error.code === error.PERMISSION_DENIED) {
+        const reason = classifyPositionError(error.code)
+        if (reason === 'denied') {
           setState('denied')
-          toast.error('Permite el acceso a tu ubicación para ponerte en línea.')
+          // watchPosition keeps firing while the permission stays denied, so
+          // the toast is throttled exactly like the timeout/error branch.
+          if (!warnedRef.current) {
+            warnedRef.current = true
+            toast.error(
+              'Permite el acceso a tu ubicación para ponerte en línea.',
+            )
+          }
           return
         }
-        setState('error')
+        setState(reason === 'timeout' ? 'timeout' : 'error')
         if (!warnedRef.current) {
           warnedRef.current = true
           toast.error('No pudimos obtener tu ubicación. Seguiremos intentando.')

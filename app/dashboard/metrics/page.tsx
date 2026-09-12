@@ -1,3 +1,10 @@
+import {
+  BanknoteIcon,
+  ReceiptTextIcon,
+  StarIcon,
+  TrendingUpIcon,
+  XCircleIcon,
+} from 'lucide-react'
 import type { Metadata } from 'next'
 import { BarChart } from '@/components/dashboard/metrics/bar-chart'
 import { KpiTile } from '@/components/dashboard/metrics/kpi-tile'
@@ -87,9 +94,7 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
     <div className="mx-auto max-w-6xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Métricas
-          </h1>
+          <h1 className="text-h1 font-display font-semibold">Métricas</h1>
           <p className="text-muted-foreground text-sm">
             Cómo va {store.name}. Los ingresos cuentan solo pedidos entregados.
           </p>
@@ -97,20 +102,38 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
         <PeriodSelector current={period} />
       </header>
 
-      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <KpiTile label="Pedidos" value={String(kpis.orders)} />
-        <KpiTile label="Ingresos" value={formatCOP(kpis.revenue)} />
+      {/*
+        The two tiles with a real per-bucket series get a sparkline. The other
+        three are single numbers for the whole period — drawing a line through
+        one point would be decoration pretending to be data.
+      */}
+      <dl className="gap-card grid sm:grid-cols-2 lg:grid-cols-5">
+        <KpiTile
+          label="Pedidos"
+          value={String(kpis.orders)}
+          icon={ReceiptTextIcon}
+          trend={series.map((point) => point.orders)}
+        />
+        <KpiTile
+          label="Ingresos"
+          value={formatCOP(kpis.revenue)}
+          icon={BanknoteIcon}
+          trend={series.map((point) => point.revenue)}
+        />
         <KpiTile
           label="Ticket promedio"
           value={formatCOP(kpis.averageTicket)}
+          icon={TrendingUpIcon}
         />
         <KpiTile
           label="Cancelados"
           value={`${kpis.cancelledPct.toLocaleString('es-CO')} %`}
+          icon={XCircleIcon}
         />
         <KpiTile
           label="Valoración"
           value={ratingCount > 0 ? rating.toFixed(1) : '—'}
+          icon={StarIcon}
           hint={
             ratingCount > 0
               ? `${ratingCount} reseña${ratingCount === 1 ? '' : 's'}`
@@ -119,14 +142,14 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
         />
       </dl>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+      <div className="gap-inline grid lg:grid-cols-[1fr_320px] lg:items-start">
         <BarChart
           title={period === 'hoy' ? 'Pedidos por hora' : 'Pedidos por día'}
           points={series}
         />
         <section
           aria-labelledby="top-products-title"
-          className="rounded-card border-border bg-card shadow-soft border p-4 sm:p-5"
+          className="rounded-card border-border bg-card shadow-1 p-card border"
         >
           <h2
             id="top-products-title"
@@ -145,7 +168,7 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
                   key={product.key}
                   className="flex items-center gap-3 text-sm"
                 >
-                  <span className="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                  <span className="bg-primary/10 text-primary-on-tint flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate">

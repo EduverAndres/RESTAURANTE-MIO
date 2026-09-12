@@ -51,9 +51,7 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Pedidos
-          </h1>
+          <h1 className="text-h1 font-display font-semibold">Pedidos</h1>
           <p className="text-muted-foreground text-sm">
             {active.name} · los pedidos nuevos aparecen al instante.
           </p>

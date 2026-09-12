@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { AvailableOrderCard } from '@/components/courier/available-order-card'
 import { DeliveryCard } from '@/components/courier/delivery-card'
 import { OnlineSwitch } from '@/components/courier/online-switch'
-import { useCourierRealtime } from '@/components/courier/use-courier-realtime'
+import { useCourierPool } from '@/components/courier/use-courier-realtime'
 import { useGeolocationPublisher } from '@/components/courier/use-geolocation-publisher'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -30,14 +30,17 @@ function Count({ value }: { value: number }) {
 }
 
 export function CourierBoard({
-  available,
+  available: initialAvailable,
   active,
   history,
 }: CourierBoardProps) {
   // Online is client-only state: closing the tab stops sharing the position.
   const [online, setOnline] = useState(false)
   const publisher = useGeolocationPublisher(online)
-  useCourierRealtime()
+  // The pool is reconciled client-side: an order another courier claimed stops
+  // matching this courier's RLS predicate, so its disappearance never arrives
+  // as an event.
+  const available = useCourierPool(initialAvailable)
 
   return (
     <div className="space-y-6">

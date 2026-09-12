@@ -5,6 +5,7 @@ import { FieldError } from '@/components/dashboard/store/field-error'
 import { StoreLocationPicker } from '@/components/dashboard/store/store-location-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { describedBy, errorId, hintId } from '@/lib/a11y/forms'
 import { BOGOTA_CENTER, type LatLng } from '@/lib/geo'
 import type { StoreLogisticsInput } from '@/lib/validations/store'
 
@@ -43,12 +44,22 @@ function NumberField({
         step={step}
         min={min}
         aria-invalid={Boolean(error)}
-        aria-describedby={`${id}-error`}
+        // Only the ids that are actually on the page: pointing at
+        // `${id}-error` unconditionally left every clean field describing
+        // itself by an element that does not exist.
+        aria-describedby={describedBy(
+          Boolean(hint) && hintId(id),
+          Boolean(error) && errorId(id),
+        )}
         className="rounded-control h-11 tabular-nums"
         {...registration}
       />
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
-      <FieldError id={`${id}-error`} message={error} />
+      {hint ? (
+        <p id={hintId(id)} className="text-muted-foreground text-xs">
+          {hint}
+        </p>
+      ) : null}
+      <FieldError id={errorId(id)} message={error} />
     </div>
   )
 }
@@ -90,22 +101,35 @@ export function StoreLogisticsFields({
         />
       </div>
 
-      <StoreLocationPicker
-        pin={pin}
-        onPinChange={setPin}
-        onAddressSuggested={(line1) => {
-          if (!form.getValues('address')) {
-            form.setValue('address', line1, {
-              shouldValidate: true,
-              shouldDirty: true,
-            })
-          }
-        }}
-      />
-      <FieldError
-        id={`${idPrefix}-pin-error`}
-        message={errors.lat?.message ?? errors.lng?.message}
-      />
+      {/*
+        `group` does not support aria-invalid, so the pin's error reaches the
+        picker through aria-describedby alone — which is the part that was
+        missing: the message rendered and nothing pointed at it.
+      */}
+      <div
+        role="group"
+        aria-label="Ubicación en el mapa"
+        aria-describedby={describedBy(
+          Boolean(errors.lat ?? errors.lng) && errorId(`${idPrefix}-pin`),
+        )}
+      >
+        <StoreLocationPicker
+          pin={pin}
+          onPinChange={setPin}
+          onAddressSuggested={(line1) => {
+            if (!form.getValues('address')) {
+              form.setValue('address', line1, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+          }}
+        />
+        <FieldError
+          id={errorId(`${idPrefix}-pin`)}
+          message={errors.lat?.message ?? errors.lng?.message}
+        />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <NumberField

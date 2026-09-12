@@ -119,7 +119,7 @@ export function CategoryList({
                   className={cn(
                     'rounded-control focus-visible:ring-primary flex cursor-pointer items-center gap-2 px-2 py-1.5 text-sm transition-colors outline-none focus-visible:ring-2',
                     selected
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-primary/10 text-primary-on-tint'
                       : 'hover:bg-muted text-foreground',
                     !category.is_visible && 'opacity-60',
                   )}
@@ -193,7 +193,7 @@ export function CategoryList({
           className={cn(
             'rounded-control mt-3 flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors',
             selectedKey === UNCATEGORIZED_KEY
-              ? 'bg-primary/10 text-primary'
+              ? 'bg-primary/10 text-primary-on-tint'
               : 'hover:bg-muted text-muted-foreground',
           )}
         >

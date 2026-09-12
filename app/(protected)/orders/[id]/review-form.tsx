@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { submitReview } from './actions'
+import { FieldError } from '@/components/dashboard/store/field-error'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { describedBy } from '@/lib/a11y/forms'
 import { cn } from '@/lib/utils'
 
 const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente']
@@ -24,13 +26,18 @@ export function ReviewForm({
   const [hover, setHover] = useState(0)
   const [comment, setComment] = useState('')
   const [pending, startTransition] = useTransition()
+  // A toast alone was the whole error affordance here: it disappears, and a
+  // customer who scrolled past the stars had nothing to go back to.
+  const [ratingError, setRatingError] = useState('')
 
   function submit(event: React.FormEvent) {
     event.preventDefault()
     if (rating === 0) {
+      setRatingError('Elige una calificación de 1 a 5 estrellas.')
       toast.error('Elige una calificación.')
       return
     }
+    setRatingError('')
     startTransition(async () => {
       const result = await submitReview({ orderId, rating, comment })
       if (!result.ok) {
@@ -50,7 +57,7 @@ export function ReviewForm({
       className="rounded-card border-border bg-card shadow-soft space-y-4 border p-5"
     >
       <div>
-        <h2 className="font-display text-2xl font-semibold">
+        <h2 id="review-title" className="font-display text-2xl font-semibold">
           ¿Cómo estuvo {storeName}?
         </h2>
         <p className="text-muted-foreground text-sm">
@@ -59,7 +66,9 @@ export function ReviewForm({
       </div>
       <div
         role="radiogroup"
-        aria-label="Calificación"
+        aria-labelledby="review-title"
+        aria-invalid={Boolean(ratingError)}
+        aria-describedby={describedBy(Boolean(ratingError) && 'review-error')}
         className="flex items-center gap-1"
       >
         {[1, 2, 3, 4, 5].map((value) => (
@@ -87,10 +96,16 @@ export function ReviewForm({
             />
           </button>
         ))}
-        <span className="text-muted-foreground ml-2 text-sm" aria-live="polite">
+        {/*
+          Not a live region: each star's own accessible name already ends in
+          this word ("4 estrellas: Muy bueno"), so announcing it again on
+          focus read the same label twice in a row.
+        */}
+        <span aria-hidden="true" className="text-muted-foreground ml-2 text-sm">
           {LABELS[shown]}
         </span>
       </div>
+      <FieldError id="review-error" message={ratingError || undefined} />
       <div className="space-y-1.5">
         <Label htmlFor="review-comment">
           Comentario{' '}

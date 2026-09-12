@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AdvanceOrderButton } from '@/components/courier/advance-order-button'
 import { CourierOrderDetails } from '@/components/courier/courier-order-details'
+import { CourierOrderLive } from '@/components/courier/courier-order-live'
 import { CourierOrderMap } from '@/components/courier/courier-order-map'
 import { OrderStatusBadge } from '@/components/orders/order-status-badge'
 import { requireRole } from '@/lib/auth'
@@ -80,6 +81,7 @@ export default async function CourierOrderPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <CourierOrderLive orderId={order.id} status={order.status} />
       <Link
         href="/courier"
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"

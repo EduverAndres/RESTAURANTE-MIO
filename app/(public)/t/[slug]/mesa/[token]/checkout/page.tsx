@@ -25,7 +25,9 @@ export default async function TableCheckoutPage({
   const current = await getCurrentUser()
 
   return (
-    <div className="container-page max-w-3xl py-8 lg:py-12">
+    // Same dine-in sizing as the table storefront: larger base text and 56px
+    // primary targets. See the `[data-table-mode]` block in globals.css.
+    <div data-table-mode className="container-page max-w-3xl py-8 lg:py-12">
       <Link
         href={tableEntryPath(slug, token)}
         className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"

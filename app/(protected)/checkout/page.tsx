@@ -20,10 +20,8 @@ export default async function CheckoutPage() {
   return (
     <div className="container-page py-8 lg:py-12">
       <header className="mb-6 space-y-1">
-        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          Finalizar pedido
-        </h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-h1 font-display font-semibold">Finalizar pedido</h1>
+        <p className="text-muted-foreground text-sm text-pretty">
           Revisa la entrega, elige cómo pagar y confirma. Guardamos tus
           preferencias para la próxima vez.
         </p>

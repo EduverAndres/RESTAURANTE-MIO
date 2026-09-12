@@ -43,7 +43,7 @@ export function UserMenu({ name, email, role, avatarUrl }: UserMenuProps) {
         >
           <Avatar className="size-8">
             {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-            <AvatarFallback className="bg-primary/12 text-primary text-xs font-semibold">
+            <AvatarFallback className="bg-primary/12 text-primary-on-tint text-xs font-semibold">
               {initialsOf(name)}
             </AvatarFallback>
           </Avatar>

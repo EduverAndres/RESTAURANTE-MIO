@@ -60,7 +60,14 @@ async function fetchSuggestions(
   return [...storeItems, ...productItems]
 }
 
-export function SearchBox({ className }: { className?: string }) {
+interface SearchBoxProps {
+  className?: string
+  /** `hero` is the home page's protagonist: taller, rounder, more elevated. */
+  size?: 'default' | 'hero'
+}
+
+export function SearchBox({ className, size = 'default' }: SearchBoxProps) {
+  const hero = size === 'hero'
   const router = useRouter()
   const listId = useId()
   const [query, setQuery] = useState('')
@@ -123,7 +130,10 @@ export function SearchBox({ className }: { className?: string }) {
       <div className="relative">
         <SearchIcon
           aria-hidden="true"
-          className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2"
+          className={cn(
+            'text-muted-foreground pointer-events-none absolute top-1/2 -translate-y-1/2',
+            hero ? 'left-5 size-6' : 'left-4 size-5',
+          )}
         />
         <input
           type="search"
@@ -138,12 +148,20 @@ export function SearchBox({ className }: { className?: string }) {
           onFocus={() => items.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKeyDown}
-          className="rounded-pill bg-card shadow-soft ring-foreground/10 placeholder:text-muted-foreground focus-visible:ring-primary h-14 w-full pr-12 pl-12 text-base ring-1 outline-none focus-visible:ring-2"
+          className={cn(
+            'rounded-pill bg-card ring-foreground/10 placeholder:text-muted-foreground focus-visible:ring-primary w-full ring-1 outline-none focus-visible:ring-2',
+            hero
+              ? 'shadow-2 h-16 pr-14 pl-14 text-lg'
+              : 'shadow-1 h-14 pr-12 pl-12 text-base',
+          )}
         />
         {loading ? (
           <LoaderCircleIcon
             aria-hidden="true"
-            className="text-muted-foreground absolute top-1/2 right-4 size-5 -translate-y-1/2 animate-spin"
+            className={cn(
+              'text-muted-foreground absolute top-1/2 size-5 -translate-y-1/2 animate-spin',
+              hero ? 'right-5' : 'right-4',
+            )}
           />
         ) : null}
       </div>
@@ -167,7 +185,7 @@ export function SearchBox({ className }: { className?: string }) {
                   index === active ? 'bg-muted' : 'hover:bg-muted',
                 )}
               >
-                <span className="rounded-control bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center">
+                <span className="rounded-control bg-primary/10 text-primary-on-tint flex size-8 shrink-0 items-center justify-center">
                   {item.kind === 'store' ? (
                     <StoreIcon aria-hidden="true" className="size-4" />
                   ) : (

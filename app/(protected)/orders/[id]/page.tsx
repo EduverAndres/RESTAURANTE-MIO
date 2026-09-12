@@ -11,6 +11,7 @@ import { CancelOrderButton } from './cancel-order-button'
 import { OrderTimeline } from './order-tracker'
 import { ReviewForm } from './review-form'
 import { DeliveryMap } from '@/components/orders/delivery-map'
+import { OrderConfirmation } from '@/components/orders/order-confirmation'
 import { OrderReceipt } from '@/components/orders/order-receipt'
 import {
   OrderStatusBadge,
@@ -157,14 +158,20 @@ export default async function OrderPage({
         Mis pedidos
       </Link>
 
+      <OrderConfirmation orderId={order.id} shortCode={order.short_code} />
+
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-muted-foreground font-mono text-sm">
             #{order.short_code}
           </p>
-          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="text-h1 font-display font-semibold">
             {store?.name ?? 'Pedido'}
           </h1>
+          {/*
+            Type and payment stay in one line of text: it is read as one
+            sentence, and the e2e journey asserts on exactly that shape.
+          */}
           <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5 text-sm">
             {ORDER_TYPE_LABELS[order.type]} ·{' '}
             {PAYMENT_LABELS[order.payment_method] ?? order.payment_method}
@@ -174,7 +181,7 @@ export default async function OrderPage({
         <OrderStatusBadge status={order.status} className="text-sm" />
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
+      <div className="gap-inline grid lg:grid-cols-[1.1fr_1fr]">
         <div className="space-y-6">
           <OrderTimeline
             initial={{
@@ -203,29 +210,40 @@ export default async function OrderPage({
             />
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          {/*
+            Talking to the restaurant is the escape hatch for everything the
+            tracker cannot answer, so it is the full-width primary action
+            rather than a link in a row of three. It is painted with the
+            success token instead of WhatsApp's own green: the brand green
+            carries white text at about 2:1, and a button nobody can read is
+            not prominent, it is just loud.
+          */}
+          <div className="space-y-2">
             {whatsappUrl ? (
               <Button
                 asChild
-                className="rounded-pill bg-[#25D366] text-white hover:bg-[#1ebe5b]"
+                size="lg"
+                className="rounded-pill bg-success text-success-foreground hover:bg-success/90 h-14 w-full text-base"
               >
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                   <MessageCircleIcon aria-hidden="true" />
-                  Escribir al restaurante
+                  Escribir al restaurante por WhatsApp
                 </a>
               </Button>
             ) : null}
-            {store?.slug ? (
-              <Button asChild variant="outline" className="rounded-pill">
-                <Link href={`/t/${store.slug}`}>
-                  <StoreIcon aria-hidden="true" />
-                  Volver a pedir
-                </Link>
-              </Button>
-            ) : null}
-            {order.status === 'pending' ? (
-              <CancelOrderButton orderId={order.id} />
-            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {store?.slug ? (
+                <Button asChild variant="outline" className="rounded-pill">
+                  <Link href={`/t/${store.slug}`}>
+                    <StoreIcon aria-hidden="true" />
+                    Volver a pedir
+                  </Link>
+                </Button>
+              ) : null}
+              {order.status === 'pending' ? (
+                <CancelOrderButton orderId={order.id} />
+              ) : null}
+            </div>
           </div>
 
           {order.status === 'delivered' && !reviewed ? (
@@ -241,8 +259,8 @@ export default async function OrderPage({
           ) : null}
         </div>
 
-        <aside className="rounded-card border-border bg-card shadow-soft space-y-4 border p-5">
-          <h2 className="font-display text-2xl font-semibold">Detalle</h2>
+        <aside className="rounded-card border-border bg-card shadow-1 p-card space-y-4 border lg:sticky lg:top-[calc(var(--app-header-h)+1.5rem)]">
+          <h2 className="text-h3 font-display font-semibold">Detalle</h2>
           {order.type === 'delivery' && order.addresses ? (
             <p className="flex items-start gap-2 text-sm">
               <MapPinIcon

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { AccessibilityMenu } from '@/components/a11y/accessibility-menu'
 import { cn } from '@/lib/utils'
 
 const ITEMS = [
@@ -45,7 +46,7 @@ export function MobileNav() {
       aria-label="Navegación móvil"
       className="border-border/60 bg-background/90 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {ITEMS.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname)
           return (
@@ -66,6 +67,14 @@ export function MobileNav() {
             </li>
           )
         })}
+        {/*
+          The same preferences as the site header, within thumb reach: a
+          customer who needs bigger text on a phone should not have to find a
+          desktop header to get it.
+        */}
+        <li>
+          <AccessibilityMenu variant="nav" />
+        </li>
       </ul>
     </nav>
   )

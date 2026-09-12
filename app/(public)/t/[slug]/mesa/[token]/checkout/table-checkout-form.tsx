@@ -192,7 +192,11 @@ export function TableCheckoutForm({
         </div>
         <div className="space-y-2">
           <Label className="text-sm font-semibold">¿Cómo pagas?</Label>
-          <div role="radiogroup" aria-label="Método de pago" className="grid gap-2">
+          <div
+            role="radiogroup"
+            aria-label="Método de pago"
+            className="grid gap-2"
+          >
             {paymentOptions.map((option) => {
               if (!isTablePayment(option.method)) return null
               const active = paymentMethod === option.method
@@ -202,7 +206,9 @@ export function TableCheckoutForm({
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  onClick={() => setPaymentMethod(option.method as TablePaymentMethod)}
+                  onClick={() =>
+                    setPaymentMethod(option.method as TablePaymentMethod)
+                  }
                   className={cn(
                     'rounded-card flex items-center gap-3 border p-3 text-left transition-colors',
                     active
@@ -234,13 +240,19 @@ export function TableCheckoutForm({
       >
         <div className="flex items-center gap-2">
           <ShoppingBagIcon aria-hidden="true" className="text-primary size-5" />
-          <h2 id="resumen-title" className="font-display text-2xl font-semibold">
+          <h2
+            id="resumen-title"
+            className="font-display text-2xl font-semibold"
+          >
             Tu pedido
           </h2>
         </div>
         <ul className="divide-border divide-y">
           {cart.items.map((item) => (
-            <li key={item.key} className="flex justify-between gap-3 py-2 text-sm">
+            <li
+              key={item.key}
+              className="flex justify-between gap-3 py-2 text-sm"
+            >
               <span className="min-w-0">
                 <span className="block truncate">
                   {item.quantity}× {item.name}
@@ -281,6 +293,7 @@ export function TableCheckoutForm({
           type="button"
           onClick={submit}
           disabled={pending || !minimumOk || !store.isOpen}
+          data-table-primary=""
           className="rounded-pill h-12 w-full text-base"
         >
           {pending ? (

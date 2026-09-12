@@ -21,9 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
-          Hola de nuevo
-        </h1>
+        <h1 className="text-h1 font-display font-semibold">Hola de nuevo</h1>
         <p className="text-muted-foreground">
           Entra para pedir, seguir tus pedidos o gestionar tu restaurante.
         </p>

@@ -40,7 +40,7 @@ export function ForgotPasswordForm() {
         role="status"
         className="rounded-card border-border bg-card shadow-soft space-y-4 border p-6 text-center"
       >
-        <span className="rounded-pill bg-primary/10 text-primary mx-auto flex size-14 items-center justify-center">
+        <span className="rounded-pill bg-primary/10 text-primary-on-tint mx-auto flex size-14 items-center justify-center">
           <MailCheckIcon aria-hidden="true" className="size-7" />
         </span>
         <h2 className="font-display text-2xl font-semibold">

@@ -1,28 +1,14 @@
 'use client'
 
 import { LoaderCircleIcon } from 'lucide-react'
-import { useState } from 'react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { nextMerchantActions, type MerchantAction } from '@/lib/orders/status'
+import type { MerchantAction } from '@/lib/orders/status'
 import { cn } from '@/lib/utils'
-import type { OrderStatus, OrderType } from '@/types/app'
 
 interface OrderActionsProps {
-  shortCode: string
-  status: OrderStatus
-  type: OrderType
+  actions: readonly MerchantAction[]
   pending: boolean
-  onTransition: (to: OrderStatus) => void
+  onAction: (action: MerchantAction) => void
 }
 
 const TONE_CLASSES: Record<MerchantAction['tone'], string> = {
@@ -34,16 +20,19 @@ const TONE_CLASSES: Record<MerchantAction['tone'], string> = {
   warning: '',
 }
 
-/** Action buttons derived from the transition map; cancel asks first. */
+/**
+ * The transition buttons on a card.
+ *
+ * Purely presentational since Phase 5: the card above owns the action list,
+ * the confirmation dialog and the keyboard shortcuts, so a move made from a
+ * button, from the card menu and from the `A`/`L` keys all travel the same
+ * path and confirm the same way.
+ */
 export function OrderActions({
-  shortCode,
-  status,
-  type,
+  actions,
   pending,
-  onTransition,
+  onAction,
 }: OrderActionsProps) {
-  const [confirming, setConfirming] = useState<MerchantAction | null>(null)
-  const actions = nextMerchantActions(status, type)
   if (actions.length === 0) return null
 
   return (
@@ -58,14 +47,14 @@ export function OrderActions({
             variant={destructive ? 'ghost' : 'default'}
             disabled={pending}
             className={cn(
-              'rounded-pill',
+              // A kitchen taps this with a thumb, often with one hand busy:
+              // the move-forward button is a 40px target, not a link.
+              'rounded-pill h-10',
               destructive && 'text-destructive hover:bg-destructive/10',
               !destructive && TONE_CLASSES[action.tone],
               !destructive && 'flex-1',
             )}
-            onClick={() =>
-              destructive ? setConfirming(action) : onTransition(action.to)
-            }
+            onClick={() => onAction(action)}
           >
             {pending && !destructive ? (
               <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
@@ -74,40 +63,6 @@ export function OrderActions({
           </Button>
         )
       })}
-
-      <AlertDialog
-        open={confirming !== null}
-        onOpenChange={(open) => {
-          if (!open) setConfirming(null)
-        }}
-      >
-        <AlertDialogContent className="rounded-card">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-display text-xl">
-              {status === 'pending' ? 'Rechazar' : 'Cancelar'} el pedido #
-              {shortCode}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              El cliente recibirá la notificación al instante y no podrás
-              deshacerlo.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-pill">
-              Volver
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-pill bg-destructive hover:bg-destructive/90 text-white"
-              onClick={() => {
-                if (confirming) onTransition(confirming.to)
-                setConfirming(null)
-              }}
-            >
-              Sí, {status === 'pending' ? 'rechazar' : 'cancelar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
