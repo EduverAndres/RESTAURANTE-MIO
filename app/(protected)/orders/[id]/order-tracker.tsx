@@ -11,11 +11,13 @@ import {
   ReceiptTextIcon,
   XIcon,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import {
+  useRealtimeChannel,
+  useRealtimeRefresh,
+} from '@/components/providers/realtime-provider'
 import { ORDER_STATUS_LABELS, ORDER_STATUS_SEQUENCE } from '@/lib/orders/status'
-import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { OrderStatus, OrderType } from '@/types/app'
 
@@ -85,41 +87,29 @@ export function useLiveOrder(
   initial: TrackedOrder,
   enabled = true,
 ): TrackedOrder {
-  const router = useRouter()
+  const refresh = useRealtimeRefresh()
   const [order, setOrder] = useState(initial)
 
   useEffect(() => setOrder(initial), [initial])
 
-  useEffect(() => {
-    if (!enabled) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`order-${initial.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${initial.id}`,
-        },
-        (payload) => {
-          const next = payload.new as TrackedOrder
-          setOrder((current) => ({ ...current, ...next }))
-          if (next.status !== initial.status) {
-            toast(ORDER_STATUS_LABELS[next.status], {
-              description: STEP_DESCRIPTIONS[next.status],
-            })
-          }
-          // Server components (courier block, review form) refresh too.
-          router.refresh()
-        },
-      )
-      .subscribe()
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [enabled, initial.id, initial.status, router])
+  useRealtimeChannel({
+    name: `order-${initial.id}`,
+    table: 'orders',
+    event: 'UPDATE',
+    filter: `id=eq.${initial.id}`,
+    enabled,
+    onEvent: (payload) => {
+      const next = payload.new as unknown as TrackedOrder
+      setOrder((current) => ({ ...current, ...next }))
+      if (next.status !== initial.status) {
+        toast(ORDER_STATUS_LABELS[next.status], {
+          description: STEP_DESCRIPTIONS[next.status],
+        })
+      }
+      // Server components (courier block, review form) refresh too.
+      refresh()
+    },
+  })
 
   return order
 }

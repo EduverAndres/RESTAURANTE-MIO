@@ -8,12 +8,15 @@ import { BoardColumn } from '@/components/dashboard/orders/board-column'
 import { HistorySection } from '@/components/dashboard/orders/history-section'
 import { playNewOrderChime } from '@/components/dashboard/orders/new-order-chime'
 import {
+  useRealtimeChannel,
+  useRealtimeRefresh,
+} from '@/components/providers/realtime-provider'
+import {
   KANBAN_COLUMNS,
   groupOrdersForBoard,
   type BoardOrder,
 } from '@/lib/orders/kanban'
 import { ORDER_STATUS_LABELS } from '@/lib/orders/status'
-import { createClient } from '@/lib/supabase/client'
 import type { Order, OrderStatus } from '@/types/app'
 
 interface OrderBoardProps {
@@ -39,53 +42,51 @@ function useNow(): Date {
 export function OrderBoard({ storeId, initial }: OrderBoardProps) {
   const router = useRouter()
   const now = useNow()
+  const refresh = useRealtimeRefresh()
   const [orders, setOrders] = useState(initial)
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   )
+  // One live region for the whole board: twenty cards each announcing
+  // themselves would be worse than none.
+  const [announcement, setAnnouncement] = useState('')
 
   useEffect(() => setOrders(initial), [initial])
 
-  useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`store-orders-${storeId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `store_id=eq.${storeId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const inserted = payload.new as Order
-            if (inserted.status === 'pending') {
-              playNewOrderChime()
-              toast(`Nuevo pedido #${inserted.short_code}`, {
-                description: 'Acéptalo desde la columna Nuevos.',
-              })
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const updated = payload.new as Order
-            setOrders((current) =>
-              current.map((order) =>
-                order.id === updated.id
-                  ? { ...order, status: updated.status }
-                  : order,
-              ),
-            )
-          }
-          // Items and customer names only come from the server query.
-          router.refresh()
-        },
-      )
-      .subscribe()
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [storeId, router])
+  useRealtimeChannel({
+    name: `store-orders-${storeId}`,
+    table: 'orders',
+    event: '*',
+    filter: `store_id=eq.${storeId}`,
+    onEvent: (payload) => {
+      if (payload.eventType === 'INSERT') {
+        const inserted = payload.new as unknown as Order
+        if (inserted.status === 'pending') {
+          playNewOrderChime()
+          toast(`Nuevo pedido #${inserted.short_code}`, {
+            description: 'Acéptalo desde la columna Nuevos.',
+          })
+          setAnnouncement(
+            `Nuevo pedido ${inserted.short_code} en la columna Nuevos.`,
+          )
+        }
+      } else if (payload.eventType === 'UPDATE') {
+        const updated = payload.new as unknown as Order
+        setOrders((current) =>
+          current.map((order) =>
+            order.id === updated.id
+              ? { ...order, status: updated.status }
+              : order,
+          ),
+        )
+        setAnnouncement(
+          `Pedido ${updated.short_code}: ${ORDER_STATUS_LABELS[updated.status]}.`,
+        )
+      }
+      // Items and customer names only come from the server query.
+      refresh()
+    },
+  })
 
   const transition = useCallback(
     (orderId: string, to: OrderStatus) => {
@@ -118,6 +119,9 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
         toast.success(
           `Pedido #${previous.short_code}: ${ORDER_STATUS_LABELS[to]}.`,
         )
+        setAnnouncement(
+          `Pedido ${previous.short_code}: ${ORDER_STATUS_LABELS[to]}.`,
+        )
         // Realtime may be disconnected; refresh so the server state lands.
         router.refresh()
       })
@@ -129,6 +133,9 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
 
   return (
     <div className="space-y-6">
+      <p role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
       <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
         <div className="flex gap-4 lg:grid lg:grid-cols-5">
           {KANBAN_COLUMNS.map((column) => (

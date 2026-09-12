@@ -1,0 +1,26 @@
+-- Realtime: publish public.stores
+--
+-- The storefront renders the open/closed chip, the schedule and the tenant
+-- skin from this row. Without it in the publication a visitor keeps seeing
+-- "Abierto ahora" after the merchant flips the switch, until the page is
+-- reloaded by hand.
+--
+-- Safe to publish. Realtime enforces the table's own RLS on every subscriber,
+-- and `stores` already reads as public data:
+--
+--   create policy "stores: public read active or own"
+--     on public.stores for select to anon, authenticated
+--     using (status = 'active' or owner_id = auth.uid());
+--
+-- So a subscriber can only ever receive a row the same visitor could already
+-- fetch from the storefront. Nothing private (payout details, owner identity
+-- beyond the id) lives on this table.
+--
+-- WARNING — do NOT extend this publication to `public.reviews` or
+-- `public.store_tables`. Both have `using (true)` SELECT policies, which are
+-- harmless for a scoped server query but would let any subscriber stream every
+-- row of those tables across every tenant, table QR tokens included. Publishing
+-- a table is equivalent to exposing its SELECT policy as a firehose; only add
+-- tables whose policy is genuinely row-scoped or genuinely public.
+
+alter publication supabase_realtime add table public.stores;

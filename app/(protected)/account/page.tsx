@@ -5,6 +5,7 @@ import { AddressList } from './address-list'
 import { ProfileForm } from './profile-form'
 import { initialsOf } from '@/lib/format'
 import { PushToggle } from '@/components/notifications/push-toggle'
+import { AccountOrdersLive } from '@/components/orders/account-orders-live'
 import { OrderStatusBadge } from '@/components/orders/order-status-badge'
 import { StoreCard } from '@/components/store/store-card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -63,6 +64,7 @@ export default async function AccountPage() {
 
   return (
     <div className="container-page space-y-10 py-10">
+      <AccountOrdersLive customerId={user.id} />
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Avatar className="size-16">

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
+import { RealtimeProvider } from '@/components/providers/realtime-provider'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
 import { ThemeProvider } from '@/components/theme/theme-provider'
@@ -66,7 +67,15 @@ export default function RootLayout({
     >
       <body className="font-sans">
         <ThemeProvider>
-          <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          {/*
+            Realtime consumers live under (protected), /dashboard, /courier and
+            the public storefront, so the root layout is the narrowest shell
+            that covers them all. It is a client boundary that only passes
+            `children` through: the pages below stay server components.
+          */}
+          <RealtimeProvider>
+            <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+          </RealtimeProvider>
           <Toaster />
           <InstallPrompt />
           <ServiceWorkerRegister />

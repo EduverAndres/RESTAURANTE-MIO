@@ -4,13 +4,13 @@ import { BikeIcon, SearchIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import type { MapMarker } from '@/components/map/location-map'
+import { useRealtimeChannel } from '@/components/providers/realtime-provider'
 import {
   BOGOTA_CENTER,
   formatDistance,
   haversineKm,
   type LatLng,
 } from '@/lib/geo'
-import { createClient } from '@/lib/supabase/client'
 import type { CourierLocation } from '@/types/app'
 
 interface DeliveryMapProps {
@@ -33,31 +33,21 @@ function useCourierPosition(
 
   useEffect(() => setPosition(initial), [initial])
 
-  useEffect(() => {
-    if (!courierId) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`courier-position-${courierId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'courier_locations',
-          filter: `courier_id=eq.${courierId}`,
-        },
-        (payload) => {
-          const next = payload.new as Partial<CourierLocation>
-          if (typeof next.lat === 'number' && typeof next.lng === 'number') {
-            setPosition({ lat: next.lat, lng: next.lng })
-          }
-        },
-      )
-      .subscribe()
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [courierId])
+  useRealtimeChannel({
+    name: `courier-position-${courierId ?? 'none'}`,
+    table: 'courier_locations',
+    event: '*',
+    filter: `courier_id=eq.${courierId}`,
+    enabled: Boolean(courierId),
+    // The payload carries the whole position, so the marker is the one place
+    // where the event *is* the truth and no server round-trip is needed.
+    onEvent: (payload) => {
+      const next = payload.new as unknown as Partial<CourierLocation>
+      if (typeof next.lat === 'number' && typeof next.lng === 'number') {
+        setPosition({ lat: next.lat, lng: next.lng })
+      }
+    },
+  })
 
   return position
 }
