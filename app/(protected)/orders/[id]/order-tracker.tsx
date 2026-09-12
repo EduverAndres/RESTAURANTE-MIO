@@ -6,13 +6,13 @@ import {
   CheckCheckIcon,
   CheckIcon,
   ChefHatIcon,
-  ClockIcon,
   PackageCheckIcon,
   ReceiptTextIcon,
   XIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { EtaCountdown } from '@/components/orders/eta-countdown'
 import {
   useRealtimeChannel,
   useRealtimeRefresh,
@@ -123,41 +123,55 @@ export function OrderTimeline({ initial, live = true }: OrderTrackerProps) {
   )
   const cancelled = order.status === 'cancelled'
   const currentIndex = cancelled ? -1 : steps.indexOf(order.status)
-  const eta = order.estimated_at ? new Date(order.estimated_at) : null
-  const showEta = eta && !cancelled && order.status !== 'delivered'
+  const showEta =
+    order.estimated_at && !cancelled && order.status !== 'delivered'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/*
         Not a live region. `useLiveOrder` above already raises a toast on every
         status change, and the toaster is itself a polite live region, so this
         card used to read the same transition out a second time. The card
         stays the page's visible source of truth; the toast is the announcer.
+
+        The ink is the token that belongs with the fill, not `text-white`:
+        in the dark ramp the brand orange needs dark ink to clear AA.
       */}
       <div
         className={cn(
-          'rounded-card shadow-lift p-5 text-white',
-          cancelled ? 'bg-destructive' : 'bg-primary',
+          'rounded-card shadow-2 p-card relative overflow-hidden',
+          cancelled
+            ? 'bg-destructive text-destructive-foreground'
+            : 'bg-primary text-primary-foreground',
         )}
       >
-        <p className="text-sm opacity-90">Estado actual</p>
-        <p className="font-display text-3xl font-semibold">
-          {ORDER_STATUS_LABELS[order.status]}
-        </p>
-        <p className="text-sm opacity-90">{STEP_DESCRIPTIONS[order.status]}</p>
-        {showEta ? (
-          <p className="rounded-pill mt-3 inline-flex items-center gap-1.5 bg-white/15 px-3 py-1 text-sm">
-            <ClockIcon aria-hidden="true" className="size-4" />
-            {order.type === 'delivery'
-              ? 'Llega alrededor de'
-              : 'Listo alrededor de'}{' '}
-            las {timeFormatter.format(eta)}
-          </p>
-        ) : null}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          {/*
+            No `opacity` on this card. Ink at 90% over the brand fill measures
+            4.48:1 — a rounding error below AA — and the hierarchy here comes
+            from size and case anyway, which costs nothing in contrast.
+          */}
+          <div className="min-w-0">
+            <p className="text-xs font-medium tracking-wide uppercase">
+              Estado actual
+            </p>
+            <p className="text-h2 font-display font-semibold">
+              {ORDER_STATUS_LABELS[order.status]}
+            </p>
+            <p className="text-sm">{STEP_DESCRIPTIONS[order.status]}</p>
+          </div>
+          {showEta ? (
+            <EtaCountdown
+              target={order.estimated_at}
+              verb={order.type === 'delivery' ? 'Llega' : 'Listo'}
+              className="shrink-0 text-right"
+            />
+          ) : null}
+        </div>
       </div>
 
       {cancelled ? null : (
-        <ol className="relative space-y-0">
+        <ol className="rounded-card border-border bg-card shadow-1 p-card relative space-y-0 border">
           {steps.map((status, index) => {
             const done = index < currentIndex
             const active = index === currentIndex
@@ -167,8 +181,14 @@ export function OrderTimeline({ initial, live = true }: OrderTrackerProps) {
                 {index < steps.length - 1 ? (
                   <span
                     aria-hidden="true"
-                    className="bg-border absolute top-8 left-4 h-[calc(100%-1rem)] w-0.5"
+                    className="bg-border absolute top-9 left-[15px] h-[calc(100%-1.25rem)] w-0.5"
                   >
+                    {/*
+                      The line grows rather than appearing: it is the one
+                      piece of motion on the page that carries meaning —
+                      progress — and the reduced-motion path still leaves the
+                      completed segment filled.
+                    */}
                     <motion.span
                       className="bg-primary block w-full origin-top"
                       initial={false}
@@ -191,11 +211,11 @@ export function OrderTimeline({ initial, live = true }: OrderTrackerProps) {
                   }
                   transition={{ repeat: active ? Infinity : 0, duration: 1.8 }}
                   className={cn(
-                    'ring-background relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full ring-4',
+                    'ring-card relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full ring-4',
                     done
                       ? 'bg-primary text-primary-foreground'
                       : active
-                        ? 'bg-primary text-primary-foreground shadow-lift'
+                        ? 'bg-primary text-primary-foreground shadow-2'
                         : 'bg-muted text-muted-foreground',
                   )}
                 >

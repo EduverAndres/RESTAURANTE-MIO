@@ -189,6 +189,45 @@ theme fully controls them.
 They only set color, radius, elevation and type; padding and layout stay with
 Tailwind utilities at the call site.
 
+## App surfaces
+
+Phase 6 brought the rest of the app up to the storefront's level. It added four
+things to the stylesheet and nothing else; everything on those screens is built
+from the tokens above.
+
+| Addition                | What it is                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `.rail`                 | Horizontal snap scroller: `flex`, `scroll-snap-type: x mandatory`, no scrollbar |
+| `@keyframes check-draw` | The confirmation tick drawing itself along its own path                         |
+| `--destructive-on-tint` | Alert ink dark enough to clear AA on an alert-tinted card                       |
+| `--app-header-h`        | `4rem`; every sticky column in the app offsets from it                          |
+
+**`.rail`** is the carousel-on-mobile, grid-on-desktop pattern: the same markup
+is a flick-through row on a phone (`components/home/store-rail.tsx`) and a plain
+grid from `lg` up, because a single column of tall cards makes people scroll
+blind. Its children are links or buttons, so the scroll region is keyboard
+reachable without a `tabindex` of its own.
+
+**`check-draw`** animates `stroke-dashoffset` from `var(--check-length)` — set
+inline by the component from the path length — to `0`. The reduced-motion policy
+collapses it to 1ms, which leaves the tick _drawn_: the animation only ever
+removes an offset, so nothing essential is hidden when motion is off.
+
+**`--destructive-on-tint`** is the Phase-5 `--primary-on-tint` idea applied to
+the alert hue. `text-destructive` on `bg-destructive/12`, over a card that is
+itself 6% destructive, measures 4.42:1 — the Kanban's "Con retraso" badge. The
+token is the same hue taken down until it clears 4.5:1; the dark ramp's
+`--destructive` is already light enough and keeps the plain token.
+
+### Time as colour
+
+`lib/orders/elapsed-tone.ts` maps minutes-since-placed to `fresh` / `warn` /
+`late`, with a budget per Kanban column (`pending` has the shortest fuse: three
+minutes to amber, eight to red). In a kitchen nobody reads "hace 12 min" on
+twenty cards; everybody sees that one card is red. The tone is never the only
+cue — an amber or red card also carries the words _Va justo_ / _Con retraso_, so
+the board still works in greyscale and under a high-contrast preference.
+
 ## Motion
 
 | Token               | Value                            |

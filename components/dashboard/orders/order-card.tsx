@@ -22,6 +22,11 @@ import {
 } from '@/lib/a11y/kanban-shortcuts'
 import { formatCOP } from '@/lib/format'
 import {
+  ELAPSED_TONE_LABELS,
+  orderElapsedTone,
+  type ElapsedTone,
+} from '@/lib/orders/elapsed-tone'
+import {
   elapsedLabel,
   itemsSummary,
   type BoardOrder,
@@ -41,7 +46,33 @@ interface OrderCardProps {
   onTransition: (orderId: string, to: OrderStatus) => void
 }
 
-const LATE_AFTER_MINUTES = 10
+/**
+ * Time as colour.
+ *
+ * Nobody in a kitchen reads "hace 12 min" on twenty cards; everybody sees
+ * that one card is red. The minutes stay for the person who then looks. The
+ * tone is never the only cue: an amber or red card also carries the words
+ * "Va justo" / "Con retraso", so the board still works in greyscale, under a
+ * high-contrast preference, and for the one cook in twelve who is colour
+ * blind.
+ */
+const CARD_TONES: Record<ElapsedTone, string> = {
+  fresh: 'border-border',
+  warn: 'border-accent/60 bg-accent/6',
+  late: 'border-destructive/60 bg-destructive/6',
+}
+
+const DOT_TONES: Record<ElapsedTone, string> = {
+  fresh: 'bg-success',
+  warn: 'bg-accent',
+  late: 'bg-destructive',
+}
+
+const CLOCK_TONES: Record<ElapsedTone, string> = {
+  fresh: 'text-muted-foreground',
+  warn: 'text-foreground font-medium',
+  late: 'text-destructive-on-tint font-semibold',
+}
 
 /** `A L`, or just the keys this order can actually use right now. */
 function keyShortcuts(actions: readonly MerchantAction[]): string | undefined {
@@ -59,10 +90,7 @@ export function OrderCard({
 }: OrderCardProps) {
   const [confirming, setConfirming] = useState<MerchantAction | null>(null)
   const actions = nextMerchantActions(order.status, order.type)
-
-  const ageMinutes =
-    (now.getTime() - new Date(order.created_at).getTime()) / 60_000
-  const late = order.status === 'pending' && ageMinutes >= LATE_AFTER_MINUTES
+  const tone = orderElapsedTone(order.status, order.created_at, now)
 
   /** Destructive moves always ask first, whatever triggered them. */
   function run(action: MerchantAction) {
@@ -105,26 +133,44 @@ export function OrderCard({
       aria-busy={pending || undefined}
       onKeyDown={onKeyDown}
       className={cn(
-        'rounded-card border-border bg-card shadow-soft space-y-3 border p-4',
-        late && 'border-destructive/40',
+        'rounded-card bg-card shadow-1 space-y-3 border p-4 transition-colors',
+        CARD_TONES[tone],
       )}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0 space-y-1">
-          <p className="font-mono text-sm font-semibold">#{order.short_code}</p>
-          <Badge variant="outline" className="rounded-pill text-[10px]">
-            {ORDER_TYPE_LABELS[order.type]}
-            {order.type === 'table' && order.table_number
-              ? ` ${order.table_number}`
-              : ''}
-          </Badge>
+          <p className="flex items-center gap-1.5 font-mono text-sm font-semibold">
+            <span
+              aria-hidden="true"
+              className={cn('size-2 shrink-0 rounded-full', DOT_TONES[tone])}
+            />
+            #{order.short_code}
+          </p>
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant="outline" className="rounded-pill text-[10px]">
+              {ORDER_TYPE_LABELS[order.type]}
+              {order.type === 'table' && order.table_number
+                ? ` ${order.table_number}`
+                : ''}
+            </Badge>
+            {tone === 'fresh' ? null : (
+              <Badge
+                variant="outline"
+                className={cn(
+                  'rounded-pill border-transparent text-[10px] font-semibold',
+                  tone === 'late'
+                    ? 'bg-destructive/12 text-destructive-on-tint'
+                    : 'bg-accent/20 text-foreground',
+                )}
+              >
+                {ELAPSED_TONE_LABELS[tone]}
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <p
-            className={cn(
-              'flex items-center gap-1 text-xs',
-              late ? 'text-destructive font-medium' : 'text-muted-foreground',
-            )}
+            className={cn('flex items-center gap-1 text-xs', CLOCK_TONES[tone])}
           >
             <ClockIcon aria-hidden="true" className="size-3.5" />
             {elapsedLabel(order.created_at, now)}

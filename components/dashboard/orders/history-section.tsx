@@ -19,7 +19,7 @@ const timeFormatter = new Intl.DateTimeFormat('es-CO', {
 /** Delivered and cancelled orders from today, collapsed by default. */
 export function HistorySection({ orders }: HistorySectionProps) {
   return (
-    <details className="group rounded-card border-border bg-card shadow-soft border">
+    <details className="group rounded-card border-border bg-card shadow-1 border">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 select-none">
         <span className="text-sm font-semibold">
           Historial de hoy{' '}

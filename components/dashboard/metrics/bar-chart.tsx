@@ -22,7 +22,7 @@ export function BarChart({ title, points }: BarChartProps) {
   const total = points.reduce((sum, point) => sum + point.orders, 0)
 
   return (
-    <figure className="rounded-card border-border bg-card shadow-soft border p-4 sm:p-5">
+    <figure className="rounded-card border-border bg-card shadow-1 p-card border">
       <figcaption className="mb-3 flex items-baseline justify-between gap-2">
         <span className="font-display text-xl font-semibold">{title}</span>
         <span className="text-muted-foreground text-xs">

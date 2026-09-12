@@ -16,12 +16,22 @@ export const fetchStore = cache(async function fetchStore(
   slug: string,
 ): Promise<Store | null> {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('stores')
     .select('*')
     .eq('slug', slug)
     .eq('status', 'active')
     .maybeSingle()
+
+  // A failed query and a missing slug both arrive as `data: null`. Callers turn
+  // null into notFound(), so swallowing the error would tell a visitor the shop
+  // does not exist because of a transient network blip. Throw instead and let
+  // the route's error boundary offer a retry.
+  if (error) {
+    throw new Error(`Failed to load store "${slug}": ${error.message}`, {
+      cause: error,
+    })
+  }
   return data ?? null
 })
 

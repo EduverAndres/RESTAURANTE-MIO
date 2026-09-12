@@ -49,6 +49,15 @@ test('a customer can order for pickup and land on the tracking page', async ({
   await expect(
     page.getByRole('button', { name: 'Cancelar pedido' }),
   ).toBeVisible()
+
+  // The celebration only fires for the person who just paid: the checkout
+  // hands the order id over in session storage and the tracking page spends
+  // it once.
+  await expect(page.getByText('¡Pedido confirmado!')).toBeVisible()
+  await expectNoA11yViolations(page, 'order tracking · just placed')
+
+  await page.reload()
+  await expect(page.getByText('¡Pedido confirmado!')).toHaveCount(0)
 })
 
 test('protected checkout redirects anonymous visitors to login', async ({

@@ -22,6 +22,26 @@ const GLYPHS: Record<string, string> = {
   pollo: '🍗',
 }
 
+/**
+ * The glyph lives in its own tinted medallion rather than sitting inline with
+ * the text: at a glance the row reads as a strip of pictures, which is what
+ * makes it scannable while scrolling, and the label underneath is what makes
+ * it usable when the picture means nothing to you.
+ */
+function Glyph({ name, active }: { name: string; active: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'grid size-7 shrink-0 place-items-center rounded-full text-base leading-none',
+        active ? 'bg-background/20' : 'bg-primary/10',
+      )}
+    >
+      {GLYPHS[name.toLowerCase()] ?? '🍽️'}
+    </span>
+  )
+}
+
 export function CategoryCarousel({
   categories,
 }: {
@@ -48,17 +68,17 @@ export function CategoryCarousel({
     <div
       role="group"
       aria-label="Filtrar por categoría"
-      className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 py-1 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden"
+      className="rail -mx-gutter px-gutter gap-2 py-1"
     >
       <button
         type="button"
         aria-pressed={selected === null}
         onClick={() => select(null)}
         className={cn(
-          'rounded-pill shrink-0 px-4 py-2 text-sm font-medium transition-colors',
+          'rounded-pill h-12 px-5 text-sm font-medium transition-colors',
           selected === null
             ? 'bg-foreground text-background'
-            : 'bg-card text-foreground shadow-soft ring-foreground/10 hover:bg-muted ring-1',
+            : 'bg-card text-foreground shadow-1 ring-foreground/10 hover:bg-muted ring-1',
         )}
       >
         Todo
@@ -72,19 +92,17 @@ export function CategoryCarousel({
             aria-pressed={active}
             onClick={() => select(active ? null : category.name)}
             className={cn(
-              'rounded-pill flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors',
+              'rounded-pill flex h-12 items-center gap-2 pr-4 pl-2 text-sm font-medium transition-colors',
               active
                 ? 'bg-foreground text-background'
-                : 'bg-card text-foreground shadow-soft ring-foreground/10 hover:bg-muted ring-1',
+                : 'bg-card text-foreground shadow-1 ring-foreground/10 hover:bg-muted ring-1',
             )}
           >
-            <span aria-hidden="true">
-              {GLYPHS[category.name.toLowerCase()] ?? '🍽️'}
-            </span>
+            <Glyph name={category.name} active={active} />
             {category.name}
             <span
               className={cn(
-                'text-xs',
+                'text-xs tabular-nums',
                 active ? 'text-background/70' : 'text-muted-foreground',
               )}
             >

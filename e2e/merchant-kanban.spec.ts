@@ -71,9 +71,18 @@ test('the board is operable from the keyboard alone', async ({ page }) => {
   await expect(card).toHaveAttribute('aria-keyshortcuts', /A/)
 
   // The actions menu lists the legal transitions and nothing else.
-  await card.getByRole('button', { name: /^Acciones del pedido/ }).click()
+  //
+  // Opening it is retried rather than clicked once: the board is a live
+  // surface. Another spec in this run (or a real customer) placing an order
+  // pushes a realtime event, the board re-renders the column underneath the
+  // pointer, and the click lands on a node that is being replaced. Retrying
+  // asserts the same thing — the menu opens — without pretending the page is
+  // static while it is deliberately not.
   const menu = page.getByRole('menu')
-  await expect(menu).toBeVisible()
+  await expect(async () => {
+    await card.getByRole('button', { name: /^Acciones del pedido/ }).click()
+    await expect(menu).toBeVisible({ timeout: 2_000 })
+  }).toPass({ timeout: 20_000 })
   await expect(menu.getByRole('menuitem', { name: /Aceptar/ })).toBeVisible()
   await expect(
     menu.getByRole('menuitem', { name: /Marcar listo/ }),

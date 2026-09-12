@@ -10,10 +10,11 @@ test('the home page lists stores that link to their storefront', async ({
   page,
 }) => {
   await page.goto('/')
+  // The full browse grid, below the hero's search box and the nearby rail.
   await expect(
     page.getByRole('heading', {
       level: 2,
-      name: 'Restaurantes para pedir hoy',
+      name: 'Todos los restaurantes',
     }),
   ).toBeVisible()
 

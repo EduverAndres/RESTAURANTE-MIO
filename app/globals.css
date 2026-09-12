@@ -850,3 +850,96 @@ html[data-text-size='xlarge'] {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ---------------------------------------------------------------------------
+ * App surfaces  (Phase 6)
+ *
+ * The storefront got its own vocabulary in Phase 3. These are the three
+ * things the rest of the app needed and the Phase-1 set did not already
+ * cover: a horizontal rail, a drawn checkmark and one scroll offset.
+ * ------------------------------------------------------------------------- */
+
+/* A row you flick through with a thumb. Snapping is what makes a carousel
+   feel like cards instead of a runaway strip, and hiding the scrollbar keeps
+   the cards from being cropped by 15px of chrome on desktop. The scroll
+   container is still a normal focusable region for the keyboard. */
+@utility rail {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--space-gutter);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  > * {
+    scroll-snap-align: start;
+    flex: none;
+  }
+}
+
+/* The confirmation tick. It draws itself rather than popping, because the
+   half-second it takes is the half-second the customer spends believing the
+   order went through. `stroke-dasharray` is set by the component from the
+   path length, so the same keyframes fit any size of tick. The global
+   reduced-motion policy collapses it to 1ms, which leaves the tick drawn —
+   never hidden — because the animation only ever removes an offset. */
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: var(--check-length, 48);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@theme inline {
+  --animate-check-draw: check-draw 520ms var(--ease-out-soft) 120ms both;
+  --animate-check-pop: check-pop 320ms var(--ease-out-soft) both;
+}
+
+/* The dashboard header is sticky at 4rem; anything the app scrolls to by
+   anchor has to clear it, and the checkout/tracking columns stick under it. */
+:root {
+  --app-header-h: 4rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Readable alert text on an alert-tinted surface  (Phase 6)
+ *
+ * The Kanban's "Con retraso" badge is `text-destructive` on `bg-destructive/12`
+ * over a card that is itself 6% destructive; measured, that stack lands at
+ * 4.42:1 — the same near-miss the Phase-5 block fixed for the brand chip, and
+ * the same fix: the identical hue, taken down far enough to clear AA. The dark
+ * ramp's `--destructive` is already light enough, so it keeps the plain token.
+ * ------------------------------------------------------------------------- */
+:root {
+  --destructive-on-tint: color-mix(in oklch, var(--destructive) 76%, #000000);
+}
+
+.dark {
+  --destructive-on-tint: var(--destructive);
+}
+
+@theme inline {
+  --color-destructive-on-tint: var(--destructive-on-tint);
+}

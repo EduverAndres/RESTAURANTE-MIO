@@ -47,7 +47,9 @@ export function OrderActions({
             variant={destructive ? 'ghost' : 'default'}
             disabled={pending}
             className={cn(
-              'rounded-pill',
+              // A kitchen taps this with a thumb, often with one hand busy:
+              // the move-forward button is a 40px target, not a link.
+              'rounded-pill h-10',
               destructive && 'text-destructive hover:bg-destructive/10',
               !destructive && TONE_CLASSES[action.tone],
               !destructive && 'flex-1',

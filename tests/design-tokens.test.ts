@@ -144,3 +144,36 @@ describe('design tokens', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce/)
   })
 })
+
+describe('app surfaces (Phase 6)', () => {
+  it('declares the horizontal rail as a utility that snaps and hides its bar', () => {
+    expect(css).toMatch(/@utility rail /)
+    expect(css).toMatch(/scroll-snap-type:\s*x mandatory/)
+    expect(css).toMatch(/scrollbar-width:\s*none/)
+  })
+
+  it('declares the confirmation tick as a dash animation, not an opacity fade', () => {
+    // Reduced motion collapses the duration to 1ms, which leaves the tick
+    // fully drawn — the animation only ever removes an offset, so the mark is
+    // never the thing that is hidden.
+    expect(css).toMatch(/@keyframes check-draw/)
+    expect(css).toMatch(/stroke-dashoffset:\s*var\(--check-length/)
+    expect(css).toMatch(/--animate-check-draw:\s*check-draw/)
+  })
+
+  it('exposes one header height for every sticky column in the app', () => {
+    expect(css).toMatch(/--app-header-h:\s*4rem/)
+  })
+
+  it('clears AA for the alert label on an alert-tinted card', () => {
+    // The Kanban's "Con retraso" badge. The token is a `color-mix`, so the
+    // stylesheet can only be asserted structurally; the measured ratio is
+    // what the axe audit in e2e/merchant-kanban.spec.ts enforces.
+    expect(css).toMatch(
+      /--destructive-on-tint:\s*color-mix\(in oklch, var\(--destructive\) \d+%, #000000\)/,
+    )
+    expect(css).toMatch(
+      /--color-destructive-on-tint:\s*var\(--destructive-on-tint\)/,
+    )
+  })
+})

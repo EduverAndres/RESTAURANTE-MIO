@@ -47,7 +47,7 @@ function callbackErrorFromHash(): string | null {
 
 function GoogleIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5">
       <path
         fill="#EA4335"
         d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.9 1.5l2.6-2.6C16.8 3 14.6 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.8 0 9.6-4.1 9.6-9.8 0-.7-.1-1.2-.2-1.7H12z"
@@ -126,6 +126,26 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
       </TabsList>
 
       <TabsContent value="email" className="space-y-5 pt-4">
+        {/*
+          Google first, and big. For most people it is one tap against two
+          fields and a password they half remember; burying it under the form
+          it replaces is the wrong way round.
+        */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={signInWithGoogle}
+          className="rounded-pill h-14 w-full text-base"
+        >
+          <GoogleIcon />
+          Continuar con Google
+        </Button>
+
+        <div className="text-muted-foreground flex items-center gap-3 text-xs">
+          <Separator className="flex-1" />o con tu correo
+          <Separator className="flex-1" />
+        </div>
+
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="login-email">Correo electrónico</Label>
@@ -191,7 +211,7 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
           <Button
             type="submit"
             disabled={pending}
-            className="rounded-pill h-11 w-full text-base"
+            className="rounded-pill h-12 w-full text-base"
           >
             {pending ? (
               <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
@@ -199,22 +219,6 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
             Entrar
           </Button>
         </form>
-
-        <div className="text-muted-foreground flex items-center gap-3 text-xs">
-          <Separator className="flex-1" />
-          o continúa con
-          <Separator className="flex-1" />
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={signInWithGoogle}
-          className="rounded-pill h-11 w-full text-base"
-        >
-          <GoogleIcon />
-          Continuar con Google
-        </Button>
       </TabsContent>
 
       <TabsContent value="phone" className="pt-4">
