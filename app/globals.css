@@ -11,6 +11,7 @@
   --background: #fbf8f3;
   --foreground: #1c1917;
   --surface: #ffffff;
+  --surface-elevated: #ffffff;
   --card: #ffffff;
   --card-foreground: #1c1917;
   --popover: #ffffff;
@@ -20,7 +21,7 @@
   --secondary: #f3ede4;
   --secondary-foreground: #1c1917;
   --muted: #f3ede4;
-  --muted-foreground: #78716c;
+  --muted-foreground: #6b6259;
   --accent: #f59e0b;
   --accent-foreground: #1c1917;
   --destructive: #b91c1c;
@@ -33,7 +34,7 @@
   --chart-1: #c2410c;
   --chart-2: #f59e0b;
   --chart-3: #15803d;
-  --chart-4: #78716c;
+  --chart-4: #6b6259;
   --chart-5: #1c1917;
   --sidebar: #ffffff;
   --sidebar-foreground: #1c1917;
@@ -49,16 +50,59 @@
   --radius-control: 12px;
   --radius-pill: 999px;
 
-  --shadow-soft:
-    0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px -8px rgba(28, 25, 23, 0.12);
-  --shadow-lift:
-    0 2px 4px rgba(28, 25, 23, 0.06), 0 20px 40px -12px rgba(28, 25, 23, 0.22);
+  /* Fluid type scale: interpolates between a 360px and a 1280px viewport. */
+  --text-display: clamp(2rem, 1.0217rem + 4.3478vw, 4.5rem);
+  --text-h1: clamp(1.75rem, 1.2609rem + 2.1739vw, 3rem);
+  --text-h2: clamp(1.5rem, 1.2065rem + 1.3043vw, 2.25rem);
+  --text-h3: clamp(1.25rem, 1.1033rem + 0.6522vw, 1.625rem);
+  --text-lead: clamp(1.125rem, 1.0272rem + 0.4348vw, 1.375rem);
+  --text-body: clamp(1rem, 0.9756rem + 0.1087vw, 1.0625rem);
+  --text-small: clamp(0.875rem, 0.8506rem + 0.1087vw, 0.9375rem);
+  --tracking-display: -0.03em;
+  --tracking-tight: -0.015em;
+
+  /* Semantic spacing: one rhythm for sections, cards, inline runs, gutters. */
+  --space-section: clamp(3rem, 1.4348rem + 6.9565vw, 7rem);
+  --space-card: clamp(1rem, 0.8043rem + 0.8696vw, 1.5rem);
+  --space-inline: clamp(1rem, 0.6087rem + 1.7391vw, 2rem);
+  --space-gutter: clamp(1rem, 0.4783rem + 2.3188vw, 2rem);
+
+  /* Tinted elevation: shadows carry a hint of the active brand color. */
+  --elevation-tint: var(--primary);
+  --shadow-hairline: rgba(28, 25, 23, 0.06);
+  --shadow-ambient: rgba(28, 25, 23, 0.05);
+  --shadow-1:
+    0 1px 2px var(--shadow-ambient),
+    0 6px 16px -8px color-mix(in oklch, var(--elevation-tint) 8%, transparent),
+    0 0 0 1px var(--shadow-hairline);
+  --shadow-2:
+    0 2px 4px var(--shadow-ambient),
+    0 18px 36px -14px
+      color-mix(in oklch, var(--elevation-tint) 12%, transparent),
+    0 0 0 1px var(--shadow-hairline);
+  --shadow-3:
+    0 4px 8px var(--shadow-ambient),
+    0 32px 64px -20px
+      color-mix(in oklch, var(--elevation-tint) 18%, transparent),
+    0 0 0 1px var(--shadow-hairline);
+  --shadow-soft: var(--shadow-1);
+  --shadow-lift: var(--shadow-2);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 300ms;
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --container-page: 1200px;
 
   /* Store theme bridge: store layouts override these per tenant. */
   --store-primary: var(--primary);
   --store-primary-rgb: 194 65 12;
+  --store-on-primary: #ffffff;
+  --store-on-primary-rgb: 255 255 255;
+  --store-secondary: #7c2d12;
+  --store-secondary-rgb: 124 45 18;
   --store-accent: var(--accent);
   --store-accent-rgb: 245 158 11;
   --store-background: var(--background);
@@ -72,55 +116,83 @@
   --store-font-display: var(--font-fraunces), ui-serif, Georgia, serif;
   --store-font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --store-banner-overlay: 0.35;
+
+  /* Store skin: written per tenant by themeToCssVars, defaults live here. */
+  --store-gradient: none;
+  --store-pattern-image: none;
+  --store-pattern-size: auto;
+  --store-pattern-opacity: 0.06;
+  --store-heading-weight: 700;
+  --store-heading-case: none;
+  --store-letter-spacing: 0em;
+  --store-density-padding: 1rem;
+  --store-density-gap: 0.75rem;
+  --store-density-section: 4rem;
+  --store-card-shadow: var(--shadow-1);
+  --store-card-border: 1px solid transparent;
+  --store-image-ratio: 4 / 3;
+  --store-image-radius: 20px;
+  --store-motion-duration: 220ms;
 }
 
 .dark {
   --background: #0e0d0b;
-  --foreground: #f5f2ec;
-  --surface: #1a1815;
-  --card: #1a1815;
-  --card-foreground: #f5f2ec;
-  --popover: #1a1815;
-  --popover-foreground: #f5f2ec;
+  --foreground: #f3efe8;
+  --surface: #161412;
+  --surface-elevated: #242019;
+  --card: #1d1a17;
+  --card-foreground: #f3efe8;
+  --popover: #1d1a17;
+  --popover-foreground: #f3efe8;
   --primary: #f97316;
   --primary-foreground: #1c1917;
-  --secondary: #26231f;
-  --secondary-foreground: #f5f2ec;
-  --muted: #26231f;
-  --muted-foreground: #a8a29e;
+  --secondary: #242019;
+  --secondary-foreground: #f3efe8;
+  --muted: #242019;
+  --muted-foreground: #a89f93;
   --accent: #fbbf24;
   --accent-foreground: #1c1917;
   --destructive: #f87171;
   --destructive-foreground: #1c1917;
   --success: #4ade80;
   --success-foreground: #1c1917;
-  --border: rgba(245, 242, 236, 0.1);
-  --input: rgba(245, 242, 236, 0.16);
   --ring: #f97316;
   --chart-1: #f97316;
   --chart-2: #fbbf24;
   --chart-3: #4ade80;
-  --chart-4: #a8a29e;
-  --chart-5: #f5f2ec;
-  --sidebar: #1a1815;
-  --sidebar-foreground: #f5f2ec;
+  --chart-4: #a89f93;
+  --chart-5: #f3efe8;
+  --sidebar: #161412;
+  --sidebar-foreground: #f3efe8;
   --sidebar-primary: #f97316;
   --sidebar-primary-foreground: #1c1917;
-  --sidebar-accent: #26231f;
-  --sidebar-accent-foreground: #f5f2ec;
-  --sidebar-border: rgba(245, 242, 236, 0.1);
+  --sidebar-accent: #242019;
+  --sidebar-accent-foreground: #f3efe8;
   --sidebar-ring: #f97316;
 
-  --shadow-soft:
-    0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -8px rgba(0, 0, 0, 0.5);
-  --shadow-lift:
-    0 2px 4px rgba(0, 0, 0, 0.4), 0 20px 40px -12px rgba(0, 0, 0, 0.7);
+  /* Surfaces separate by luminosity, so borders stay almost invisible. */
+  --border: color-mix(in oklch, var(--foreground) 12%, transparent);
+  --input: color-mix(in oklch, var(--foreground) 18%, transparent);
+  --sidebar-border: color-mix(in oklch, var(--foreground) 12%, transparent);
+
+  --shadow-hairline: rgba(0, 0, 0, 0.55);
+  --shadow-ambient: rgba(0, 0, 0, 0.45);
 
   --store-primary-rgb: 249 115 22;
   --store-accent-rgb: 251 191 36;
   --store-background-rgb: 14 13 11;
-  --store-surface-rgb: 26 24 21;
-  --store-text-rgb: 245 242 236;
+  --store-surface-rgb: 22 20 18;
+  --store-text-rgb: 243 239 232;
+  --store-on-primary: #1c1917;
+  --store-on-primary-rgb: 28 25 23;
+  --store-secondary: #fdba74;
+  --store-secondary-rgb: 253 186 116;
+}
+
+/* The storefront scope: tenant color drives elevation and focus rings too. */
+[data-store-theme] {
+  --elevation-tint: var(--store-primary);
+  --ring: var(--store-primary);
 }
 
 /* ---------------------------------------------------------------------------
@@ -130,6 +202,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -164,6 +237,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --color-store-primary: var(--store-primary);
+  --color-store-on-primary: var(--store-on-primary);
+  --color-store-secondary: var(--store-secondary);
   --color-store-accent: var(--store-accent);
   --color-store-background: var(--store-background);
   --color-store-surface: var(--store-surface);
@@ -190,8 +265,19 @@
   --radius-store: var(--store-radius);
   --radius-store-button: var(--store-button-radius);
 
+  /* Semantic spacing keys: p-section, gap-card, px-gutter, ... */
+  --spacing-section: var(--space-section);
+  --spacing-card: var(--space-card);
+  --spacing-inline: var(--space-inline);
+  --spacing-gutter: var(--space-gutter);
+
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-3: var(--shadow-3);
   --shadow-soft: var(--shadow-soft);
   --shadow-lift: var(--shadow-lift);
+
+  --ease-out-soft: var(--ease-out-soft);
 
   --container-page: var(--container-page);
 
@@ -226,6 +312,7 @@
   body {
     @apply bg-background text-foreground;
     min-height: 100dvh;
+    font-size: var(--text-body);
     font-feature-settings:
       'cv11' 1,
       'ss01' 1;
@@ -237,7 +324,7 @@
   h4 {
     @apply font-display;
     text-wrap: balance;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-tight);
   }
 
   p {
@@ -249,29 +336,93 @@
     color: var(--foreground);
   }
 
-  :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 3px;
-    border-radius: var(--radius-sm);
-  }
-
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+}
 
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
+/* ---------------------------------------------------------------------------
+ * Global policies
+ *
+ * Deliberately outside every cascade layer: unlayered declarations outrank
+ * layered ones, so these win over Tailwind utilities such as `outline-none`
+ * without touching the components that use them. Components that ship their
+ * own focus affordance (a `focus-visible:ring-*` / `focus-visible:border-*`
+ * / `focus-visible:outline-*` class) are exempted so they do not paint two
+ * rings at once.
+ * ------------------------------------------------------------------------- */
+:where(:focus-visible):not(
+  :where(
+    [class*='focus-visible:ring'],
+    [class*='focus-visible:border'],
+    [class*='focus-visible:outline']
+  )
+) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(html) {
+    scroll-behavior: auto;
+  }
+
+  /* Pseudo-elements cannot live inside :where(), so they are listed apart. */
+  :where(*),
+  :where(*)::before,
+  :where(*)::after {
+    animation-duration: 1ms !important;
+    animation-delay: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Typography utilities
+ * ------------------------------------------------------------------------- */
+@layer utilities {
+  .text-display {
+    font-size: var(--text-display);
+    line-height: 1.02;
+    letter-spacing: var(--tracking-display);
+    text-wrap: balance;
+  }
+
+  .text-h1 {
+    font-size: var(--text-h1);
+    line-height: 1.08;
+    letter-spacing: var(--tracking-display);
+    text-wrap: balance;
+  }
+
+  .text-h2 {
+    font-size: var(--text-h2);
+    line-height: 1.15;
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .text-h3 {
+    font-size: var(--text-h3);
+    line-height: 1.25;
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .text-lead {
+    font-size: var(--text-lead);
+    line-height: 1.5;
+    letter-spacing: 0;
+    text-wrap: pretty;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
   }
 }
 
@@ -282,13 +433,7 @@
   width: 100%;
   max-width: var(--container-page);
   margin-inline: auto;
-  padding-inline: 1rem;
-  @media (width >= 40rem) {
-    padding-inline: 1.5rem;
-  }
-  @media (width >= 64rem) {
-    padding-inline: 2rem;
-  }
+  padding-inline: var(--space-gutter);
 }
 
 @utility text-balance {
@@ -300,4 +445,212 @@
   font-variation-settings:
     'SOFT' 60,
     'opsz' 96;
+}
+
+/* Frosted panel for sticky bars and overlays. */
+@utility surface-glass {
+  background-color: color-mix(in oklch, var(--surface) 72%, transparent);
+  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--card);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Store utilities
+ *
+ * These derive only from `--store-*`, so a tenant theme fully controls them.
+ * ------------------------------------------------------------------------- */
+@utility store-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-store-button, var(--store-button-radius));
+  background-color: var(--store-primary);
+  color: var(--store-on-primary);
+  font-family: var(--store-font-body);
+  font-weight: 600;
+  line-height: 1.2;
+  transition:
+    background-color var(--duration-fast) var(--ease-out-soft),
+    box-shadow var(--duration-fast) var(--ease-out-soft);
+
+  &:hover {
+    background-color: color-mix(
+      in oklch,
+      var(--store-primary) 88%,
+      var(--store-text)
+    );
+  }
+}
+
+@utility store-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid color-mix(in oklch, var(--store-primary) 45%, transparent);
+  border-radius: var(--radius-store-button, var(--store-button-radius));
+  background-color: transparent;
+  color: var(--store-primary);
+  font-family: var(--store-font-body);
+  font-weight: 600;
+  line-height: 1.2;
+  transition:
+    background-color var(--duration-fast) var(--ease-out-soft),
+    border-color var(--duration-fast) var(--ease-out-soft);
+
+  &:hover {
+    background-color: color-mix(
+      in oklch,
+      var(--store-primary) 10%,
+      transparent
+    );
+    border-color: var(--store-primary);
+  }
+}
+
+@utility store-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: color-mix(in oklch, var(--store-primary) 14%, transparent);
+  color: var(--store-primary);
+  padding-inline: 0.625rem;
+  padding-block: 0.125rem;
+  font-size: var(--text-small);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@utility store-card {
+  background-color: var(--store-surface);
+  color: var(--store-text);
+  border-radius: var(--radius-store, var(--store-radius));
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+@utility store-text {
+  color: var(--store-text);
+}
+
+@utility store-muted {
+  color: color-mix(in oklch, var(--store-text) 66%, var(--store-surface));
+}
+
+@utility store-link {
+  color: var(--store-primary);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Every storefront heading: display face, tenant weight, case and tracking in
+   one place, so no component has to read three variables by hand. */
+@utility store-heading {
+  font-family: var(--store-font-display);
+  font-weight: var(--store-heading-weight);
+  text-transform: var(--store-heading-case);
+  letter-spacing: var(--store-letter-spacing);
+}
+
+/* Vertical rhythm of a storefront band; follows the tenant density. */
+@utility store-section {
+  padding-block: var(--store-density-section);
+}
+
+/* The tenant pattern, painted as a decorative overlay. The element must be
+   absolutely positioned inside a relative parent. */
+@utility store-pattern {
+  background-image: var(--store-pattern-image);
+  background-size: var(--store-pattern-size);
+  opacity: var(--store-pattern-opacity);
+  pointer-events: none;
+}
+
+/* Media box: the tenant ratio and shape, ready for a filling child. */
+@utility store-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: var(--store-image-ratio);
+  border-radius: var(--store-image-radius);
+  background-color: color-mix(in oklch, var(--store-text) 6%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Storefront light / dark
+ *
+ * A theme with mode "auto" follows the visitor's system setting, and the
+ * header toggle pins a choice on the wrapper. Only the neutrals move: the
+ * brand colours a merchant chose stay exactly as they set them. The `*-rgb`
+ * companions are restated because `rgb(var(--x) / a)` cannot read a hex.
+ * ------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  [data-store-theme][data-store-scheme='auto'] {
+    --store-background: color-mix(in oklch, var(--store-primary) 6%, #0e0d0b);
+    --store-background-rgb: 14 13 11;
+    --store-surface: color-mix(in oklch, var(--store-primary) 8%, #161412);
+    --store-surface-rgb: 22 20 18;
+    --store-text: #f3efe8;
+    --store-text-rgb: 243 239 232;
+    --shadow-hairline: rgba(0, 0, 0, 0.55);
+    --shadow-ambient: rgba(0, 0, 0, 0.45);
+  }
+}
+
+[data-store-theme][data-store-scheme='dark'] {
+  --store-background: color-mix(in oklch, var(--store-primary) 6%, #0e0d0b);
+  --store-background-rgb: 14 13 11;
+  --store-surface: color-mix(in oklch, var(--store-primary) 8%, #161412);
+  --store-surface-rgb: 22 20 18;
+  --store-text: #f3efe8;
+  --store-text-rgb: 243 239 232;
+  --shadow-hairline: rgba(0, 0, 0, 0.55);
+  --shadow-ambient: rgba(0, 0, 0, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+ * Storefront sticky stack
+ *
+ * The global site header is 4rem tall. The store header sits under it and the
+ * category nav under that, so every offset is derived from one pair of
+ * variables instead of magic numbers scattered across components.
+ * ------------------------------------------------------------------------- */
+[data-store-theme] {
+  --site-header-h: 4rem;
+  --store-header-h: 3.5rem;
+  --store-nav-top: calc(var(--site-header-h) + var(--store-header-h));
+  /* Anchored sections clear both bars plus the nav itself. */
+  --store-scroll-offset: calc(var(--store-nav-top) + 3.75rem);
+}
+
+/* Honours theme.motion on top of the global reduced-motion policy. */
+[data-store-theme][data-store-motion='none'] *,
+[data-store-theme][data-store-motion='none'] *::before,
+[data-store-theme][data-store-motion='none'] *::after {
+  animation-duration: 1ms !important;
+  transition-duration: 1ms !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Theme editor
+ *
+ * Editor-only rules. The live preview renders the real storefront inside an
+ * iframe that carries no marketplace chrome, so the sticky stack has to forget
+ * the site header it would normally sit under — otherwise the store header
+ * floats 4rem down and covers the top of the hero.
+ * ------------------------------------------------------------------------- */
+[data-store-preview] [data-store-theme] {
+  --site-header-h: 0rem;
 }
