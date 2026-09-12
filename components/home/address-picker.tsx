@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { GeolocationNotice } from '@/components/map/geolocation-notice'
 import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,6 +23,10 @@ import { Input } from '@/components/ui/input'
 import { useVisitorLocation } from '@/hooks/use-visitor-location'
 import { BOGOTA_CENTER, type LatLng } from '@/lib/geo'
 import {
+  GeolocationFailureError,
+  type GeolocationFailure,
+} from '@/lib/geo/geolocation-availability'
+import {
   reverseGeocode,
   searchAddress,
   type GeocodeResult,
@@ -35,15 +40,22 @@ interface AddressPickerProps {
 }
 
 export function AddressPicker({ initial, className }: AddressPickerProps) {
-  const { location, setLocation, locate } = useVisitorLocation(initial)
+  const { location, setLocation, locate, gpsSupport } =
+    useVisitorLocation(initial)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeocodeResult[]>([])
   const [searching, setSearching] = useState(false)
   const [pin, setPin] = useState<LatLng>(location ?? BOGOTA_CENTER)
   const [label, setLabel] = useState(location?.label ?? '')
+  const [gpsFailure, setGpsFailure] = useState<GeolocationFailure | null>(null)
   const [pending, startTransition] = useTransition()
   const abortRef = useRef<AbortController | null>(null)
+
+  // Without a usable GPS the button is pointless; the notice explains why and
+  // the manual search / draggable pin remain the way forward.
+  const gpsBlocked = gpsSupport === 'unsupported' || gpsSupport === 'insecure'
+  const gpsNotice = gpsBlocked ? gpsSupport : gpsFailure
 
   useEffect(() => {
     if (open) {
@@ -51,6 +63,7 @@ export function AddressPicker({ initial, className }: AddressPickerProps) {
       setLabel(location?.label ?? '')
       setQuery('')
       setResults([])
+      setGpsFailure(null)
     }
   }, [open, location])
 
@@ -98,8 +111,14 @@ export function AddressPicker({ initial, className }: AddressPickerProps) {
       try {
         const point = await locate()
         await handlePin(point)
+        setGpsFailure(null)
         toast.success('Ubicación detectada.')
       } catch (error) {
+        if (error instanceof GeolocationFailureError) {
+          setGpsFailure(error.reason)
+          toast.error(error.message)
+          return
+        }
         toast.error(
           error instanceof Error ? error.message : 'No pudimos ubicarte.',
         )
@@ -202,22 +221,29 @@ export function AddressPicker({ initial, className }: AddressPickerProps) {
             <p className="text-muted-foreground min-w-0 flex-1 truncate">
               {label || 'Toca el mapa para fijar el punto exacto.'}
             </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={useMyLocation}
-              disabled={pending}
-              className="rounded-pill"
-            >
-              {pending ? (
-                <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
-              ) : (
-                <LocateFixedIcon aria-hidden="true" />
-              )}
-              Usar mi ubicación
-            </Button>
+            {gpsBlocked ? null : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={useMyLocation}
+                disabled={pending}
+                className="rounded-pill"
+              >
+                {pending ? (
+                  <LoaderCircleIcon
+                    aria-hidden="true"
+                    className="animate-spin"
+                  />
+                ) : (
+                  <LocateFixedIcon aria-hidden="true" />
+                )}
+                Usar mi ubicación
+              </Button>
+            )}
           </div>
+
+          {gpsNotice ? <GeolocationNotice reason={gpsNotice} /> : null}
         </div>
 
         <div className="border-border flex justify-end gap-2 border-t px-6 py-4">

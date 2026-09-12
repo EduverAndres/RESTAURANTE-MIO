@@ -4,6 +4,7 @@ import { LoaderCircleIcon, LocateFixedIcon, SearchIcon } from 'lucide-react'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { saveAddress } from '@/app/(protected)/account/address-actions'
+import { GeolocationNotice } from '@/components/map/geolocation-notice'
 import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +19,10 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useVisitorLocation } from '@/hooks/use-visitor-location'
 import { BOGOTA_CENTER, type LatLng } from '@/lib/geo'
+import {
+  GeolocationFailureError,
+  type GeolocationFailure,
+} from '@/lib/geo/geolocation-availability'
 import {
   reverseGeocode,
   searchAddress,
@@ -39,7 +44,7 @@ export function AddressFormDialog({
   address,
   onSaved,
 }: AddressFormDialogProps) {
-  const { location, locate } = useVisitorLocation()
+  const { location, locate, gpsSupport } = useVisitorLocation()
   const [label, setLabel] = useState('Casa')
   const [line1, setLine1] = useState('')
   const [line2, setLine2] = useState('')
@@ -47,12 +52,19 @@ export function AddressFormDialog({
   const [pin, setPin] = useState<LatLng>(BOGOTA_CENTER)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeocodeResult[]>([])
+  const [gpsFailure, setGpsFailure] = useState<GeolocationFailure | null>(null)
   const [pending, startTransition] = useTransition()
   const [locating, startLocating] = useTransition()
   const abortRef = useRef<AbortController | null>(null)
 
+  // Without a usable GPS the button is pointless; the notice explains why and
+  // the manual search / draggable pin remain the way forward.
+  const gpsBlocked = gpsSupport === 'unsupported' || gpsSupport === 'insecure'
+  const gpsNotice = gpsBlocked ? gpsSupport : gpsFailure
+
   useEffect(() => {
     if (!open) return
+    setGpsFailure(null)
     setLabel(address?.label ?? 'Casa')
     setLine1(address?.line1 ?? '')
     setLine2(address?.line2 ?? '')
@@ -185,38 +197,48 @@ export function AddressFormDialog({
                 className="h-56 w-full"
               />
             </div>
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="rounded-pill"
-                disabled={locating}
-                onClick={() =>
-                  startLocating(async () => {
-                    try {
-                      await movePin(await locate())
-                    } catch (error) {
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : 'No pudimos ubicarte.',
-                      )
-                    }
-                  })
-                }
-              >
-                {locating ? (
-                  <LoaderCircleIcon
-                    aria-hidden="true"
-                    className="animate-spin"
-                  />
-                ) : (
-                  <LocateFixedIcon aria-hidden="true" />
-                )}
-                Usar mi ubicación
-              </Button>
-            </div>
+            {gpsBlocked ? null : (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-pill"
+                  disabled={locating}
+                  onClick={() =>
+                    startLocating(async () => {
+                      try {
+                        await movePin(await locate())
+                        setGpsFailure(null)
+                      } catch (error) {
+                        if (error instanceof GeolocationFailureError) {
+                          setGpsFailure(error.reason)
+                          toast.error(error.message)
+                          return
+                        }
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : 'No pudimos ubicarte.',
+                        )
+                      }
+                    })
+                  }
+                >
+                  {locating ? (
+                    <LoaderCircleIcon
+                      aria-hidden="true"
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <LocateFixedIcon aria-hidden="true" />
+                  )}
+                  Usar mi ubicación
+                </Button>
+              </div>
+            )}
+
+            {gpsNotice ? <GeolocationNotice reason={gpsNotice} /> : null}
 
             <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
               <div className="space-y-1.5">
