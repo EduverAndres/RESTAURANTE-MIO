@@ -654,3 +654,199 @@
 [data-store-preview] [data-store-theme] {
   --site-header-h: 0rem;
 }
+
+/* ---------------------------------------------------------------------------
+ * Customer accessibility preferences  (Phase 5)
+ *
+ * Three data attributes on <html>, written before first paint by the inline
+ * script in the root layout and kept in step afterwards by
+ * <AccessibilityAttributes />. Default values leave no attribute behind, so
+ * everything below describes an exception rather than the normal case.
+ * ------------------------------------------------------------------------- */
+
+/* Text size.
+ *
+ * One lever: the root font size. Every fluid step in the Phase-1 scale is a
+ * `clamp()` whose floor and ceiling are in `rem`, so they all follow from
+ * here — `--text-body` at 112.5% resolves to 18px..19.1px instead of
+ * 16px..17px — and so do Tailwind's rem-based spacing utilities, which is
+ * what keeps the layout in proportion instead of cramming bigger glyphs into
+ * the same boxes. The `vw` term inside each clamp is deliberately left alone:
+ * it is the viewport's contribution, not the reader's. */
+html[data-text-size='large'] {
+  font-size: 112.5%;
+}
+
+html[data-text-size='xlarge'] {
+  font-size: 125%;
+}
+
+/* High contrast.
+ *
+ * Not just darker text: the point is that every control gets an edge you can
+ * actually see. Borders go opaque, muted text stops being muted, and inputs,
+ * buttons and cards are outlined even when their design says "borderless". */
+[data-contrast='high'] {
+  --border: color-mix(in oklch, var(--foreground) 55%, transparent);
+  --input: color-mix(in oklch, var(--foreground) 70%, transparent);
+  --sidebar-border: var(--border);
+  --muted-foreground: color-mix(in oklch, var(--foreground) 88%, transparent);
+  --shadow-hairline: color-mix(in oklch, var(--foreground) 40%, transparent);
+}
+
+[data-contrast='high'] [data-store-theme] {
+  --store-text: var(--foreground);
+}
+
+/* Unlayered, like the Phase-1 focus rule, so it outranks the Tailwind
+   utilities (`border-0`, `border-transparent`, `shadow-none`) that the
+   normal-contrast design uses to make controls look weightless. */
+[data-contrast='high']
+  :is(
+    button,
+    a[href],
+    input,
+    select,
+    textarea,
+    summary,
+    [role='button'],
+    [role='tab'],
+    [role='radio'],
+    [role='checkbox'],
+    [role='menuitem'],
+    [role='menuitemradio'],
+    [role='menuitemcheckbox'],
+    [role='option'],
+    [data-slot='card'],
+    [data-slot='select-trigger'],
+    [data-slot='dialog-content'],
+    [data-slot='sheet-content'],
+    [data-slot='drawer-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='popover-content']
+  ):not([data-slot='sheet-overlay'], [data-slot='dialog-overlay']) {
+  border-width: max(1px, var(--tw-border-style, 1px));
+  border-style: solid;
+  border-color: currentColor;
+}
+
+/* Links have to be distinguishable without relying on colour alone. */
+[data-contrast='high'] a[href]:not([data-slot], [class*='store-btn']) {
+  text-decoration-line: underline;
+  text-underline-offset: 3px;
+}
+
+/* A focus ring is the one thing that must never get quieter. */
+[data-contrast='high'] :focus-visible {
+  outline-width: 3px;
+}
+
+/* Reduced motion, chosen in-app.
+ *
+ * Mirrors the global `prefers-reduced-motion` block above, including the
+ * pseudo-elements, for a customer whose device setting says one thing and
+ * whose preference here says another. */
+[data-motion='reduce'] :where(html) {
+  scroll-behavior: auto;
+}
+
+[data-motion='reduce'] :where(*),
+[data-motion='reduce'] :where(*)::before,
+[data-motion='reduce'] :where(*)::after {
+  animation-duration: 1ms !important;
+  animation-delay: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  transition-delay: 1ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Table / QR mode  (Phase 5)
+ *
+ * A diner reads this at arm's length, one-handed, on a phone that is probably
+ * not theirs, in a room that is probably dim. It starts at the size a
+ * marketplace visitor would have to opt into, and every primary target is a
+ * comfortable 56px. `data-table-mode` is set by the storefront shell whenever
+ * it was reached through a table QR code.
+ * ------------------------------------------------------------------------- */
+/* Scoped to the storefront element, never to the `<html>` mirror: the root
+   font size belongs to the customer's text-size preference, and table mode
+   must not quietly overrule a diner who asked for extra-large. */
+[data-store-theme][data-table-mode] {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+/* Primary actions: the add-to-cart button, the cart bar, the checkout call.
+   56px is the AAA target size (2.5.5), not just the AA 44px minimum. Marked
+   by hand with `data-table-primary` rather than inferred from a class, so a
+   merchant restyling `.store-btn` cannot accidentally shrink a target. */
+[data-table-mode] [data-table-primary] {
+  min-height: 56px;
+  font-size: 1.0625rem;
+}
+
+/* The round add-to-cart control has to grow in both axes or it turns into a
+   lozenge; it is square by design. */
+[data-table-mode] [data-table-primary='round'] {
+  min-width: 56px;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+/* Nothing in table mode may push the page sideways: a diner cannot discover a
+   horizontally scrolled control, and at 200% zoom the risk is real. Named
+   scrollers (the category rail, the featured strip) opt back in. */
+[data-store-theme][data-table-mode] {
+  overflow-x: clip;
+}
+
+[data-table-mode] :is(img, video, pre) {
+  max-width: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+ * Readable brand text on a brand-tinted surface  (Phase 5)
+ *
+ * `text-primary` on `bg-primary/10` is the app's signature chip, and in light
+ * mode it lands at 4.24:1 — just under the 4.5:1 that AA asks of body-sized
+ * text. This is the same hue, taken down far enough to pass, so the chip keeps
+ * its look and stops being the one label people squint at. The dark ramp
+ * already clears the bar, so it keeps the plain primary.
+ * ------------------------------------------------------------------------- */
+:root {
+  --primary-on-tint: color-mix(in oklch, var(--primary) 82%, #000000);
+  --success-on-tint: color-mix(in oklch, var(--success) 82%, #000000);
+}
+
+.dark {
+  --primary-on-tint: var(--primary);
+  --success-on-tint: var(--success);
+}
+
+@theme inline {
+  --color-primary-on-tint: var(--primary-on-tint);
+  --color-success-on-tint: var(--success-on-tint);
+}
+
+/* ---------------------------------------------------------------------------
+ * Leaflet chrome  (Phase 5)
+ *
+ * The attribution bar is markup Leaflet injects, and its default link blue on
+ * a translucent white strip over map tiles measures about 3.2:1 — below AA,
+ * and unpredictable because the tile underneath changes. Pinning the strip to
+ * opaque white and the links to the app's ink makes it both readable and
+ * stable. Required attribution, so it stays visible; only its colours move.
+ * ------------------------------------------------------------------------- */
+.leaflet-control-attribution {
+  background: #ffffff;
+  color: #44403c;
+  font-size: 11px;
+}
+
+.leaflet-control-attribution a {
+  color: #1c1917;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

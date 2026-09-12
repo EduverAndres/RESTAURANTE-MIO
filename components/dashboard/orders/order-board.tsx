@@ -11,6 +11,7 @@ import {
   useRealtimeChannel,
   useRealtimeRefresh,
 } from '@/components/providers/realtime-provider'
+import { KANBAN_SHORTCUT_HINT } from '@/lib/a11y/kanban-shortcuts'
 import {
   KANBAN_COLUMNS,
   groupOrdersForBoard,
@@ -25,6 +26,22 @@ interface OrderBoardProps {
 }
 
 const CLOCK_TICK_MS = 30_000
+
+/**
+ * One sentence for every move, whoever made it.
+ *
+ * The board has a single live region, so a transition the merchant performed
+ * and the realtime echo that follows it must read identically — otherwise the
+ * region changes twice and the same move is announced twice in different
+ * words. Naming the destination column is the point: "moved" is the part a
+ * keyboard user cannot see happen.
+ */
+function movedAnnouncement(shortCode: string, to: OrderStatus): string {
+  const column = KANBAN_COLUMNS.find((entry) => entry.status === to)
+  return column
+    ? `Pedido ${shortCode} movido a ${column.title}.`
+    : `Pedido ${shortCode}: ${ORDER_STATUS_LABELS[to]}.`
+}
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date())
@@ -79,9 +96,7 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
               : order,
           ),
         )
-        setAnnouncement(
-          `Pedido ${updated.short_code}: ${ORDER_STATUS_LABELS[updated.status]}.`,
-        )
+        setAnnouncement(movedAnnouncement(updated.short_code, updated.status))
       }
       // Items and customer names only come from the server query.
       refresh()
@@ -119,9 +134,7 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
         toast.success(
           `Pedido #${previous.short_code}: ${ORDER_STATUS_LABELS[to]}.`,
         )
-        setAnnouncement(
-          `Pedido ${previous.short_code}: ${ORDER_STATUS_LABELS[to]}.`,
-        )
+        setAnnouncement(movedAnnouncement(previous.short_code, to))
         // Realtime may be disconnected; refresh so the server state lands.
         router.refresh()
       })
@@ -133,9 +146,15 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
 
   return (
     <div className="space-y-6">
+      {/*
+        The board's single live region. Twenty cards each announcing
+        themselves would be worse than none, so every move — button, card
+        menu or keyboard shortcut — reports here and nowhere else.
+      */}
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}
       </p>
+      <p className="text-muted-foreground text-xs">{KANBAN_SHORTCUT_HINT}</p>
       <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
         <div className="flex gap-4 lg:grid lg:grid-cols-5">
           {KANBAN_COLUMNS.map((column) => (

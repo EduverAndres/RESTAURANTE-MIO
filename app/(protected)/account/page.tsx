@@ -71,7 +71,7 @@ export default async function AccountPage() {
             {profile?.avatar_url ? (
               <AvatarImage src={profile.avatar_url} alt="" />
             ) : null}
-            <AvatarFallback className="bg-primary/12 text-primary text-lg font-semibold">
+            <AvatarFallback className="bg-primary/12 text-primary-on-tint text-lg font-semibold">
               {initialsOf(displayName)}
             </AvatarFallback>
           </Avatar>

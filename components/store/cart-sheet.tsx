@@ -3,6 +3,7 @@
 import { ShoppingBagIcon, Trash2Icon } from 'lucide-react'
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
+import { useReturnFocus } from '@/components/a11y/use-return-focus'
 import { QuantityStepper } from '@/components/store/quantity-stepper'
 import { StoreImage } from '@/components/store/store-image'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,10 @@ export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
   const quantity = useCartStore(selectCartQuantity)
   const subtotal = useCartStore(selectCartSubtotal)
 
+  // This sheet has no SheetTrigger — the cart store opens it — so focus
+  // return is ours to do. See components/a11y/use-return-focus.ts.
+  useReturnFocus(isOpen)
+
   const minimumOk = meetsMinOrder(subtotal, minOrder)
   const missing = minOrder ? Math.max(0, minOrder - subtotal) : 0
   const progress = minimumProgress(subtotal, minOrder)
@@ -69,13 +74,14 @@ export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
       {/* Portalled to the body, so the tenant skin travels with it. */}
       <SheetContent
         side="right"
+        onCloseAutoFocus={(event) => event.preventDefault()}
         data-store-theme={theme ? '' : undefined}
         style={theme ? (themeToCssVars(theme) as CSSProperties) : undefined}
         className="flex w-full flex-col gap-0 bg-[var(--store-surface)] p-0 text-[var(--store-text)] sm:max-w-md"
       >
         <SheetHeader className="border-b border-[rgb(var(--store-text-rgb)/0.1)] px-5 py-4 text-left">
           <SheetTitle className="store-heading text-h3">Tu pedido</SheetTitle>
-          <SheetDescription className="text-[rgb(var(--store-text-rgb)/0.65)]">
+          <SheetDescription className="text-[rgb(var(--store-text-rgb)/0.75)]">
             {items.length > 0
               ? `${quantity} ${quantity === 1 ? 'producto' : 'productos'}${storeName ? ` de ${storeName}` : ''}`
               : 'Todavía no has agregado nada.'}
@@ -83,7 +89,7 @@ export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[rgb(var(--store-text-rgb)/0.65)]">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[rgb(var(--store-text-rgb)/0.75)]">
             <ShoppingBagIcon
               aria-hidden="true"
               className="size-10 text-[rgb(var(--store-text-rgb)/0.35)]"
@@ -108,12 +114,12 @@ export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
                   {item.options.length > 0 ? (
-                    <p className="truncate text-xs text-[rgb(var(--store-text-rgb)/0.65)]">
+                    <p className="truncate text-xs text-[rgb(var(--store-text-rgb)/0.75)]">
                       {item.options.map((option) => option.value).join(', ')}
                     </p>
                   ) : null}
                   {item.notes ? (
-                    <p className="truncate text-xs text-[rgb(var(--store-text-rgb)/0.65)] italic">
+                    <p className="truncate text-xs text-[rgb(var(--store-text-rgb)/0.75)] italic">
                       “{item.notes}”
                     </p>
                   ) : null}
@@ -151,14 +157,14 @@ export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
           <div className="space-y-3 border-t border-[rgb(var(--store-text-rgb)/0.1)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <dl className="space-y-1.5 text-sm">
               <div className="flex items-center justify-between">
-                <dt className="text-[rgb(var(--store-text-rgb)/0.65)]">
+                <dt className="text-[rgb(var(--store-text-rgb)/0.75)]">
                   Subtotal
                 </dt>
                 <dd className="font-semibold tabular-nums">
                   {formatCOP(subtotal)}
                 </dd>
               </div>
-              <div className="flex items-center justify-between text-xs text-[rgb(var(--store-text-rgb)/0.6)]">
+              <div className="flex items-center justify-between text-xs text-[rgb(var(--store-text-rgb)/0.75)]">
                 <dt>
                   {atTable ? 'Servicio a la mesa' : 'Domicilio y propina'}
                 </dt>
@@ -201,6 +207,7 @@ export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
             <Button
               asChild={minimumOk}
               disabled={!minimumOk}
+              data-table-primary=""
               className="h-12 w-full rounded-[var(--store-button-radius)] bg-[var(--store-primary)] text-base text-[var(--store-on-primary)] hover:bg-[var(--store-primary)]/90"
               onClick={() => minimumOk && setOpen(false)}
             >

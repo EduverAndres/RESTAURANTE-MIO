@@ -167,7 +167,7 @@ export function SearchBox({ className }: { className?: string }) {
                   index === active ? 'bg-muted' : 'hover:bg-muted',
                 )}
               >
-                <span className="rounded-control bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center">
+                <span className="rounded-control bg-primary/10 text-primary-on-tint flex size-8 shrink-0 items-center justify-center">
                   {item.kind === 'store' ? (
                     <StoreIcon aria-hidden="true" className="size-4" />
                   ) : (

@@ -4,6 +4,7 @@ import { Accordion } from 'radix-ui'
 import { ChevronDownIcon } from 'lucide-react'
 import { useId } from 'react'
 import { FieldError } from '@/components/dashboard/store/field-error'
+import { describedBy, errorId, hintId } from '@/lib/a11y/forms'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -116,10 +117,31 @@ export function FieldShell({
         ) : null}
       </div>
       {children}
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
-      <FieldError id={`${id}-error`} message={error} />
+      {hint ? (
+        <p id={hintId(id)} className="text-muted-foreground text-xs">
+          {hint}
+        </p>
+      ) : null}
+      <FieldError id={errorId(id)} message={error} />
     </div>
   )
+}
+
+/**
+ * What a `FieldShell` child should spread onto its control so the hint and
+ * the error it renders are actually reachable from the field.
+ */
+export function fieldShellProps(
+  id: string,
+  { hint, error }: { hint?: string; error?: string },
+) {
+  return {
+    'aria-invalid': Boolean(error) || undefined,
+    'aria-describedby': describedBy(
+      Boolean(hint) && hintId(id),
+      Boolean(error) && errorId(id),
+    ),
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -157,7 +179,15 @@ export function SegmentedField<T extends string | number>({
 }) {
   const name = useId()
   return (
-    <fieldset className="space-y-1.5">
+    <fieldset
+      className="space-y-1.5"
+      aria-invalid={Boolean(error) || undefined}
+      // The group owns the error, because no single radio caused it.
+      aria-describedby={describedBy(
+        Boolean(hint) && hintId(name),
+        Boolean(error) && errorId(name),
+      )}
+    >
       <legend className="mb-1.5 text-sm leading-none font-medium">
         {label}
       </legend>
@@ -185,8 +215,12 @@ export function SegmentedField<T extends string | number>({
           </label>
         ))}
       </div>
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
-      <FieldError id={`${name}-error`} message={error} />
+      {hint ? (
+        <p id={hintId(name)} className="text-muted-foreground text-xs">
+          {hint}
+        </p>
+      ) : null}
+      <FieldError id={errorId(name)} message={error} />
     </fieldset>
   )
 }
@@ -232,7 +266,7 @@ export function SliderField({
         max={max}
         step={step}
         value={value}
-        aria-describedby={`${id}-error`}
+        {...fieldShellProps(id, { hint, error })}
         className="accent-primary focus-visible:ring-ring/50 h-9 w-full rounded-full outline-none focus-visible:ring-3"
         onChange={(event) => onChange(Number(event.target.value))}
       />
@@ -256,9 +290,18 @@ export function SwitchField({
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0 space-y-0.5">
         <Label htmlFor={id}>{label}</Label>
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? (
+          <p id={hintId(id)} className="text-muted-foreground text-xs">
+            {hint}
+          </p>
+        ) : null}
       </div>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+      <Switch
+        id={id}
+        aria-describedby={describedBy(Boolean(hint) && hintId(id))}
+        checked={checked}
+        onCheckedChange={onChange}
+      />
     </div>
   )
 }
@@ -297,8 +340,7 @@ export function TextField({
         placeholder={placeholder}
         maxLength={maxLength}
         inputMode={inputMode}
-        aria-invalid={Boolean(error)}
-        aria-describedby={`${id}-error`}
+        {...fieldShellProps(id, { hint, error })}
         className="rounded-control h-10"
         onChange={(event) => onChange(event.target.value)}
       />
@@ -343,8 +385,7 @@ export function TextAreaField({
         placeholder={placeholder}
         maxLength={maxLength}
         spellCheck={!mono}
-        aria-invalid={Boolean(error)}
-        aria-describedby={`${id}-error`}
+        {...fieldShellProps(id, { hint, error })}
         className={cn('rounded-control', mono && 'font-mono text-xs')}
         onChange={(event) => onChange(event.target.value)}
       />

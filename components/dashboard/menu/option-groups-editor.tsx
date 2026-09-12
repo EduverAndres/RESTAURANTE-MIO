@@ -9,6 +9,7 @@ import {
   type UseFormRegister,
 } from 'react-hook-form'
 import { FieldError } from '@/components/dashboard/store/field-error'
+import { describedBy, errorId } from '@/lib/a11y/forms'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,7 +48,19 @@ function OptionValues({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium">Opciones</p>
+      {/*
+        Visible column headers. Each row's two inputs keep their own repeated
+        labels for screen readers; a sighted user gets the names once, at the
+        top, instead of only a placeholder that vanishes the moment they type.
+      */}
+      <div
+        aria-hidden="true"
+        className="grid grid-cols-[1fr_120px_auto] gap-2 text-xs font-medium"
+      >
+        <span>Opciones</span>
+        <span>Precio adicional</span>
+        <span className="w-8" />
+      </div>
       <ul className="space-y-2">
         {fields.map((field, valueIndex) => {
           const valueErrors = groupErrors?.values?.[valueIndex]
@@ -67,6 +80,9 @@ function OptionValues({
                   placeholder="Ej. Grande"
                   maxLength={40}
                   aria-invalid={Boolean(valueErrors?.name)}
+                  aria-describedby={describedBy(
+                    Boolean(valueErrors?.name) && errorId(nameId),
+                  )}
                   className="rounded-control h-10"
                   {...register(
                     `options.${groupIndex}.values.${valueIndex}.name`,
@@ -88,6 +104,9 @@ function OptionValues({
                   step={100}
                   placeholder="+ $"
                   aria-invalid={Boolean(valueErrors?.price_delta)}
+                  aria-describedby={describedBy(
+                    Boolean(valueErrors?.price_delta) && errorId(deltaId),
+                  )}
                   className="rounded-control h-10"
                   {...register(
                     `options.${groupIndex}.values.${valueIndex}.price_delta`,
@@ -174,11 +193,22 @@ export function OptionGroupsEditor({
         return (
           <fieldset
             key={field.id}
+            aria-describedby={describedBy(
+              Boolean(
+                groupErrors?.values?.root?.message ??
+                groupErrors?.values?.message,
+              ) && errorId(`option-${groupIndex}-values`),
+            )}
             className="rounded-control border-border/70 space-y-3 border p-3"
           >
             <legend className="sr-only">
               Grupo de opciones {groupIndex + 1}
             </legend>
+            {/*
+              The group-level error (for instance "agrega al menos una
+              opción") belongs to the whole fieldset, so the fieldset is what
+              points at it.
+            */}
             <div className="flex items-end gap-2">
               <div className="flex-1 space-y-1">
                 <Label htmlFor={nameId}>Nombre del grupo</Label>
@@ -187,6 +217,9 @@ export function OptionGroupsEditor({
                   placeholder="Ej. Tamaño"
                   maxLength={40}
                   aria-invalid={Boolean(groupErrors?.name)}
+                  aria-describedby={describedBy(
+                    Boolean(groupErrors?.name) && errorId(nameId),
+                  )}
                   className="rounded-control h-10"
                   {...register(`options.${groupIndex}.name`)}
                 />
@@ -235,6 +268,9 @@ export function OptionGroupsEditor({
                   min={0}
                   max={20}
                   aria-invalid={Boolean(groupErrors?.min)}
+                  aria-describedby={describedBy(
+                    Boolean(groupErrors?.min) && errorId(minId),
+                  )}
                   className="rounded-control h-10"
                   {...register(`options.${groupIndex}.min`, {
                     valueAsNumber: true,
@@ -256,6 +292,9 @@ export function OptionGroupsEditor({
                   min={1}
                   max={20}
                   aria-invalid={Boolean(groupErrors?.max)}
+                  aria-describedby={describedBy(
+                    Boolean(groupErrors?.max) && errorId(maxId),
+                  )}
                   className="rounded-control h-10"
                   {...register(`options.${groupIndex}.max`, {
                     valueAsNumber: true,

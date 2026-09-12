@@ -255,6 +255,8 @@ export function ProductCard({
                     : `Agregar ${product.name} al carrito`
                 }
                 aria-haspopup={hasOptions ? 'dialog' : undefined}
+                // Grows to a 56px square in table mode; see globals.css.
+                data-table-primary="round"
                 className="store-btn shadow-2 size-10 transition-transform hover:scale-105 active:scale-95"
               >
                 {hasOptions ? (

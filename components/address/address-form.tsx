@@ -144,48 +144,62 @@ export function AddressFormDialog({
           </DialogHeader>
 
           <div className="space-y-4 px-6 py-4">
-            <div className="relative">
-              <SearchIcon
-                aria-hidden="true"
-                className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar en el mapa"
-                aria-label="Buscar dirección en el mapa"
-                className="rounded-control h-11 pl-9"
-              />
-              {results.length > 0 ? (
-                <ul
-                  role="listbox"
-                  className="rounded-control border-border bg-popover shadow-lift absolute z-20 mt-1 max-h-48 w-full overflow-auto border p-1"
-                >
-                  {results.map((result) => (
-                    <li key={`${result.lat},${result.lng}`}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={false}
-                        onClick={() => {
-                          setPin({ lat: result.lat, lng: result.lng })
-                          setLine1(result.line1)
-                          setResults([])
-                          setQuery('')
-                        }}
-                        className="rounded-control hover:bg-muted w-full px-3 py-2 text-left text-sm"
-                      >
-                        <span className="block font-medium">
-                          {result.line1}
-                        </span>
-                        <span className="text-muted-foreground block truncate text-xs">
-                          {result.label}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+            <div className="space-y-1.5">
+              <Label htmlFor="address-search">Buscar en el mapa</Label>
+              <div className="relative">
+                <SearchIcon
+                  aria-hidden="true"
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                />
+                {/*
+                  A combobox in behaviour, so it says so: without `role`,
+                  `aria-expanded` and `aria-controls` the suggestion list
+                  below simply did not exist for a screen reader.
+                */}
+                <Input
+                  id="address-search"
+                  role="combobox"
+                  aria-expanded={results.length > 0}
+                  aria-controls="address-search-results"
+                  aria-autocomplete="list"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Calle 123 #45-67"
+                  className="rounded-control h-11 pl-9"
+                />
+                {results.length > 0 ? (
+                  <ul
+                    id="address-search-results"
+                    role="listbox"
+                    aria-label="Resultados de la búsqueda"
+                    className="rounded-control border-border bg-popover shadow-lift absolute z-20 mt-1 max-h-48 w-full overflow-auto border p-1"
+                  >
+                    {results.map((result) => (
+                      <li key={`${result.lat},${result.lng}`}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={false}
+                          onClick={() => {
+                            setPin({ lat: result.lat, lng: result.lng })
+                            setLine1(result.line1)
+                            setResults([])
+                            setQuery('')
+                          }}
+                          className="rounded-control hover:bg-muted w-full px-3 py-2 text-left text-sm"
+                        >
+                          <span className="block font-medium">
+                            {result.line1}
+                          </span>
+                          <span className="text-muted-foreground block truncate text-xs">
+                            {result.label}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             </div>
 
             <div className="rounded-card ring-foreground/10 overflow-hidden ring-1">

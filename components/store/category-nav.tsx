@@ -145,7 +145,7 @@ export function CategoryNav({
                       'border-b-2 px-0.5 py-1.5',
                       active
                         ? 'border-[var(--store-primary)] text-[var(--store-primary)]'
-                        : 'border-transparent text-[rgb(var(--store-text-rgb)/0.65)] hover:text-[var(--store-text)]',
+                        : 'border-transparent text-[rgb(var(--store-text-rgb)/0.75)] hover:text-[var(--store-text)]',
                     ),
                   variant === 'chips' &&
                     cn(

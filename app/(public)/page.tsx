@@ -150,7 +150,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <section className="container-page grid items-center gap-10 py-12 lg:grid-cols-[1.2fr_1fr] lg:py-20">
         <FadeIn className="space-y-7">
-          <p className="rounded-pill bg-primary/10 text-primary inline-flex items-center gap-2 px-3 py-1 text-xs font-medium">
+          <p className="rounded-pill bg-primary/10 text-primary-on-tint inline-flex items-center gap-2 px-3 py-1 text-xs font-medium">
             <StoreIcon aria-hidden="true" className="size-3.5" />
             Restaurantes con identidad propia
           </p>
@@ -206,7 +206,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 className="rounded-card bg-card shadow-soft ring-foreground/5 flex gap-4 p-5 ring-1"
                 style={{ marginLeft: `${index * 24}px` }}
               >
-                <span className="rounded-control bg-primary/10 font-display text-primary flex size-10 shrink-0 items-center justify-center text-lg font-semibold">
+                <span className="rounded-control bg-primary/10 font-display text-primary-on-tint flex size-10 shrink-0 items-center justify-center text-lg font-semibold">
                   {index + 1}
                 </span>
                 <span>

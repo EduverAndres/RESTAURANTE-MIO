@@ -128,9 +128,13 @@ export function OrderTimeline({ initial, live = true }: OrderTrackerProps) {
 
   return (
     <div className="space-y-6">
+      {/*
+        Not a live region. `useLiveOrder` above already raises a toast on every
+        status change, and the toaster is itself a polite live region, so this
+        card used to read the same transition out a second time. The card
+        stays the page's visible source of truth; the toast is the announcer.
+      */}
       <div
-        role="status"
-        aria-live="polite"
         className={cn(
           'rounded-card shadow-lift p-5 text-white',
           cancelled ? 'bg-destructive' : 'bg-primary',

@@ -39,7 +39,7 @@ function Fact({
 }) {
   return (
     <div className="rounded-[var(--store-radius)] bg-[var(--store-surface)] p-[var(--store-density-padding)] shadow-[var(--store-card-shadow)] [border:var(--store-card-border)]">
-      <dt className="flex items-center gap-1.5 text-xs text-[rgb(var(--store-text-rgb)/0.6)]">
+      <dt className="flex items-center gap-1.5 text-xs text-[rgb(var(--store-text-rgb)/0.75)]">
         {icon}
         {label}
       </dt>
@@ -132,10 +132,14 @@ export function InfoSection({ context }: StoreSectionProps) {
           {showSchedule ? (
             <div className="space-y-3">
               <h3 className="store-heading text-h3">Horario</h3>
-              <p
-                aria-live="polite"
-                className="text-sm font-medium text-[var(--store-primary)]"
-              >
+              {/*
+                Not a live region. The open/closed state has exactly one
+                announcer on this page — the chip in the hero (see
+                components/store/status-chips.tsx) — and it is the same
+                `hours.label` string. Two regions reading the same sentence is
+                worse than one.
+              */}
+              <p className="text-sm font-medium text-[var(--store-primary)]">
                 {hours.label}
               </p>
               <table className="w-full max-w-sm text-sm">
@@ -183,7 +187,7 @@ export function InfoSection({ context }: StoreSectionProps) {
       </div>
 
       {theme.footer.text ? (
-        <p className="mt-8 text-sm text-pretty text-[rgb(var(--store-text-rgb)/0.6)]">
+        <p className="mt-8 text-sm text-pretty text-[rgb(var(--store-text-rgb)/0.75)]">
           {theme.footer.text}
         </p>
       ) : null}

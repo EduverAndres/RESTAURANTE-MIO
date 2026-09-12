@@ -17,7 +17,7 @@ import { LOCATION_COOKIE, parseLocation } from '@/lib/location'
 import { fetchIsFavorite } from '@/lib/store/data'
 import { storeHoursState } from '@/lib/store/hours'
 import { resolveSections } from '@/lib/store/sections'
-import { normalizeTheme, themeToCssVars } from '@/lib/theme'
+import { ensureReadable, normalizeTheme, themeToCssVars } from '@/lib/theme'
 import type { Store } from '@/types/app'
 
 // Server rendering shared by /t/[slug] (regular storefront) and
@@ -29,7 +29,7 @@ function TableBanner({ number }: { number: number }) {
   return (
     <div
       role="status"
-      className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-[var(--store-primary)] px-4 py-2.5 text-sm font-medium text-[var(--store-on-primary)]"
+      className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-[var(--store-primary)] px-4 py-3 text-base font-medium text-[var(--store-on-primary)]"
     >
       <UtensilsIcon aria-hidden="true" className="size-4" />
       Estás pidiendo desde la mesa {number}
@@ -63,7 +63,13 @@ interface StorefrontProps {
  * than a branch in here.
  */
 export async function Storefront({ store, table = null }: StorefrontProps) {
-  const theme = normalizeTheme(store.theme)
+  // `ensureReadable` recomputes only `onPrimary` — the ink on the merchant's
+  // brand colour, which the merchant never picks — so a pale brand gets dark
+  // text instead of white at 3:1. The theme editor already ran this when the
+  // merchant saved; running it here too covers every theme stored before that
+  // check existed, and any brand colour changed by other means. The merchant's
+  // own colours are untouched.
+  const theme = ensureReadable(normalizeTheme(store.theme)).theme
   const hours = storeHoursState({
     schedule: store.schedule,
     isOpen: Boolean(store.is_open),
@@ -105,6 +111,10 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
       data-store-theme
       data-store-scheme={theme.mode === 'auto' ? 'auto' : theme.mode}
       data-store-motion={theme.motion}
+      // Table mode: bigger base text and 56px primary targets from the first
+      // frame, because a diner reads this at arm's length on a borrowed phone
+      // in a dim room. See the `[data-table-mode]` block in globals.css.
+      data-table-mode={table ? '' : undefined}
       style={themeToCssVars(theme) as CSSProperties}
       className="min-h-dvh bg-[var(--store-background)] font-[family-name:var(--store-font-body)] text-[var(--store-text)]"
     >

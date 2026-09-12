@@ -7,7 +7,9 @@ export default function PublicLayout({
   return (
     <div className="flex min-h-dvh flex-col pb-20 md:pb-0">
       <SiteHeader />
-      <main className="flex-1">{children}</main>
+      <main id="contenido" className="flex-1">
+        {children}
+      </main>
       <MobileNav />
     </div>
   )

@@ -33,14 +33,21 @@ export function PayoutMarkPaidButton({ payoutId }: PayoutMarkPaidButtonProps) {
       size="sm"
       variant="outline"
       disabled={pending}
+      aria-busy={pending}
       onClick={onClick}
       className="rounded-pill"
     >
+      {/*
+        The label stays while the request is in flight: swapping it for the
+        spinner left the button with no accessible name at all.
+      */}
       {pending ? (
-        <LoaderCircleIcon aria-hidden="true" className="size-3.5 animate-spin" />
-      ) : (
-        'Marcar pagado'
-      )}
+        <LoaderCircleIcon
+          aria-hidden="true"
+          className="size-3.5 animate-spin"
+        />
+      ) : null}
+      Marcar pagado
     </Button>
   )
 }

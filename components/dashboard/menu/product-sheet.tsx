@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { describedBy } from '@/lib/a11y/forms'
 import { formatTags } from '@/lib/menu/tags'
 import {
   productFormSchema,
@@ -225,6 +226,11 @@ export function ProductSheet({
                     >
                       <SelectTrigger
                         id="product-category"
+                        aria-invalid={Boolean(errors.category_id)}
+                        aria-describedby={describedBy(
+                          Boolean(errors.category_id) &&
+                            'product-category-error',
+                        )}
                         className="rounded-control h-11 w-full"
                       >
                         <SelectValue placeholder="Sin categoría" />

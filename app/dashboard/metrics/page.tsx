@@ -145,7 +145,7 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
                   key={product.key}
                   className="flex items-center gap-3 text-sm"
                 >
-                  <span className="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                  <span className="bg-primary/10 text-primary-on-tint flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate">

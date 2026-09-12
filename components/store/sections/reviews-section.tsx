@@ -60,7 +60,7 @@ export async function ReviewsSection({ context }: StoreSectionProps) {
                     <p className="truncate text-sm font-semibold">{name}</p>
                     <time
                       dateTime={review.created_at}
-                      className="text-xs text-[rgb(var(--store-text-rgb)/0.6)]"
+                      className="text-xs text-[rgb(var(--store-text-rgb)/0.75)]"
                     >
                       {dateFormatter.format(new Date(review.created_at))}
                     </time>

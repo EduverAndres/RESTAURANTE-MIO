@@ -289,7 +289,10 @@ export function CheckoutForm({
                 )}
               >
                 {index < stepIndex ? (
-                  <CheckIcon className="size-3.5" />
+                  <>
+                    <CheckIcon aria-hidden="true" className="size-3.5" />
+                    <span className="sr-only">Completado</span>
+                  </>
                 ) : (
                   index + 1
                 )}
@@ -381,7 +384,18 @@ export function CheckoutForm({
             {type === 'delivery' ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">Dirección</Label>
+                  {/*
+                    The visible heading IS the group's name (WCAG 2.5.3), so
+                    the radiogroup points at it instead of carrying a
+                    different `aria-label` that a voice-control user could
+                    never guess from what is on screen.
+                  */}
+                  <Label
+                    id="checkout-address-label"
+                    className="text-sm font-semibold"
+                  >
+                    Dirección
+                  </Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -408,7 +422,7 @@ export function CheckoutForm({
                 ) : (
                   <div
                     role="radiogroup"
-                    aria-label="Dirección de entrega"
+                    aria-labelledby="checkout-address-label"
                     className="grid gap-2"
                   >
                     {addresses.map((address) => {
@@ -455,10 +469,15 @@ export function CheckoutForm({
             ) : null}
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold">¿Cuándo?</Label>
+              <Label
+                id="checkout-schedule-label"
+                className="text-sm font-semibold"
+              >
+                ¿Cuándo?
+              </Label>
               <div
                 role="radiogroup"
-                aria-label="Hora de entrega"
+                aria-labelledby="checkout-schedule-label"
                 className="grid grid-cols-2 gap-2"
               >
                 <button
@@ -497,19 +516,24 @@ export function CheckoutForm({
                 </button>
               </div>
               {schedule === 'scheduled' ? (
-                <div className="flex items-center gap-2">
-                  <ClockIcon
-                    aria-hidden="true"
-                    className="text-muted-foreground size-4"
-                  />
-                  <Input
-                    type="datetime-local"
-                    aria-label="Fecha y hora programada"
-                    value={scheduledAt}
-                    min={nextQuarterHour(15)}
-                    onChange={(event) => setScheduledAt(event.target.value)}
-                    className="rounded-control h-11"
-                  />
+                <div className="space-y-1.5">
+                  <Label htmlFor="checkout-scheduled-at">
+                    Fecha y hora de entrega
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <ClockIcon
+                      aria-hidden="true"
+                      className="text-muted-foreground size-4"
+                    />
+                    <Input
+                      id="checkout-scheduled-at"
+                      type="datetime-local"
+                      value={scheduledAt}
+                      min={nextQuarterHour(15)}
+                      onChange={(event) => setScheduledAt(event.target.value)}
+                      className="rounded-control h-11"
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -573,12 +597,12 @@ export function CheckoutForm({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold">
+              <Label id="checkout-tip-label" className="text-sm font-semibold">
                 Propina para el domiciliario
               </Label>
               <div
                 role="radiogroup"
-                aria-label="Propina"
+                aria-labelledby="checkout-tip-label"
                 className="grid grid-cols-4 gap-2"
               >
                 {TIP_PRESETS.map((preset) => (

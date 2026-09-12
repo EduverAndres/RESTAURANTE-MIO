@@ -1,3 +1,4 @@
+import { expectNoA11yViolations } from './axe'
 import { expect, loginAs, test } from './fixtures'
 
 // The seeded merchant (owner1) owns 'la-parrilla-del-norte'; its tables get a
@@ -16,7 +17,9 @@ test('an anonymous guest scans a table QR, orders with cash and reaches the trac
   await expect(firstTable).toBeVisible()
   const tableUrl = await firstTable.locator('p[title]').getAttribute('title')
   if (!tableUrl) {
-    throw new Error('Could not read the table QR target URL from /dashboard/tables.')
+    throw new Error(
+      'Could not read the table QR target URL from /dashboard/tables.',
+    )
   }
 
   // Anonymous flow: a fresh, unauthenticated context simulates a diner
@@ -25,15 +28,38 @@ test('an anonymous guest scans a table QR, orders with cash and reaches the trac
   try {
     const guestPage = await guestContext.newPage()
     await guestPage.goto(tableUrl)
-    await expect(guestPage.getByRole('status')).toContainText('mesa')
+    await expect(
+      guestPage.getByText(/Estás pidiendo desde la mesa \d+/),
+    ).toBeVisible()
 
     const productButtons = guestPage.getByRole('button', { name: /^Ver / })
     await expect(productButtons.first()).toBeVisible()
+
+    await expectNoA11yViolations(guestPage, 'table storefront')
+
+    // Table mode has to work for someone who zoomed to 200%. Chromium has no
+    // browser-zoom API, so this emulates the two things that actually matter:
+    // half the CSS viewport (the reflow a 200% zoom produces) and a doubled
+    // device pixel ratio. The assertion is that nothing overflows sideways.
+    await guestPage.setViewportSize({ width: 640, height: 450 })
+    const overflow = await guestPage.evaluate(() => {
+      const root = document.documentElement
+      return root.scrollWidth - root.clientWidth
+    })
+    expect(
+      overflow,
+      'the table page must not scroll horizontally',
+    ).toBeLessThanOrEqual(1)
+    await expectNoA11yViolations(guestPage, 'table storefront · 200% zoom')
+    await guestPage.setViewportSize({ width: 1280, height: 900 })
+
     await productButtons.first().click()
 
     const drawer = guestPage.getByRole('dialog')
     await expect(drawer).toBeVisible()
-    const requiredGroups = drawer.locator('fieldset', { hasText: 'Obligatorio' })
+    const requiredGroups = drawer.locator('fieldset', {
+      hasText: 'Obligatorio',
+    })
     const requiredCount = await requiredGroups.count()
     for (let index = 0; index < requiredCount; index += 1) {
       await requiredGroups.nth(index).getByRole('radio').first().click()
@@ -52,6 +78,8 @@ test('an anonymous guest scans a table QR, orders with cash and reaches the trac
     await expect(cart).toBeVisible()
     await cart.getByRole('link', { name: /Ir a pagar/ }).click()
     await guestPage.waitForURL('**/checkout')
+
+    await expectNoA11yViolations(guestPage, 'table checkout')
 
     await guestPage.getByLabel('Tu nombre').fill('Invitado E2E')
     await guestPage.getByRole('radio', { name: /Pagar en la mesa/ }).click()

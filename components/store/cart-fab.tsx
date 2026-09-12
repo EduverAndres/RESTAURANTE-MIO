@@ -47,6 +47,7 @@ export function CartFab() {
           }}
           // Re-run the scale keyframes on every add.
           data-added={lastAddedAt}
+          data-table-primary=""
           className="rounded-pill shadow-lift fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 bg-[var(--store-primary,var(--primary))] py-3 pr-5 pl-4 text-[var(--store-on-primary,white)] md:right-6 md:bottom-6 md:left-auto md:translate-x-0"
         >
           <span className="relative">
@@ -62,9 +63,8 @@ export function CartFab() {
             </motion.span>
           </span>
           <span className="text-sm font-semibold">Ver carrito</span>
-          <span className="text-sm tabular-nums opacity-90">
-            {formatCOP(subtotal)}
-          </span>
+          {/* No opacity: 90% white on the brand colour fell under 4.5:1. */}
+          <span className="text-sm tabular-nums">{formatCOP(subtotal)}</span>
         </motion.button>
       ) : null}
     </AnimatePresence>

@@ -113,7 +113,7 @@ export function DashboardShell({
   const identity = (
     <div className="rounded-card bg-muted/60 flex items-center gap-3 p-3">
       <Avatar className="size-9">
-        <AvatarFallback className="bg-primary/12 text-primary text-xs font-semibold">
+        <AvatarFallback className="bg-primary/12 text-primary-on-tint text-xs font-semibold">
           {initialsOf(user.name)}
         </AvatarFallback>
       </Avatar>

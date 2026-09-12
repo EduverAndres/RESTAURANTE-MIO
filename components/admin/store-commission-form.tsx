@@ -60,13 +60,17 @@ export function StoreCommissionForm({
         size="sm"
         variant="outline"
         disabled={pending}
+        aria-busy={pending}
         className="rounded-pill"
       >
+        {/* Keep the name while pending; see payout-mark-paid-button.tsx. */}
         {pending ? (
-          <LoaderCircleIcon aria-hidden="true" className="size-3.5 animate-spin" />
-        ) : (
-          'Guardar'
-        )}
+          <LoaderCircleIcon
+            aria-hidden="true"
+            className="size-3.5 animate-spin"
+          />
+        ) : null}
+        Guardar
       </Button>
     </form>
   )

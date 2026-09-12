@@ -42,7 +42,7 @@ export function HeroEditorial({ context }: StoreSectionProps) {
         >
           <HeroLogo context={context} shape="circle" />
           {store.category ? (
-            <span className="text-sm font-medium tracking-[0.2em] text-[rgb(var(--store-text-rgb)/0.6)] uppercase">
+            <span className="text-sm font-medium tracking-[0.2em] text-[rgb(var(--store-text-rgb)/0.75)] uppercase">
               {store.category}
             </span>
           ) : null}

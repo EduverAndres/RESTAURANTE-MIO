@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { FieldError } from '@/components/dashboard/store/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { describedBy, errorId, hintId } from '@/lib/a11y/forms'
 import { contrastRatio } from '@/lib/color/contrast'
 import { normalizeHex } from '@/lib/theme'
 import { cn } from '@/lib/utils'
@@ -120,7 +121,11 @@ export function ColorField({
       <div className="flex items-center gap-2">
         <input
           type="color"
+          id={`${id}-picker`}
+          // The visible <Label> names the hex input next to it, so the
+          // swatch needs a name of its own or it reads as just "color".
           aria-label={`Selector de ${label.toLowerCase()}`}
+          aria-describedby={describedBy(Boolean(hint) && hintId(id))}
           value={swatch}
           onChange={(event) => onChange(event.target.value)}
           onBlur={(event) => onCommit?.(event.target.value)}
@@ -132,7 +137,10 @@ export function ColorField({
           spellCheck={false}
           maxLength={7}
           aria-invalid={Boolean(error)}
-          aria-describedby={`${id}-error`}
+          aria-describedby={describedBy(
+            Boolean(hint) && hintId(id),
+            Boolean(error) && errorId(id),
+          )}
           className="rounded-control h-10 font-mono text-sm uppercase"
           onChange={(event) => onChange(event.target.value)}
           onBlur={(event) => onCommit?.(event.target.value)}
@@ -191,8 +199,12 @@ export function ColorField({
         </ul>
       ) : null}
 
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
-      <FieldError id={`${id}-error`} message={error} />
+      {hint ? (
+        <p id={hintId(id)} className="text-muted-foreground text-xs">
+          {hint}
+        </p>
+      ) : null}
+      <FieldError id={errorId(id)} message={error} />
     </div>
   )
 }

@@ -84,8 +84,14 @@ export function DeliveryMap({
       aria-label="Seguimiento de la entrega"
       className="rounded-card border-border bg-card shadow-soft space-y-3 border p-4"
     >
-      <div role="status" aria-live="polite" className="flex items-start gap-3">
-        <span className="bg-primary/12 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+      {/*
+        The live region is the assignment sentence only, not this whole block.
+        The distance line below it is rewritten on every GPS ping, which had
+        the courier's position read out loud every few seconds; what a
+        customer actually needs to hear is "a courier took your order".
+      */}
+      <div className="flex items-start gap-3">
+        <span className="bg-primary/12 text-primary-on-tint flex size-9 shrink-0 items-center justify-center rounded-full">
           {courierId ? (
             <BikeIcon aria-hidden="true" className="size-4" />
           ) : (
@@ -95,7 +101,7 @@ export function DeliveryMap({
         <div className="min-w-0">
           {courierId ? (
             <>
-              <p className="text-sm font-semibold">
+              <p role="status" className="text-sm font-semibold">
                 Tu domiciliario: {courierName ?? 'asignado'}
               </p>
               <p className="text-muted-foreground text-xs">
@@ -106,7 +112,9 @@ export function DeliveryMap({
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold">Buscando domiciliario…</p>
+              <p role="status" className="text-sm font-semibold">
+                Buscando domiciliario…
+              </p>
               <p className="text-muted-foreground text-xs">
                 Tu pedido está listo; un domiciliario lo tomará en breve.
               </p>

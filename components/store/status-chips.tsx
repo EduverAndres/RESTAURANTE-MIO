@@ -86,14 +86,20 @@ export function StatusChips({
 
       {theme.hero.showRating && (store.rating_count ?? 0) > 0 ? (
         <li>
-          <span
-            className={chip}
-            aria-label={`Valoración ${Number(store.rating_avg).toFixed(1)} sobre 5, ${store.rating_count} opiniones`}
-          >
+          {/*
+            A plain <span> may not carry aria-label (ARIA forbids naming a
+            role-less element, and axe flags it), so the readable sentence is
+            real text, visually hidden, next to the glyphs it replaces.
+          */}
+          <span className={chip}>
             <StarIcon
               aria-hidden="true"
               className="size-3.5 fill-current text-[var(--store-accent)]"
             />
+            <span className="sr-only">
+              Valoración {Number(store.rating_avg ?? 0).toFixed(1)} sobre 5,{' '}
+              {store.rating_count} opiniones
+            </span>
             <span aria-hidden="true">
               {Number(store.rating_avg ?? 0).toFixed(1)} ({store.rating_count})
             </span>

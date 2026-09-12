@@ -44,3 +44,6 @@ next-env.d.ts
 
 # keep the example env file tracked
 !.env.example
+
+# CodeGraph index: per-checkout, never shared.
+/.codegraph/

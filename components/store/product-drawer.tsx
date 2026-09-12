@@ -213,7 +213,7 @@ export function ProductDrawer({
                     <fieldset key={option.id} className="space-y-2">
                       <legend className="flex w-full items-baseline justify-between text-sm font-semibold">
                         {option.name}
-                        <span className="text-xs font-normal text-[rgb(var(--store-text-rgb)/0.6)]">
+                        <span className="text-xs font-normal text-[rgb(var(--store-text-rgb)/0.75)]">
                           {option.required ? 'Obligatorio' : 'Opcional'}
                           {max > 1 ? ` · hasta ${max}` : ''}
                         </span>
@@ -316,6 +316,7 @@ export function ProductDrawer({
                 type="button"
                 onClick={submit}
                 whileTap={animate ? { scale: 0.97 } : undefined}
+                data-table-primary=""
                 className="store-btn h-12 flex-1 text-base"
               >
                 Agregar ·{' '}

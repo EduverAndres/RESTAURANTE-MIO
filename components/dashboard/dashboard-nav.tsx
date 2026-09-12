@@ -62,7 +62,9 @@ export function DashboardNav({
                 className={cn(
                   'rounded-control flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-primary/10 text-primary'
+                    ? // Darker than `text-primary`: brand orange on a 10%
+                      // brand tint measures 4.48:1, just under AA.
+                      'bg-primary/10 text-primary-on-tint'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >

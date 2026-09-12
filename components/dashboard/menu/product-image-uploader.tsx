@@ -56,7 +56,9 @@ export function ProductImageUploader({
         {url ? (
           <Image
             src={url}
-            alt="Imagen del producto"
+            // Decorative: a preview of the control's current value, named by
+            // the field beside it. Matches product-list.tsx.
+            alt=""
             fill
             sizes="112px"
             className="object-cover"
