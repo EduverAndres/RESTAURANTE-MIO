@@ -1,8 +1,10 @@
 'use client'
 
-import { MinusIcon, PlusIcon, ShoppingBagIcon, Trash2Icon } from 'lucide-react'
-import Image from 'next/image'
+import { ShoppingBagIcon, Trash2Icon } from 'lucide-react'
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
+import { QuantityStepper } from '@/components/store/quantity-stepper'
+import { StoreImage } from '@/components/store/store-image'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -14,19 +16,29 @@ import {
 import { formatCOP } from '@/lib/format'
 import { computeLineTotal, meetsMinOrder } from '@/lib/pricing'
 import { tableCheckoutPath, tableEntryPath } from '@/lib/tables/qr'
+import { themeToCssVars } from '@/lib/theme'
 import {
   selectCartQuantity,
   selectCartSubtotal,
   useCartStore,
 } from '@/stores/cart.store'
+import type { StoreTheme } from '@/types/app'
 
 interface CartSheetProps {
   /** Minimum order of the store the cart belongs to; null when unknown. */
   minOrder: number | null
   storeName: string | null
+  /** Present on a storefront: the sheet then wears the tenant skin. */
+  theme?: StoreTheme
 }
 
-export function CartSheet({ minOrder, storeName }: CartSheetProps) {
+/** How full the basket is against the minimum, clamped to 0..1. */
+function minimumProgress(subtotal: number, minOrder: number | null): number {
+  if (!minOrder || minOrder <= 0) return 1
+  return Math.max(0, Math.min(1, subtotal / minOrder))
+}
+
+export function CartSheet({ minOrder, storeName, theme }: CartSheetProps) {
   const isOpen = useCartStore((state) => state.isOpen)
   const setOpen = useCartStore((state) => state.setOpen)
   const items = useCartStore((state) => state.items)
@@ -39,6 +51,8 @@ export function CartSheet({ minOrder, storeName }: CartSheetProps) {
   const subtotal = useCartStore(selectCartSubtotal)
 
   const minimumOk = meetsMinOrder(subtotal, minOrder)
+  const missing = minOrder ? Math.max(0, minOrder - subtotal) : 0
+  const progress = minimumProgress(subtotal, minOrder)
   // A cart tagged with a table checks out in place; no login required.
   const atTable = Boolean(table && storeSlug)
   const checkoutHref =
@@ -52,13 +66,16 @@ export function CartSheet({ minOrder, storeName }: CartSheetProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
+      {/* Portalled to the body, so the tenant skin travels with it. */}
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
+        data-store-theme={theme ? '' : undefined}
+        style={theme ? (themeToCssVars(theme) as CSSProperties) : undefined}
+        className="flex w-full flex-col gap-0 bg-[var(--store-surface)] p-0 text-[var(--store-text)] sm:max-w-md"
       >
-        <SheetHeader className="border-border border-b px-5 py-4 text-left">
-          <SheetTitle className="font-display text-2xl">Tu pedido</SheetTitle>
-          <SheetDescription>
+        <SheetHeader className="border-b border-[rgb(var(--store-text-rgb)/0.1)] px-5 py-4 text-left">
+          <SheetTitle className="store-heading text-h3">Tu pedido</SheetTitle>
+          <SheetDescription className="text-[rgb(var(--store-text-rgb)/0.65)]">
             {items.length > 0
               ? `${quantity} ${quantity === 1 ? 'producto' : 'productos'}${storeName ? ` de ${storeName}` : ''}`
               : 'Todavía no has agregado nada.'}
@@ -66,71 +83,52 @@ export function CartSheet({ minOrder, storeName }: CartSheetProps) {
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[rgb(var(--store-text-rgb)/0.65)]">
             <ShoppingBagIcon
               aria-hidden="true"
-              className="text-muted-foreground/50 size-10"
+              className="size-10 text-[rgb(var(--store-text-rgb)/0.35)]"
             />
             Explora el menú y toca un plato para empezar.
           </div>
         ) : (
-          <ul className="divide-border flex-1 divide-y overflow-y-auto px-5">
+          <ul className="flex-1 divide-y divide-[rgb(var(--store-text-rgb)/0.08)] overflow-y-auto px-5">
             {items.map((item) => (
               <li key={item.key} className="flex gap-3 py-4">
-                <div className="rounded-control bg-muted relative size-16 shrink-0 overflow-hidden">
-                  {item.imageUrl ? (
-                    <Image
-                      src={item.imageUrl}
-                      alt=""
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
-                  ) : null}
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-[var(--store-image-radius)] bg-[rgb(var(--store-text-rgb)/0.06)]">
+                  <StoreImage
+                    src={item.imageUrl}
+                    alt=""
+                    seed={item.productId}
+                    color={theme?.primary ?? '#C2410C'}
+                    label={item.name}
+                    sizes="64px"
+                    initialScale={1.4}
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
                   {item.options.length > 0 ? (
-                    <p className="text-muted-foreground truncate text-xs">
+                    <p className="truncate text-xs text-[rgb(var(--store-text-rgb)/0.65)]">
                       {item.options.map((option) => option.value).join(', ')}
                     </p>
                   ) : null}
                   {item.notes ? (
-                    <p className="text-muted-foreground truncate text-xs italic">
+                    <p className="truncate text-xs text-[rgb(var(--store-text-rgb)/0.65)] italic">
                       “{item.notes}”
                     </p>
                   ) : null}
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="rounded-pill border-border flex items-center border">
-                      <button
-                        type="button"
-                        aria-label={`Quitar uno de ${item.name}`}
-                        onClick={() => setQuantity(item.key, item.quantity - 1)}
-                        className="flex size-8 items-center justify-center"
-                      >
-                        {item.quantity === 1 ? (
-                          <Trash2Icon
-                            aria-hidden="true"
-                            className="text-destructive size-3.5"
-                          />
-                        ) : (
-                          <MinusIcon aria-hidden="true" className="size-3.5" />
-                        )}
-                      </button>
-                      <span className="w-6 text-center text-sm tabular-nums">
-                        {item.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Agregar uno de ${item.name}`}
-                        onClick={() =>
-                          setQuantity(item.key, Math.min(50, item.quantity + 1))
-                        }
-                        className="flex size-8 items-center justify-center"
-                      >
-                        <PlusIcon aria-hidden="true" className="size-3.5" />
-                      </button>
-                    </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <QuantityStepper
+                      quantity={item.quantity}
+                      itemLabel={item.name}
+                      onDecrement={() =>
+                        setQuantity(item.key, item.quantity - 1)
+                      }
+                      onIncrement={() =>
+                        setQuantity(item.key, Math.min(50, item.quantity + 1))
+                      }
+                      className="bg-transparent text-[var(--store-text)] shadow-none [border:1px_solid_rgb(var(--store-text-rgb)/0.15)]"
+                    />
                     <span className="text-sm font-semibold tabular-nums">
                       {formatCOP(computeLineTotal(item))}
                     </span>
@@ -140,7 +138,7 @@ export function CartSheet({ minOrder, storeName }: CartSheetProps) {
                   type="button"
                   aria-label={`Eliminar ${item.name}`}
                   onClick={() => remove(item.key)}
-                  className="text-muted-foreground hover:text-destructive self-start"
+                  className="self-start text-[rgb(var(--store-text-rgb)/0.5)] transition-colors hover:text-[var(--destructive)]"
                 >
                   <Trash2Icon aria-hidden="true" className="size-4" />
                 </button>
@@ -150,48 +148,78 @@ export function CartSheet({ minOrder, storeName }: CartSheetProps) {
         )}
 
         {items.length > 0 ? (
-          <div className="border-border space-y-3 border-t p-5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold tabular-nums">
-                {formatCOP(subtotal)}
-              </span>
-            </div>
+          <div className="space-y-3 border-t border-[rgb(var(--store-text-rgb)/0.1)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <dl className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="text-[rgb(var(--store-text-rgb)/0.65)]">
+                  Subtotal
+                </dt>
+                <dd className="font-semibold tabular-nums">
+                  {formatCOP(subtotal)}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between text-xs text-[rgb(var(--store-text-rgb)/0.6)]">
+                <dt>
+                  {atTable ? 'Servicio a la mesa' : 'Domicilio y propina'}
+                </dt>
+                <dd>
+                  {atTable && table
+                    ? `Mesa ${table.number}`
+                    : 'Se calculan en el siguiente paso'}
+                </dd>
+              </div>
+            </dl>
+
             {!minimumOk && minOrder ? (
-              <p role="status" className="text-destructive text-xs">
-                El pedido mínimo es {formatCOP(minOrder)}. Te faltan{' '}
-                {formatCOP(minOrder - subtotal)}.
-              </p>
-            ) : atTable && table ? (
-              <p className="text-muted-foreground text-xs">
-                Pedido para la mesa {table.number}. Sin costo de domicilio.
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-xs">
-                Domicilio y propina se calculan en el siguiente paso.
-              </p>
-            )}
+              <div className="space-y-1.5">
+                <div
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={minOrder}
+                  aria-valuenow={subtotal}
+                  aria-label="Avance hacia el pedido mínimo"
+                  className="h-2 w-full overflow-hidden rounded-full bg-[rgb(var(--store-text-rgb)/0.1)]"
+                >
+                  <div
+                    className="h-full rounded-full bg-[var(--store-primary)] transition-[width] duration-[var(--store-motion-duration)] ease-[var(--ease-out-soft)]"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </div>
+                <p
+                  role="status"
+                  className="text-xs text-[rgb(var(--store-text-rgb)/0.75)]"
+                >
+                  Te faltan{' '}
+                  <strong className="font-semibold text-[var(--store-primary)]">
+                    {formatCOP(missing)}
+                  </strong>{' '}
+                  para el mínimo de {formatCOP(minOrder)}.
+                </p>
+              </div>
+            ) : null}
+
             <Button
               asChild={minimumOk}
               disabled={!minimumOk}
-              className="rounded-pill h-12 w-full text-base"
-              onClick={() => setOpen(false)}
+              className="h-12 w-full rounded-[var(--store-button-radius)] bg-[var(--store-primary)] text-base text-[var(--store-on-primary)] hover:bg-[var(--store-primary)]/90"
+              onClick={() => minimumOk && setOpen(false)}
             >
               {minimumOk ? (
                 <Link href={checkoutHref}>
                   Ir a pagar · {formatCOP(subtotal)}
                 </Link>
               ) : (
-                <span>Ir a pagar</span>
+                <span>Ir a pagar · {formatCOP(subtotal)}</span>
               )}
             </Button>
+
             <div className="flex justify-between">
               {continueHref ? (
                 <Button
                   asChild
                   variant="link"
                   size="sm"
-                  className="px-0"
+                  className="px-0 text-[var(--store-primary)]"
                   onClick={() => setOpen(false)}
                 >
                   <Link href={continueHref}>Seguir pidiendo</Link>
