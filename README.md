@@ -143,6 +143,8 @@ notifications configured at all).
 | Script                            | Purpose                                                                                                                                                                          |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run dev`                     | Start the dev server (Turbopack).                                                                                                                                                |
+| `npm run dev:lan`                 | Dev server reachable from other devices on the network (see [Testing on a phone](#testing-on-a-phone)).                                                                          |
+| `npm run dev:https`               | Same, over HTTPS with a self-signed certificate — required for geolocation on a phone.                                                                                           |
 | `npm run build`                   | Production build (Turbopack).                                                                                                                                                    |
 | `npm run start`                   | Start the production server after a build.                                                                                                                                       |
 | `npm run lint`                    | ESLint.                                                                                                                                                                          |
@@ -320,4 +322,30 @@ on the register page.
   after it is created, but nothing cancels the order automatically. A late
   approval on an order that was auto-cancelled by a declined attempt
   reopens it as `pending` and notifies the merchant again.
+
 # RESTAURANTE-MIO
+
+## Testing on a phone
+
+`npm run dev:lan` serves the app on your local network, so a phone on the same
+Wi-Fi can open `http://<your-lan-ip>:3000`.
+
+**Geolocation will not work over that URL.** Browsers expose
+`navigator.geolocation` only in a secure context — HTTPS, or `localhost`. On a
+plain `http://192.168.x.x` address the phone reports the location permission as
+blocked however the device is configured, so the app correctly shows "No tienes
+acceso a GPS en este dispositivo" and falls back to searching the address by
+hand.
+
+To exercise the GPS path on a real phone, serve over HTTPS:
+
+```bash
+npm run dev:https
+```
+
+Next generates a self-signed certificate on first run. The phone will warn that
+the certificate is untrusted — accept it once, then `https://<your-lan-ip>:3000`
+is a secure context and "Usar mi ubicación" works.
+
+The same applies in production: the site must be served over HTTPS for
+geolocation, push notifications and the service worker to function.
