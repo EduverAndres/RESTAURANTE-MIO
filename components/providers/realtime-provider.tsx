@@ -5,6 +5,7 @@ import type {
   RealtimePostgresChangesPayload,
   SupabaseClient,
 } from '@supabase/supabase-js'
+import { MotionConfig } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import {
   createContext,
@@ -155,7 +156,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <RealtimeContext.Provider value={value}>
-      {children}
+      {/* Honours prefers-reduced-motion inside Motion itself, so components
+          never branch on a browser-only value while rendering (which would
+          desynchronise the server and client markup). */}
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
     </RealtimeContext.Provider>
   )
 }
