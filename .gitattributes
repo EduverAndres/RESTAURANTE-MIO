@@ -1,0 +1,12 @@
+# Let Git decide what counts as text, and check every text file out with LF on
+# every platform.
+#
+# Without this, core.autocrlf=true hands a Windows clone a CRLF working tree.
+# Any test that reads a project file and matches it against a pattern holding a
+# literal \n then fails locally while CI, which runs on LF, stays green — see
+# tests/design-tokens.test.ts, where that silently disabled all 31 tests.
+* text=auto eol=lf
+
+# Binaries: never rewrite the bytes.
+*.png binary
+*.ico binary
