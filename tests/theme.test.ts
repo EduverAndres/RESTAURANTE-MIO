@@ -173,15 +173,21 @@ describe('themeToCssVars', () => {
   })
 
   it('writes font families with fallback stacks', () => {
+    // The family resolves through the next/font variable, never the raw name:
+    // see tests/theme-fonts.test.ts.
     const vars = themeToCssVars(DEFAULT_STORE_THEME)
-    expect(vars['--store-font-display']).toMatch(/^"Fraunces", .*serif$/)
-    expect(vars['--store-font-body']).toMatch(/^"Inter", .*sans-serif$/)
+    expect(vars['--store-font-display']).toMatch(
+      /^var\(--font-fraunces\), .*serif$/,
+    )
+    expect(vars['--store-font-body']).toMatch(
+      /^var\(--font-inter\), .*sans-serif$/,
+    )
     const grotesk = themeToCssVars({
       ...DEFAULT_STORE_THEME,
       fontDisplay: 'Space Grotesk',
     })
     expect(grotesk['--store-font-display']).toMatch(
-      /^"Space Grotesk", .*sans-serif$/,
+      /^var\(--font-space-grotesk\), .*sans-serif$/,
     )
   })
 

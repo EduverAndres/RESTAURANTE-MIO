@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 interface FadeInProps {
   children: React.ReactNode
@@ -17,8 +17,13 @@ export function FadeIn({
   delay = 0,
   inView = false,
 }: FadeInProps) {
-  const reduceMotion = useReducedMotion()
-  const hidden = reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
+  // `initial` must not depend on a browser-only value: useReducedMotion()
+  // reads matchMedia, which the server cannot see, so branching here made the
+  // server and client render different inline styles and React reported a
+  // hydration mismatch on every page using this component. The preference is
+  // honoured by <MotionConfig reducedMotion="user"> at the root instead, which
+  // drops the movement while keeping the markup identical on both sides.
+  const hidden = { opacity: 0, y: 16 }
   const visible = { opacity: 1, y: 0 }
 
   return (

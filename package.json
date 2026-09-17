@@ -7,6 +7,8 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:lan": "next dev --turbopack -H 0.0.0.0",
+    "dev:https": "next dev --turbopack -H 0.0.0.0 --experimental-https",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",

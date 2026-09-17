@@ -131,9 +131,12 @@ export function AddressFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-card max-w-lg p-0 sm:max-w-xl">
-        <form onSubmit={submit}>
-          <DialogHeader className="px-6 pt-6">
+      {/* The map plus six fields is taller than a phone screen, so the dialog
+          is capped to the viewport and only the body scrolls: the header and
+          the save button must stay reachable. */}
+      <DialogContent className="rounded-card flex max-h-[92dvh] max-w-lg flex-col p-0 sm:max-w-xl">
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+          <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle className="font-display text-2xl">
               {address ? 'Editar dirección' : 'Nueva dirección'}
             </DialogTitle>
@@ -143,7 +146,7 @@ export function AddressFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 px-6 py-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
             <div className="space-y-1.5">
               <Label htmlFor="address-search">Buscar en el mapa</Label>
               <div className="relative">
@@ -309,16 +312,20 @@ export function AddressFormDialog({
             </div>
           </div>
 
-          <div className="border-border flex justify-end gap-2 border-t px-6 py-4">
+          <div className="border-border bg-card flex shrink-0 justify-end gap-2 border-t px-6 py-4">
             <Button
               type="button"
               variant="ghost"
-              className="rounded-pill"
+              className="rounded-pill min-h-11"
               onClick={() => onOpenChange(false)}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending} className="rounded-pill">
+            <Button
+              type="submit"
+              disabled={pending}
+              className="rounded-pill min-h-11"
+            >
               {pending ? (
                 <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
               ) : null}
