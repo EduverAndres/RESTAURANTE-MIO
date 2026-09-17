@@ -6,10 +6,13 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { contrastRatio } from '@/lib/color/contrast'
 
+// Normalised to LF before matching: on Windows a checkout with
+// core.autocrlf=true writes the stylesheet with CRLF, and the block
+// patterns below anchor on the newline that follows an opening brace.
 const css = readFileSync(
   fileURLToPath(new URL('../app/globals.css', import.meta.url)),
   'utf8',
-)
+).replace(/\r\n/g, '\n')
 
 /** Hex-valued custom properties declared directly inside a top-level block. */
 function hexTokens(selector: string): Record<string, string> {
