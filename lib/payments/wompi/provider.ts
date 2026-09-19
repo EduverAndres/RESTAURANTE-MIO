@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { serverEnv, wompiConfigured } from '@/lib/env.server'
+import { logger } from '@/lib/log/logger'
 import { integritySignature } from '@/lib/payments/wompi/signature'
 import {
   buildCheckoutUrl,
@@ -55,13 +56,16 @@ export async function fetchWompiTransaction(
       },
     )
     if (!response.ok) {
-      console.error('Wompi transaction lookup failed', response.status)
+      logger.error('wompi.provider.lookup_failed', {
+        httpStatus: response.status,
+        transactionId,
+      })
       return null
     }
     const body = (await response.json()) as WompiTransactionResponse
     return body.data ?? null
   } catch (error) {
-    console.error('Failed to reach Wompi', error)
+    logger.error('wompi.provider.unreachable', { transactionId }, error)
     return null
   } finally {
     clearTimeout(timer)
@@ -82,7 +86,7 @@ export const wompiProvider: PaymentProvider = {
     } = serverEnv
     const reference = paymentReference(input.orderId)
     if (!publicKey || !integritySecret) {
-      console.error('Wompi createPayment called without configuration')
+      logger.error('wompi.provider.not_configured', { orderId: input.orderId })
       return {
         status: 'failed',
         reference,

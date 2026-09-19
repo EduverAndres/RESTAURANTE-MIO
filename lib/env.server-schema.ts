@@ -15,6 +15,15 @@ export const serverEnvSchema = z.object({
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().startsWith('mailto:').optional(),
+  // `https://<publicKey>@<host>/<projectId>`, as Sentry prints it. Checked
+  // here rather than left to the SDK because an invalid DSN only disables
+  // Sentry with a warning nobody reads: a deployment that believes it has
+  // error reporting and has not is worse than one that fails to boot.
+  SENTRY_DSN: z
+    .string()
+    .regex(/^https?:\/\/[^@\s/]+@[^\s/]+\/\d+$/, 'Must be a Sentry DSN')
+    .optional(),
+  SENTRY_ENVIRONMENT: z.string().min(1).optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
@@ -41,4 +50,14 @@ export function pushConfiguredFrom(source: ServerEnvSource): boolean {
       source.VAPID_PRIVATE_KEY &&
       source.VAPID_SUBJECT,
   )
+}
+
+/**
+ * True once Sentry has a destination to send to. The DSN is the only
+ * required key — `SENTRY_ENVIRONMENT` merely labels the events — so error
+ * reporting is exactly one variable away from live, and its absence leaves
+ * the SDK initialised as a no-op rather than branching the app.
+ */
+export function sentryConfiguredFrom(source: ServerEnvSource): boolean {
+  return Boolean(source.SENTRY_DSN)
 }

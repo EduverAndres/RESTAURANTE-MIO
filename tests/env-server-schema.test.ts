@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   parseServerEnv,
   pushConfiguredFrom,
+  sentryConfiguredFrom,
   wompiConfiguredFrom,
 } from '@/lib/env.server-schema'
+
+const DSN = 'https://abc123@o4507.ingest.sentry.io/4508'
 
 describe('parseServerEnv', () => {
   it('accepts an empty environment: every server secret is optional', () => {
@@ -37,6 +40,12 @@ describe('parseServerEnv', () => {
   it('rejects a malformed VAPID_SUBJECT', () => {
     const parsed = parseServerEnv({ VAPID_SUBJECT: 'ops@tienda.app' })
     expect(parsed.success).toBe(false)
+  })
+
+  it('accepts a Sentry DSN and rejects anything that is not one', () => {
+    expect(parseServerEnv({ SENTRY_DSN: DSN }).success).toBe(true)
+    expect(parseServerEnv({ SENTRY_DSN: 'https://sentry.io' }).success).toBe(false)
+    expect(parseServerEnv({ SENTRY_DSN: 'abc123' }).success).toBe(false)
   })
 
   it('falls back to SUPABASE_SERVICE_ROLE_KEY when present', () => {
@@ -85,5 +94,16 @@ describe('pushConfiguredFrom', () => {
         VAPID_SUBJECT: 'mailto:ops@tienda.app',
       }),
     ).toBe(true)
+  })
+})
+
+describe('sentryConfiguredFrom', () => {
+  it('is false with no DSN, so the app runs with error reporting off', () => {
+    expect(sentryConfiguredFrom({})).toBe(false)
+    expect(sentryConfiguredFrom({ SENTRY_ENVIRONMENT: 'production' })).toBe(false)
+  })
+
+  it('is true on the DSN alone; the environment label is optional', () => {
+    expect(sentryConfiguredFrom({ SENTRY_DSN: DSN })).toBe(true)
   })
 })
