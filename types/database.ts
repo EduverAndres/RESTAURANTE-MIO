@@ -332,6 +332,7 @@ export type Database = {
       payment_events: {
         Row: {
           amount_in_cents: number | null
+          applied_at: string | null
           event_id: string
           id: string
           order_id: string | null
@@ -343,6 +344,7 @@ export type Database = {
         }
         Insert: {
           amount_in_cents?: number | null
+          applied_at?: string | null
           event_id: string
           id?: string
           order_id?: string | null
@@ -354,6 +356,7 @@ export type Database = {
         }
         Update: {
           amount_in_cents?: number | null
+          applied_at?: string | null
           event_id?: string
           id?: string
           order_id?: string | null
@@ -688,6 +691,98 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          bucket: string
+          hit_count: number
+          identifier: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hit_count?: number
+          identifier: string
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          hit_count?: number
+          identifier?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          method: string
+          note: string | null
+          order_id: string
+          reason: string
+          reversed_in_payout_id: string | null
+          store_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          method: string
+          note?: string | null
+          order_id: string
+          reason: string
+          reversed_in_payout_id?: string | null
+          store_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          method?: string
+          note?: string | null
+          order_id?: string
+          reason?: string
+          reversed_in_payout_id?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_reversed_in_payout_id_fkey"
+            columns: ["reversed_in_payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_tables: {
         Row: {
           created_at: string
@@ -821,6 +916,23 @@ export type Database = {
         Args: { order_id: string }
         Returns: boolean
       }
+      consume_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_identifier: string
+          p_window_seconds: number
+        }
+        Returns: { hit_count: number; window_start: string }[]
+      }
+      generate_payouts: {
+        Args: { p_period_start: string; p_period_end: string }
+        Returns: {
+          payouts_created: number
+          payouts_skipped: number
+          refunds_reversed: number
+          refunds_resolved: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -843,6 +955,18 @@ export type Database = {
       }
       product_store_id: {
         Args: { product_id: string }
+        Returns: string
+      }
+      record_refund: {
+        Args: {
+          p_order_id: string
+          p_expected_payment_status: Database["public"]["Enums"]["payment_status"]
+          p_amount: number
+          p_reason: string
+          p_method: string
+          p_note: string | null
+          p_issued_by: string
+        }
         Returns: string
       }
       resolve_store_table: {
