@@ -64,7 +64,12 @@ describe('fetchWompiTransaction', () => {
       jsonResponse({ error: 'not found' }, 404)
 
     await expect(fetchWompiTransaction('tx_1', fetchImpl)).resolves.toBeNull()
-    expect(log).toHaveBeenCalledWith('Wompi transaction lookup failed', 404)
+    const record = JSON.parse(log.mock.calls[0]?.[0] as string) as {
+      event: string
+      context?: Record<string, unknown>
+    }
+    expect(record.event).toBe('wompi.provider.lookup_failed')
+    expect(record.context).toMatchObject({ httpStatus: 404 })
   })
 
   it('aborts after the timeout and returns null', async () => {

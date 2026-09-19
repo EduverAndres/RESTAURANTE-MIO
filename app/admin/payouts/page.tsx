@@ -15,6 +15,7 @@ import { requireRole } from '@/lib/auth'
 import { formatCOP } from '@/lib/format'
 import { formatDateCO } from '@/lib/format-date'
 import { PAYOUT_STATUS_LABELS } from '@/lib/payouts/labels'
+import { isDebtToPlatform } from '@/lib/payouts/reversal'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Liquidaciones' }
@@ -38,7 +39,8 @@ export default async function AdminPayoutsPage() {
         </h1>
         <p className="text-muted-foreground text-sm">
           Genera las liquidaciones del periodo y marca como pagadas las que
-          ya se transfirieron.
+          ya se transfirieron. Los reembolsos registrados después de generar
+          un periodo se descuentan aquí, como ajuste negativo del siguiente.
         </p>
       </header>
 
@@ -77,6 +79,11 @@ export default async function AdminPayoutsPage() {
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatCOP(Number(payout.net))}
+                    {isDebtToPlatform({ net: Number(payout.net) }) ? (
+                      <span className="text-destructive block text-xs font-normal">
+                        La tienda debe este saldo
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell>
                     <StatusBadge

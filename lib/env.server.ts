@@ -3,6 +3,7 @@ import 'server-only'
 import {
   parseServerEnv,
   pushConfiguredFrom,
+  sentryConfiguredFrom,
   wompiConfiguredFrom,
   type ServerEnv,
 } from '@/lib/env.server-schema'
@@ -20,6 +21,8 @@ const parsed = parseServerEnv({
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+  SENTRY_DSN: process.env.SENTRY_DSN,
+  SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT,
 })
 
 if (!parsed.success) {
@@ -39,4 +42,9 @@ export function wompiConfigured(): boolean {
 /** Whether web push has every key it needs to send notifications. */
 export function pushConfigured(): boolean {
   return pushConfiguredFrom(serverEnv)
+}
+
+/** Whether Sentry has a DSN to report errors to. */
+export function sentryConfigured(): boolean {
+  return sentryConfiguredFrom(serverEnv)
 }

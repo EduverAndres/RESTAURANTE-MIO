@@ -6,7 +6,12 @@ import { isUuid } from '@/lib/dashboard/active-store'
 import { canMerchantTransition } from '@/lib/orders/status'
 import { orderStatusMessage } from '@/lib/push/messages'
 import { sendPushToUsers } from '@/lib/push/send'
+import { recordRefund } from '@/lib/refunds/record'
 import { createClient } from '@/lib/supabase/server'
+import {
+  refundInputSchema,
+  type RefundFormInput,
+} from '@/lib/validations/refunds'
 import type { OrderStatus } from '@/types/app'
 
 export type UpdateOrderStatusResult =
@@ -77,5 +82,74 @@ export async function updateOrderStatus(
     }
   }
 
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Refunds
+// ---------------------------------------------------------------------------
+
+export type RecordRefundActionResult = { ok: true } | { ok: false; error: string }
+
+/**
+ * Records that the merchant gave a customer their money back.
+ *
+ * Bookkeeping only: nothing is sent to a payment provider, by design — see
+ * `lib/refunds/gateway.ts`. The merchant returns the money however they
+ * actually did (cash, transfer, the provider's own dashboard) and this is
+ * where they say so, which is what makes the order, the metrics and the next
+ * payout stop counting a reversed sale.
+ */
+export async function recordOrderRefund(
+  input: RefundFormInput,
+): Promise<RecordRefundActionResult> {
+  const parsed = refundInputSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Datos del reembolso inválidos.',
+    }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: SESSION_EXPIRED }
+
+  // Customers can read their own orders too, so ownership is proved through
+  // the store rather than by trusting that the read succeeded.
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, store_id, total, status, payment_status, payment_method, stores!inner(owner_id)')
+    .eq('id', parsed.data.orderId)
+    .maybeSingle()
+  if (!order || order.stores.owner_id !== user.id) {
+    return { ok: false, error: 'No encontramos el pedido.' }
+  }
+
+  const result = await recordRefund({
+    order: {
+      id: order.id,
+      store_id: order.store_id,
+      total: Number(order.total),
+      status: order.status,
+      payment_status: order.payment_status,
+      payment_method: order.payment_method,
+    },
+    input: {
+      reason: parsed.data.reason,
+      method: parsed.data.method,
+      note: parsed.data.note ?? null,
+    },
+    issuedBy: user.id,
+    actor: 'merchant',
+  })
+  if (!result.ok) return result
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/metrics')
+  revalidatePath('/dashboard/payouts')
+  revalidatePath(`/orders/${order.id}`)
   return { ok: true }
 }

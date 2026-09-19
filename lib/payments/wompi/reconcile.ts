@@ -2,6 +2,7 @@ import 'server-only'
 
 import { after } from 'next/server'
 import { wompiConfigured } from '@/lib/env.server'
+import { logger } from '@/lib/log/logger'
 import { applyGatewayStatus } from '@/lib/payments/wompi/apply-status'
 import {
   fetchWompiTransaction,
@@ -42,7 +43,7 @@ export async function reconcileWompiTransaction(
   try {
     admin = createAdminClient()
   } catch (error) {
-    console.error('Admin client unavailable for Wompi reconciliation', error)
+    logger.error('wompi.reconcile.admin_unavailable', { orderId }, error)
     return null
   }
 
@@ -58,7 +59,7 @@ export async function reconcileWompiTransaction(
   const transaction = await fetchTransaction(transactionId)
   if (!transaction) return null
   if (transaction.reference !== order.payment_ref) {
-    console.error('Wompi reconciliation reference mismatch', {
+    logger.error('wompi.reconcile.reference_mismatch', {
       orderId,
       transactionReference: transaction.reference,
       orderReference: order.payment_ref,
@@ -67,12 +68,8 @@ export async function reconcileWompiTransaction(
   }
 
   const mapped = mapWompiStatus(transaction.status)
-  const { reopened } = await applyGatewayStatus(
-    admin,
-    order,
-    mapped.paymentStatus,
-  )
-  if (reopened) {
+  const applied = await applyGatewayStatus(admin, order, mapped.paymentStatus)
+  if (applied.outcome === 'applied' && applied.reopened) {
     // Runs after the page response is sent: a late approval put the order
     // back to `pending`, so the merchant is told about it as a new order.
     const { store_id: storeId, short_code: shortCode } = order

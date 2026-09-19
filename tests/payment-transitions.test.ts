@@ -6,6 +6,12 @@ describe('canApplyPaymentStatus', () => {
     expect(canApplyPaymentStatus('paid', 'failed')).toBe(false)
   })
 
+  it('forbids downgrading a paid payment back to pending', () => {
+    // A stale PENDING delivery retried after the APPROVED one must be a
+    // no-op, not a silent downgrade of a genuinely charged order.
+    expect(canApplyPaymentStatus('paid', 'pending')).toBe(false)
+  })
+
   it('allows paid to refunded', () => {
     expect(canApplyPaymentStatus('paid', 'refunded')).toBe(true)
   })

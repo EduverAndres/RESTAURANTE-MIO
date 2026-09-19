@@ -3,6 +3,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CourierAddress } from '@/lib/courier/orders'
 import type { LatLng } from '@/lib/geo'
+import { logger } from '@/lib/log/logger'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
 
@@ -31,7 +32,11 @@ export async function fetchAddressesById(
     if (error) throw error
     for (const address of data ?? []) result.set(address.id, address)
   } catch (error) {
-    console.error('Failed to load delivery addresses', error)
+    logger.error(
+      'courier.addresses.load_failed',
+      { count: unique.length },
+      error,
+    )
   }
   return result
 }
@@ -49,7 +54,7 @@ export async function fetchProfileName(
     if (error) throw error
     return data?.full_name?.trim() || null
   } catch (error) {
-    console.error('Failed to load profile name', error)
+    logger.error('courier.profile_name.load_failed', undefined, error)
     return null
   }
 }

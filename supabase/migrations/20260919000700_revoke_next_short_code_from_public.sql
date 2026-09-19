@@ -1,0 +1,32 @@
+-- Finish locking down `next_short_code`, which `20260919000600` left open.
+--
+-- On Supabase a function in `public` can be reachable from the browser by TWO
+-- independent paths, and closing one does nothing about the other:
+--
+--   1. The PUBLIC pseudo-role. Stock PostgreSQL grants EXECUTE to PUBLIC on
+--      every new function. In `pg_proc.proacl` this is the entry with an
+--      EMPTY grantee: `{=X/postgres,...}`.
+--   2. Explicit grants to `anon` and `authenticated`, which Supabase's
+--      bootstrap adds through
+--      `alter default privileges in schema public grant all on functions ...`.
+--
+-- `20260919000300` and `20260919000500` revoked (1) and left (2).
+-- `20260919000600` revoked (2) and left (1) on `next_short_code` -- the money
+-- functions happened to be clean because their own migrations had already
+-- taken care of (1).
+--
+-- Verified in `pg_proc.proacl` after 000600 applied:
+--   generate_payouts  {postgres=X/postgres,service_role=X/postgres}
+--   record_refund     {postgres=X/postgres,service_role=X/postgres}
+--   next_short_code   {=X/postgres,postgres=X/postgres,service_role=X/postgres}
+--                      ^^ PUBLIC still holds EXECUTE
+--
+-- The rule, stated once so it is not half-applied a third time: revoke from
+-- `public, anon, authenticated` together. Never one without the others.
+--
+-- `generate_short_code`, the trigger that actually needs this function, is
+-- itself `security definer` and calls it as the owner, so nothing legitimate
+-- loses access.
+
+revoke all on function public.next_short_code()
+  from public, anon, authenticated;

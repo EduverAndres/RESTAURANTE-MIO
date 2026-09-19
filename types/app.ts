@@ -35,6 +35,7 @@ export type Favorite = Tables<'favorites'>
 export type StoreTable = Tables<'store_tables'>
 export type Payout = Tables<'payouts'>
 export type PaymentEvent = Tables<'payment_events'>
+export type Refund = Tables<'refunds'>
 export type PushSubscriptionRow = Tables<'push_subscriptions'>
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,7 @@ export type CourierLocationInsert = TablesInsert<'courier_locations'>
 export type ReviewInsert = TablesInsert<'reviews'>
 export type StoreTableInsert = TablesInsert<'store_tables'>
 export type PaymentEventInsert = TablesInsert<'payment_events'>
+export type RefundInsert = TablesInsert<'refunds'>
 export type PushSubscriptionInsert = TablesInsert<'push_subscriptions'>
 
 // ---------------------------------------------------------------------------

@@ -133,6 +133,8 @@ notifications configured at all).
 | `WOMPI_INTEGRITY_SECRET`               | server           | no                                              | Signs the Web Checkout integrity hash.                                                                                                                 |
 | `VAPID_PRIVATE_KEY`                    | server           | no (required with the two below to enable push) | VAPID private key used to sign push payloads.                                                                                                          |
 | `VAPID_SUBJECT`                        | server           | no                                              | `mailto:` contact required by the push protocol.                                                                                                       |
+| `SENTRY_DSN`                           | server           | no (error reporting is off until it is set)     | Sentry DSN (`https://<key>@<host>/<projectId>`); with none set the SDK is never loaded and `logger.error` only writes its JSON line.                    |
+| `SENTRY_ENVIRONMENT`                   | server           | no (defaults to `NODE_ENV`)                     | Label attached to reported errors, to tell staging from production in Sentry.                                                                          |
 | `OSRM_BASE_URL`                        | server           | no (defaults to the public OSRM demo server)    | Base URL of an OSRM instance for delivery routing/ETA.                                                                                                 |
 | `ROUTING_PROVIDER`                     | server           | no (defaults to `osrm`)                         | `osrm`, `ors` or `haversine`; falls back to `haversine` automatically on failure.                                                                      |
 | `ORS_API_KEY`                          | server           | no (only used when `ROUTING_PROVIDER=ors`)      | OpenRouteService API key.                                                                                                                              |
@@ -182,6 +184,139 @@ All schema changes live in `supabase/migrations/`, applied in order by
 10. `20260912000300_push_subscriptions.sql` — web push subscription storage.
 11. `20260912000400_payouts_unique_period.sql` — uniqueness guard so
     generating payouts twice for the same store/period is a no-op.
+12. `20260912000500_store_theme_v2.sql` — the second-generation store theme
+    column (see `docs/DESIGN.md`).
+13. `20260912000600_realtime_stores.sql` — publishes `stores` on the realtime
+    channel.
+14. `20260919000100_restrict_signup_role.sql` — `handle_new_user()` no longer
+    accepts `admin` from the signup payload. See
+    [Signup roles and admin access](#signup-roles-and-admin-access).
+15. `20260919000200_payment_events_applied_at.sql` — `payment_events.applied_at`
+    plus a partial index of unapplied events, so a webhook whose order update
+    failed is re-applied on Wompi's retry instead of being swallowed as a
+    duplicate. Run the audit below **before** applying it. See
+    [Unapplied gateway events](#unapplied-gateway-events).
+16. `20260919000300_rate_limits.sql` — shared fixed-window counters plus
+    `consume_rate_limit()`, the single statement the limiter uses so two
+    concurrent requests cannot both pass a limit of one. See
+    `lib/rate-limit/`.
+17. `20260919000400_refunds.sql` — the `refunds` table: the bookkeeping record
+    that money went back to a customer. See [Refunds](#refunds).
+18. `20260919000500_money_transactions.sql` — `record_refund()` and
+    `generate_payouts()`, so each money path is one transaction instead of
+    several sequential writes. Run the audit below **before** applying it.
+    See [Money is written in one transaction](#money-is-written-in-one-transaction).
+
+### Money is written in one transaction
+
+Recording a refund and generating a payout period each used to be several
+writes issued one after another from a server action. PostgREST gives every
+call its own transaction, so any interruption between them left money state
+that disagreed with itself:
+
+- a refund row committed on an order that still read as `paid`, which payout
+  generation then settled in full;
+- a payout that carried a refund's deduction without recording that it had,
+  so the same refund was clawed back again every period, forever;
+- an orders snapshot read before the refunds were, so a refund recorded in
+  that window was both settled in full and closed with no clawback.
+
+`20260919000500_money_transactions.sql` moves both paths into `security
+definer` functions — `public.record_refund` and `public.generate_payouts` —
+granted to `service_role` only. Each runs as one transaction, reads the state
+it decides on inside that transaction, and either commits whole or not at all.
+`lib/refunds/record.ts` and `generatePayouts` in `app/admin/actions.ts` are
+thin wrappers over them.
+
+The cost is that payout eligibility and the reversal rules now exist twice:
+in `lib/payouts/` for the app, and in SQL for the transaction. That
+duplication is fenced, not tolerated — `lib/payouts/sql.ts` emits every
+mirrored fragment, the migration embeds it between `codegen:` markers, and
+`tests/payouts-sql-drift.test.ts` fails the build when the two disagree. The
+same arrangement keeps the `refunds` check constraints and
+`lib/refunds/vocabulary.ts` in step. **Never hand-edit a generated block:**
+change the rule in `lib/`, run the test, paste its output in.
+
+Before applying it, read out whatever the old shape already left behind — the
+script is read-only:
+
+```bash
+psql "$SUPABASE_DB_URL" -f scripts/audit-refund-consistency.sql
+```
+
+An empty result means every refund agrees with its order and every pending
+clawback is still genuinely owed. A `refund_without_refunded_order` row is the
+expensive one: the sale is being settled in full although the money went back.
+Neither finding is safe to fix automatically; the script explains what each
+one means and what the fix is.
+
+### Refunds
+
+A merchant (`/dashboard`, on the order) or an admin (`/admin/payments`) can
+record that money went back to a customer. The record moves the order to
+`payment_status = refunded`, which drops it from metrics and from payout
+eligibility, and — when the period was already settled — carries a negative
+adjustment into the next generated period rather than editing the immutable
+settled row (`lib/payouts/reversal.ts`).
+
+**Refunds are bookkeeping only: no payment provider is called.** That is a
+decision, not an omission — see
+[Known limitations](#known-limitations) and the reasoning in
+`lib/refunds/gateway.ts`. Full refunds only; the unique index on
+`refunds.order_id` enforces it, because `payment_status` has no partial state.
+
+### Unapplied gateway events
+
+`20260919000200_payment_events_applied_at.sql` stamps every pre-existing
+`payment_events` row as applied. It has to: those rows were handled by a
+version of the webhook that answered 200 even when the orders-UPDATE failed,
+so a real success and a silently lost one look identical, and leaving them
+NULL would make Wompi's next replay re-run months of history.
+
+That default is correct, but it also erases the only trace of anything that
+never applied. Read it out first — the script is read-only:
+
+```bash
+psql "$SUPABASE_DB_URL" -f scripts/audit-unapplied-events.sql
+```
+
+An empty result means every stored event agrees with its order. A
+`approved not paid` row is the expensive one: the gateway charged the customer
+and the order never became `paid`. Reconcile those against Wompi by hand
+before migrating; nothing about them is fixed automatically.
+
+The same query stays useful afterwards — it is the operational report the
+partial index on `applied_at IS NULL` exists to serve.
+
+`/admin/payments` is the continuous version of it: every event whose
+`applied_at` is still NULL, oldest first, with why it never applied and — when
+the order took money — a button to record a refund. The list is capped at 200
+rows; the screen also shows the untruncated total and says plainly how many
+are not on the page, because a capped list that looks complete is how a
+backlog of thousands gets read as exactly 200. What falls off the cap is the
+newest events, which reappear on their own as they age; the oldest never
+disappear.
+
+### Signup roles and admin access
+
+`POST /auth/v1/signup` is a public Supabase endpoint: anything a client puts in
+its `data` object lands in `auth.users.raw_user_meta_data`, bypassing the
+server action and the `REGISTER_ROLES` schema in `lib/validations/auth.ts`
+entirely. `handle_new_user()` therefore accepts only `customer`, `merchant`
+and `courier`; anything else, `admin` included, resolves to `customer`.
+
+`admin` is granted only by an existing admin, through an UPDATE on
+`public.profiles` guarded by `protect_profile_role()`.
+
+The migration deliberately does not demote existing rows — that could lock the
+platform owner out. Review them instead:
+
+```bash
+psql "$SUPABASE_DB_URL" -f scripts/audit-admins.sql
+```
+
+The script is read-only. A row whose `signup_requested_role` is `admin` was
+self-granted at signup and should be demoted after confirming with the owner.
 
 `supabase/seed.sql` is safe to re-run (fixed UUIDs, `on conflict do
 nothing`). Every seeded user shares the password `Tienda123!`:
@@ -282,6 +417,24 @@ on the register page.
    build with dummy public env values on every push/PR; it does not deploy.
    There is no `vercel.json`: the project needs no build/route overrides
    beyond what Vercel's Next.js detection already provides.
+8. **Health check**: point uptime monitoring at `GET /api/health`. It answers
+   `200 {"status":"ok"}` when Supabase is reachable and
+   `503 {"status":"degraded"}` when it is not, plus the app version and the
+   timestamp of the probe. It is never cached and never includes environment
+   values or error text — failures are logged server-side.
+
+### Security headers
+
+`next.config.ts` sends HSTS (two years, `includeSubDomains`, `preload`),
+`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` and a
+`Permissions-Policy` that keeps `geolocation` on our own origin (the address
+picker and the courier board need it) and denies everything else.
+
+The Content-Security-Policy ships as **`Content-Security-Policy-Report-Only`
+and must stay that way** until a reporting period proves it is complete. The
+app loads OpenStreetMap tiles, Supabase REST/realtime, two routing providers
+and Wompi, and writes inline styles for per-store theming, so an enforcing
+policy that is almost right still breaks storefronts in production.
 
 ## Phase log
 
@@ -313,6 +466,26 @@ on the register page.
 - Only `cash`, `mock` (a test card that always approves) and `wompi` are
   implemented; Mercado Pago is referenced in the payment provider registry
   as a future addition but not implemented.
+- Refunds are **bookkeeping only**: recording one writes `public.refunds` and
+  moves the order to `refunded`, but no money is sent back through the
+  payment provider — the merchant does that themselves (cash, a transfer, the
+  Wompi dashboard) and records what they did. `lib/refunds/gateway.ts` is the
+  seam where the provider call will go, and it is deliberately empty: Wompi
+  documents `/v1/refunds` under a "(Sandbox)" heading with production
+  availability unstated, voids are documented for CARD transactions only, and
+  PSE/Nequi/Bancolombia Transfer refundability is unverified. Shipping a
+  success path nobody has seen, on the one flow where being wrong leaves the
+  customer's money in neither party's hands, is worse than recording the truth
+  and saying so.
+- Refunds are full refunds only. `payment_status` has no partial state, so a
+  partially refunded order could not be represented; the unique index on
+  `refunds.order_id` enforces it.
+- Payout eligibility and the refund-reversal rules exist in TypeScript
+  (`lib/payouts/`) and again in SQL inside `public.generate_payouts`, because
+  the decisions have to be made inside the transaction that writes them. The
+  duplication is held in place by generated blocks and a drift test rather
+  than by discipline — see
+  [Money is written in one transaction](#money-is-written-in-one-transaction).
 - `types/database.ts` is hand-maintained; there is no CI check that it
   matches the live schema, so a migration author must update it in the same
   change.

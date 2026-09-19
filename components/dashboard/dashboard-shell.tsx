@@ -14,6 +14,7 @@ import {
   ReceiptTextIcon,
   SettingsIcon,
   StoreIcon,
+  TriangleAlertIcon,
   UsersIcon,
   UtensilsIcon,
 } from 'lucide-react'
@@ -60,6 +61,7 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
   { label: 'Tiendas', href: '/admin/stores', icon: StoreIcon },
   { label: 'Usuarios', href: '/admin/users', icon: UsersIcon },
   { label: 'Liquidaciones', href: '/admin/payouts', icon: LandmarkIcon },
+  { label: 'Pagos sin aplicar', href: '/admin/payments', icon: TriangleAlertIcon },
   { label: 'Métricas', href: '/admin/metrics', icon: ClipboardListIcon },
 ]
 

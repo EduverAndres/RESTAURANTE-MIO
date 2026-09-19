@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { logger } from '@/lib/log/logger'
 import { applyGatewayStatus } from '@/lib/payments/wompi/apply-status'
 import type { WompiEvent } from '@/lib/payments/wompi/signature'
 import { mapWompiStatus, orderIdFromReference } from '@/lib/payments/wompi/status'
@@ -21,15 +22,75 @@ export type WompiEventOutcome =
   | { outcome: 'ignored' }
   | { outcome: 'duplicate' }
   | { outcome: 'store_failed' }
+  | { outcome: 'apply_failed' }
   | { outcome: 'order_not_found' }
   | { outcome: 'amount_mismatch' }
   | { outcome: 'applied'; paymentStatus: PaymentStatus; reopened: boolean }
 
 const UNIQUE_VIOLATION = '23505'
+const PROVIDER = 'wompi'
 
 function transactionOf(event: WompiEvent): WompiTransaction | null {
   const data = event.data as { transaction?: WompiTransaction } | null
   return data?.transaction ?? null
+}
+
+/**
+ * Whether a replayed delivery of this transaction still has work to do.
+ *
+ * The insert hit the unique constraint, so the row exists. It is only a real
+ * duplicate if the first delivery also managed to move the order; a row with
+ * `applied_at IS NULL` was stored and then lost (a failed orders-UPDATE, a
+ * crash between the two writes), which is precisely what Wompi's retry is
+ * for. When the row cannot be read back we fall back to `duplicate`: a
+ * needless re-apply of an unknown state is worse than a missed heal, and the
+ * partial index keeps the row visible for a human.
+ */
+async function storedEventNeedsApply(
+  admin: SupabaseClient<Database>,
+  transaction: WompiTransaction,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from('payment_events')
+    .select('applied_at')
+    .eq('provider', PROVIDER)
+    .eq('event_id', transaction.id)
+    .eq('status', transaction.status)
+    .maybeSingle()
+  if (error) {
+    logger.error(
+      'wompi.webhook.event_readback_failed',
+      { eventId: transaction.id, status: transaction.status },
+      error,
+    )
+    return false
+  }
+  return Boolean(data) && data?.applied_at === null
+}
+
+/**
+ * Stamps `applied_at` once the order really moved. A failure here is logged
+ * but not propagated: the order is already correct, and the worst case is
+ * that a later replay re-applies a status the transition guard treats as a
+ * no-op.
+ */
+async function markEventApplied(
+  admin: SupabaseClient<Database>,
+  transaction: WompiTransaction,
+): Promise<void> {
+  const { error } = await admin
+    .from('payment_events')
+    .update({ applied_at: new Date().toISOString() })
+    .eq('provider', PROVIDER)
+    .eq('event_id', transaction.id)
+    .eq('status', transaction.status)
+  if (error) {
+    logger.error(
+      'wompi.webhook.mark_applied_failed',
+      { eventId: transaction.id, status: transaction.status },
+      error,
+    )
+  }
 }
 
 /**
@@ -40,7 +101,10 @@ function transactionOf(event: WompiEvent): WompiTransaction | null {
  * Assumes the caller (the route handler) already verified the checksum.
  *
  * `store_failed` means the event could not be persisted (anything but a
- * duplicate): the caller should answer non-200 so Wompi retries later.
+ * duplicate) and `apply_failed` means it was persisted but the order could
+ * not be updated: the caller should answer non-200 for both so Wompi retries
+ * later. `applied_at` is stamped only after a successful apply, so that retry
+ * re-applies instead of short-circuiting as a duplicate.
  */
 export async function handleWompiEvent(
   admin: SupabaseClient<Database>,
@@ -53,7 +117,7 @@ export async function handleWompiEvent(
 
   const orderId = orderIdFromReference(transaction.reference)
   const { error: insertError } = await admin.from('payment_events').insert({
-    provider: 'wompi',
+    provider: PROVIDER,
     event_id: transaction.id,
     reference: transaction.reference,
     status: transaction.status,
@@ -62,9 +126,18 @@ export async function handleWompiEvent(
     payload: event as unknown as Json,
   })
   if (insertError) {
-    if (insertError.code === UNIQUE_VIOLATION) return { outcome: 'duplicate' }
-    console.error('Failed to store Wompi payment event', insertError)
-    return { outcome: 'store_failed' }
+    if (insertError.code !== UNIQUE_VIOLATION) {
+      logger.error(
+        'wompi.webhook.store_failed',
+        { eventId: transaction.id, orderId },
+        insertError,
+      )
+      return { outcome: 'store_failed' }
+    }
+    if (!(await storedEventNeedsApply(admin, transaction))) {
+      return { outcome: 'duplicate' }
+    }
+    // Stored but never applied: fall through and heal the order.
   }
 
   if (!orderId) return { outcome: 'order_not_found' }
@@ -81,7 +154,7 @@ export async function handleWompiEvent(
 
   const expectedCents = Math.round(Number(order.total) * 100)
   if (transaction.amount_in_cents !== expectedCents) {
-    console.error('Wompi amount mismatch', {
+    logger.error('wompi.webhook.amount_mismatch', {
       orderId,
       expectedCents,
       receivedCents: transaction.amount_in_cents,
@@ -90,11 +163,12 @@ export async function handleWompiEvent(
   }
 
   const mapped = mapWompiStatus(transaction.status)
-  const { reopened } = await applyGatewayStatus(
-    admin,
-    order,
-    mapped.paymentStatus,
-  )
+  const applied = await applyGatewayStatus(admin, order, mapped.paymentStatus)
+  if (applied.outcome === 'write_failed') return { outcome: 'apply_failed' }
+
+  await markEventApplied(admin, transaction)
+
+  const reopened = applied.outcome === 'applied' && applied.reopened
   if (reopened) {
     // The order was auto-cancelled by an earlier failure and is now back to
     // `pending`: the merchant must see it as a fresh order.
@@ -104,7 +178,7 @@ export async function handleWompiEvent(
         newOrderMessage(order.short_code, order.stores?.name ?? 'Tu tienda'),
       )
     } catch (error) {
-      console.error('Failed to notify merchant about a reopened order', error)
+      logger.error('wompi.webhook.reopen_notify_failed', { orderId }, error)
     }
   }
   return { outcome: 'applied', paymentStatus: mapped.paymentStatus, reopened }

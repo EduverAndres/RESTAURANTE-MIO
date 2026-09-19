@@ -2,10 +2,12 @@
 
 import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { after } from 'next/server'
 import { env } from '@/lib/env'
 import { estimateEtaMinutes } from '@/lib/geo'
+import { clientIp } from '@/lib/http/client-ip'
+import { logger } from '@/lib/log/logger'
 import {
   buildOrderTotals,
   fetchCatalogue,
@@ -23,6 +25,7 @@ import {
 import { getPaymentProvider } from '@/lib/payments'
 import { newOrderMessage } from '@/lib/push/messages'
 import { sendPushToStoreOwner } from '@/lib/push/send'
+import { checkTableOrderRateLimit } from '@/lib/rate-limit/table-orders'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { tableOrderPath } from '@/lib/tables/qr'
@@ -85,6 +88,27 @@ export async function placeTableOrder(
     return {
       ok: false,
       error: 'No pudimos procesar el pedido en este momento. Inténtalo de nuevo.',
+    }
+  }
+
+  // Throttled before anything is resolved or written. This action is the one
+  // write in the app an unauthenticated caller can reach: a QR token is the
+  // only credential, and a flood of `pending` orders buries a restaurant's
+  // Kanban board. The limiter fails open (see `enforceRateLimit`), so a
+  // broken counter table never stops a restaurant taking orders.
+  const limit = await checkTableOrderRateLimit(admin, {
+    token: ref.token,
+    ip: clientIp(await headers()),
+  })
+  if (!limit.allowed) {
+    logger.warn('table_order.rate_limited', {
+      slug: ref.slug,
+      retryAfterSeconds: limit.retryAfterSeconds,
+    })
+    return {
+      ok: false,
+      error:
+        'Recibimos demasiados pedidos desde esta mesa. Espera unos minutos e inténtalo de nuevo.',
     }
   }
 

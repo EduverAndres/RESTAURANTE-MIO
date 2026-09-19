@@ -40,7 +40,7 @@ describe('applyGatewayStatus', () => {
       { id: 'order-1', status: 'pending', payment_status: 'pending' },
       'paid',
     )
-    expect(result).toEqual({ reopened: false })
+    expect(result).toEqual({ outcome: 'applied', reopened: false })
     expect(writes).toEqual([
       { payload: { payment_status: 'paid' }, value: 'order-1' },
     ])
@@ -53,7 +53,7 @@ describe('applyGatewayStatus', () => {
       { id: 'order-1', status: 'cancelled', payment_status: 'failed' },
       'paid',
     )
-    expect(result).toEqual({ reopened: true })
+    expect(result).toEqual({ outcome: 'applied', reopened: true })
     expect(writes).toEqual([
       {
         payload: { payment_status: 'paid', status: 'pending' },
@@ -69,13 +69,13 @@ describe('applyGatewayStatus', () => {
       { id: 'order-1', status: 'delivered', payment_status: 'pending' },
       'paid',
     )
-    expect(result).toEqual({ reopened: false })
+    expect(result).toEqual({ outcome: 'applied', reopened: false })
     expect(writes).toEqual([
       { payload: { payment_status: 'paid' }, value: 'order-1' },
     ])
   })
 
-  it('does not report a reopen when the reopening write fails', async () => {
+  it('reports write_failed rather than a silent no-reopen when the write fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const { admin } = fakeAdmin({ message: 'permission denied' })
     const result = await applyGatewayStatus(
@@ -83,7 +83,7 @@ describe('applyGatewayStatus', () => {
       { id: 'order-1', status: 'cancelled', payment_status: 'failed' },
       'paid',
     )
-    expect(result).toEqual({ reopened: false })
+    expect(result).toEqual({ outcome: 'write_failed' })
   })
 
   it('cancels a still-pending order when the payment failed', async () => {
@@ -121,7 +121,7 @@ describe('applyGatewayStatus', () => {
       { id: 'order-1', status: 'delivered', payment_status: 'paid' },
       'failed',
     )
-    expect(result).toEqual({ reopened: false })
+    expect(result).toEqual({ outcome: 'skipped' })
     expect(writes).toEqual([])
     expect(log).toHaveBeenCalled()
   })
@@ -136,7 +136,12 @@ describe('applyGatewayStatus', () => {
         { id: 'order-1', status: 'pending', payment_status: 'pending' },
         'paid',
       ),
-    ).resolves.toEqual({ reopened: false })
-    expect(log).toHaveBeenCalledWith('Failed to apply gateway payment status', error)
+    ).resolves.toEqual({ outcome: 'write_failed' })
+    const record = JSON.parse(log.mock.calls[0]?.[0] as string) as {
+      event: string
+      error?: { message?: string }
+    }
+    expect(record.event).toBe('payments.gateway_status.write_failed')
+    expect(record.error?.message).toBe(error.message)
   })
 })

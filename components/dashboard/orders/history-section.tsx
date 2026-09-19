@@ -1,11 +1,16 @@
 'use client'
 
 import { ChevronDownIcon } from 'lucide-react'
-import { OrderStatusBadge } from '@/components/orders/order-status-badge'
+import { RecordRefundDialog } from '@/components/refunds/record-refund-dialog'
+import {
+  OrderStatusBadge,
+  PaymentStatusBadge,
+} from '@/components/orders/order-status-badge'
 import { Badge } from '@/components/ui/badge'
 import { formatCOP } from '@/lib/format'
 import { itemsSummary, type BoardOrder } from '@/lib/orders/kanban'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
+import { isRefundable } from '@/lib/refunds/plan'
 
 interface HistorySectionProps {
   orders: BoardOrder[]
@@ -16,7 +21,14 @@ const timeFormatter = new Intl.DateTimeFormat('es-CO', {
   minute: '2-digit',
 })
 
-/** Delivered and cancelled orders from today, collapsed by default. */
+/**
+ * Delivered and cancelled orders from today, collapsed by default.
+ *
+ * This is also where a refund is recorded. It is the merchant's only view of
+ * a closed order, and a refund is by definition something that happens after
+ * the order closed, so putting the control anywhere else would mean inventing
+ * a screen nobody already opens.
+ */
 export function HistorySection({ orders }: HistorySectionProps) {
   return (
     <details className="group rounded-card border-border bg-card shadow-1 border">
@@ -60,11 +72,21 @@ export function HistorySection({ orders }: HistorySectionProps) {
                   {itemsSummary(order.items)}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <OrderStatusBadge status={order.status} />
+                {order.payment_status === 'refunded' ? (
+                  <PaymentStatusBadge status={order.payment_status} />
+                ) : null}
                 <span className="text-sm font-semibold tabular-nums">
                   {formatCOP(order.total)}
                 </span>
+                {isRefundable(order) ? (
+                  <RecordRefundDialog
+                    orderId={order.id}
+                    shortCode={order.short_code}
+                    total={order.total}
+                  />
+                ) : null}
               </div>
             </li>
           ))}

@@ -92,7 +92,11 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
         setOrders((current) =>
           current.map((order) =>
             order.id === updated.id
-              ? { ...order, status: updated.status }
+              ? {
+                  ...order,
+                  status: updated.status,
+                  payment_status: updated.payment_status,
+                }
               : order,
           ),
         )

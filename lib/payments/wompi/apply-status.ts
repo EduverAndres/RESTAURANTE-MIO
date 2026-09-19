@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { logger } from '@/lib/log/logger'
 import { canApplyPaymentStatus } from '@/lib/payments/transitions'
 import type { Database } from '@/types/database'
 import type { OrderStatus, OrderUpdate, PaymentStatus } from '@/types/app'
@@ -9,14 +10,27 @@ export interface GatewayOrder {
   payment_status: PaymentStatus
 }
 
-export interface ApplyGatewayResult {
-  /**
-   * True when a previously auto-cancelled order was put back to `pending`
-   * because the gateway approved the payment late. Callers should notify
-   * the merchant as if it were a brand-new order.
-   */
-  reopened: boolean
-}
+/**
+ * Outcome of writing a gateway status onto an order.
+ *
+ * `write_failed` is deliberately distinct from `skipped`: a skipped
+ * transition is a decision (the order is already in a state the gateway may
+ * not overwrite) and retrying changes nothing, while a failed write means the
+ * customer's money moved and our order did not. Callers must not report
+ * success for it — the webhook route answers 5xx so Wompi redelivers.
+ */
+export type ApplyGatewayResult =
+  | {
+      outcome: 'applied'
+      /**
+       * True when a previously auto-cancelled order was put back to `pending`
+       * because the gateway approved the payment late. Callers should notify
+       * the merchant as if it were a brand-new order.
+       */
+      reopened: boolean
+    }
+  | { outcome: 'skipped' }
+  | { outcome: 'write_failed' }
 
 /**
  * Applies a gateway-reported payment status to an order, shared by the
@@ -32,12 +46,12 @@ export async function applyGatewayStatus(
   paymentStatus: PaymentStatus,
 ): Promise<ApplyGatewayResult> {
   if (!canApplyPaymentStatus(order.payment_status, paymentStatus)) {
-    console.error('Skipped forbidden gateway payment transition', {
+    logger.error('payments.gateway_status.skipped', {
       orderId: order.id,
       from: order.payment_status,
       to: paymentStatus,
     })
-    return { reopened: false }
+    return { outcome: 'skipped' }
   }
 
   const patch: OrderUpdate = { payment_status: paymentStatus }
@@ -51,8 +65,12 @@ export async function applyGatewayStatus(
 
   const { error } = await admin.from('orders').update(patch).eq('id', order.id)
   if (error) {
-    console.error('Failed to apply gateway payment status', error)
-    return { reopened: false }
+    logger.error(
+      'payments.gateway_status.write_failed',
+      { orderId: order.id },
+      error,
+    )
+    return { outcome: 'write_failed' }
   }
-  return { reopened }
+  return { outcome: 'applied', reopened }
 }
