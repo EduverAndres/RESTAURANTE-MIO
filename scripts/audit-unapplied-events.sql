@@ -56,7 +56,10 @@ select
   e.reference,
   e.amount_in_cents,
   e.received_at,
-  e.applied_at,
+  -- Read through to_jsonb so this query also runs BEFORE
+  -- 20260919000200 adds the column, which is exactly when the audit matters
+  -- most: a missing key reads as NULL instead of raising 42703.
+  to_jsonb(e) ->> 'applied_at' as applied_at,
   o.id as order_id,
   o.short_code,
   o.status as order_status,
