@@ -10,6 +10,13 @@
 -- `20260919000600_revoke_default_function_grants.sql` exists to fix, and the
 -- default privilege will keep re-granting for every function added after it.
 --
+-- There are TWO paths and closing one does nothing about the other:
+--   1. the PUBLIC pseudo-role -- the empty-grantee `=X/...` entry in proacl;
+--   2. explicit grants to `anon` and `authenticated`.
+-- Always write `revoke all on function <sig> from public, anon, authenticated;`
+-- as one statement. Revoking either half alone leaves the function open, which
+-- is how this was missed twice -- see `20260919000700`.
+--
 -- A `security definer` function runs as its owner and bypasses RLS, so a row
 -- here is a path from the browser to owner privileges.
 --
