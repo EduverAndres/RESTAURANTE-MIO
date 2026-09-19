@@ -32,17 +32,33 @@ function pendingOrder(overrides: Record<string, unknown> = {}) {
 interface FakeAdminOptions {
   order?: Record<string, unknown> | null
   insertError?: { code: string; message: string } | null
+  /** Row already in `payment_events`, read back after a unique violation. */
+  storedEvent?: { applied_at: string | null } | null
+  orderUpdateError?: { message: string } | null
 }
 
 interface Recorded {
   inserts: Record<string, unknown>[]
   orderSelects: { filters: [string, unknown][] }[]
   orderUpdates: { payload: Record<string, unknown>; id: string }[]
+  eventSelects: { filters: [string, unknown][] }[]
+  eventUpdates: {
+    payload: Record<string, unknown>
+    filters: [string, unknown][]
+  }[]
 }
 
 function fakeAdmin(options: FakeAdminOptions = {}) {
-  const recorded: Recorded = { inserts: [], orderSelects: [], orderUpdates: [] }
+  const recorded: Recorded = {
+    inserts: [],
+    orderSelects: [],
+    orderUpdates: [],
+    eventSelects: [],
+    eventUpdates: [],
+  }
   const order = options.order === undefined ? null : options.order
+  const storedEvent =
+    options.storedEvent === undefined ? null : options.storedEvent
   const admin = {
     from(table: string) {
       if (table === 'payment_events') {
@@ -50,6 +66,35 @@ function fakeAdmin(options: FakeAdminOptions = {}) {
           insert: async (payload: Record<string, unknown>) => {
             recorded.inserts.push(payload)
             return { error: options.insertError ?? null }
+          },
+          select: () => {
+            const entry: { filters: [string, unknown][] } = { filters: [] }
+            recorded.eventSelects.push(entry)
+            const chain = {
+              eq: (column: string, value: unknown) => {
+                entry.filters.push([column, value])
+                return chain
+              },
+              maybeSingle: async () => ({ data: storedEvent, error: null }),
+            }
+            return chain
+          },
+          update: (payload: Record<string, unknown>) => {
+            const entry: {
+              payload: Record<string, unknown>
+              filters: [string, unknown][]
+            } = { payload, filters: [] }
+            recorded.eventUpdates.push(entry)
+            const chain = {
+              eq: (column: string, value: unknown) => {
+                entry.filters.push([column, value])
+                return chain
+              },
+              then: (
+                resolve: (value: { error: null }) => unknown,
+              ): unknown => resolve({ error: null }),
+            }
+            return chain
           },
         }
       }
@@ -70,7 +115,7 @@ function fakeAdmin(options: FakeAdminOptions = {}) {
           update: (payload: Record<string, unknown>) => ({
             eq: async (_column: string, value: string) => {
               recorded.orderUpdates.push({ payload, id: value })
-              return { error: null }
+              return { error: options.orderUpdateError ?? null }
             },
           }),
         }
@@ -145,6 +190,19 @@ describe('handleWompiEvent', () => {
     ])
   })
 
+  it('stamps applied_at on the stored event only after the order moved', async () => {
+    const { admin, recorded } = fakeAdmin({ order: pendingOrder() })
+    await handleWompiEvent(admin, buildEvent())
+    expect(recorded.eventUpdates).toHaveLength(1)
+    const [update] = recorded.eventUpdates
+    expect(typeof update.payload.applied_at).toBe('string')
+    expect(update.filters).toEqual([
+      ['provider', 'wompi'],
+      ['event_id', 'tx_1'],
+      ['status', 'APPROVED'],
+    ])
+  })
+
   it('cancels a pending order on a declined transaction', async () => {
     const { admin, recorded } = fakeAdmin({ order: pendingOrder() })
     const result = await handleWompiEvent(
@@ -183,14 +241,55 @@ describe('handleWompiEvent', () => {
     )
   })
 
-  it('reports a duplicate on a unique-constraint violation without touching the order', async () => {
+  it('reports a duplicate when the stored event was already applied', async () => {
     const { admin, recorded } = fakeAdmin({
       insertError: { code: '23505', message: 'duplicate key' },
+      storedEvent: { applied_at: '2026-09-12T00:00:00.000Z' },
     })
     const result = await handleWompiEvent(admin, buildEvent())
     expect(result).toEqual({ outcome: 'duplicate' })
     expect(recorded.orderSelects).toEqual([])
     expect(recorded.orderUpdates).toEqual([])
+  })
+
+  it('re-applies a replayed event whose stored row was never applied', async () => {
+    const { admin, recorded } = fakeAdmin({
+      insertError: { code: '23505', message: 'duplicate key' },
+      storedEvent: { applied_at: null },
+      order: pendingOrder(),
+    })
+    const result = await handleWompiEvent(admin, buildEvent())
+    expect(result).toEqual({
+      outcome: 'applied',
+      paymentStatus: 'paid',
+      reopened: false,
+    })
+    expect(recorded.orderUpdates).toEqual([
+      { payload: { payment_status: 'paid' }, id: ORDER_ID },
+    ])
+    expect(recorded.eventUpdates).toHaveLength(1)
+  })
+
+  it('reports a duplicate when the replayed event row cannot be read back', async () => {
+    const { admin, recorded } = fakeAdmin({
+      insertError: { code: '23505', message: 'duplicate key' },
+      storedEvent: null,
+    })
+    const result = await handleWompiEvent(admin, buildEvent())
+    expect(result).toEqual({ outcome: 'duplicate' })
+    expect(recorded.orderUpdates).toEqual([])
+  })
+
+  it('reports apply_failed and never stamps applied_at when the order update fails', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { admin, recorded } = fakeAdmin({
+      order: pendingOrder(),
+      orderUpdateError: { message: 'connection lost' },
+    })
+    const result = await handleWompiEvent(admin, buildEvent())
+    expect(result).toEqual({ outcome: 'apply_failed' })
+    expect(recorded.eventUpdates).toEqual([])
+    expect(log).toHaveBeenCalled()
   })
 
   it('reports store_failed when the event cannot be persisted for any other reason', async () => {
@@ -206,10 +305,11 @@ describe('handleWompiEvent', () => {
     expect(log).toHaveBeenCalled()
   })
 
-  it('reports order_not_found when no order matches the reference', async () => {
-    const { admin } = fakeAdmin({ order: null })
+  it('reports order_not_found and leaves the event unapplied for review', async () => {
+    const { admin, recorded } = fakeAdmin({ order: null })
     const result = await handleWompiEvent(admin, buildEvent())
     expect(result).toEqual({ outcome: 'order_not_found' })
+    expect(recorded.eventUpdates).toEqual([])
   })
 
   it('reports amount_mismatch and never touches the order on a wrong amount', async () => {
@@ -221,6 +321,175 @@ describe('handleWompiEvent', () => {
     )
     expect(result).toEqual({ outcome: 'amount_mismatch' })
     expect(recorded.orderUpdates).toEqual([])
+    expect(recorded.eventUpdates).toEqual([])
+    expect(log).toHaveBeenCalled()
+  })
+})
+
+/**
+ * Stateful stand-in for the two tables the handler touches, so a sequence of
+ * deliveries can be replayed against the same data the way production would.
+ *
+ * `payment_events` is keyed the way the real unique constraint is —
+ * `(provider, event_id, status)` — which is the whole point: a PENDING and an
+ * APPROVED delivery of the SAME transaction are two different rows, so the
+ * second one never hits the constraint and never short-circuits.
+ */
+function statefulAdmin(initialOrder: Record<string, unknown>) {
+  interface EventRow {
+    provider: string
+    event_id: string
+    status: string
+    applied_at: string | null
+  }
+  const events: EventRow[] = []
+  const order: Record<string, unknown> = { ...initialOrder }
+  const orderUpdates: Record<string, unknown>[] = []
+  let failNextOrderUpdate = false
+
+  const matching = (filters: [string, unknown][]): EventRow | undefined =>
+    events.find((row) =>
+      filters.every(
+        ([column, value]) => row[column as keyof EventRow] === value,
+      ),
+    )
+
+  const admin = {
+    from(table: string) {
+      if (table === 'payment_events') {
+        return {
+          insert: async (payload: Record<string, unknown>) => {
+            const duplicate = events.some(
+              (row) =>
+                row.provider === payload.provider &&
+                row.event_id === payload.event_id &&
+                row.status === payload.status,
+            )
+            if (duplicate) {
+              return { error: { code: '23505', message: 'duplicate key' } }
+            }
+            events.push({
+              provider: payload.provider as string,
+              event_id: payload.event_id as string,
+              status: payload.status as string,
+              applied_at: null,
+            })
+            return { error: null }
+          },
+          select: () => {
+            const filters: [string, unknown][] = []
+            const chain = {
+              eq: (column: string, value: unknown) => {
+                filters.push([column, value])
+                return chain
+              },
+              maybeSingle: async () => ({
+                data: matching(filters) ?? null,
+                error: null,
+              }),
+            }
+            return chain
+          },
+          update: (payload: Record<string, unknown>) => {
+            const filters: [string, unknown][] = []
+            const chain = {
+              eq: (column: string, value: unknown) => {
+                filters.push([column, value])
+                return chain
+              },
+              then: (resolve: (value: { error: null }) => unknown): unknown => {
+                const row = matching(filters)
+                if (row) Object.assign(row, payload)
+                return resolve({ error: null })
+              },
+            }
+            return chain
+          },
+        }
+      }
+      if (table === 'orders') {
+        return {
+          select: () => {
+            const chain = {
+              eq: () => chain,
+              maybeSingle: async () => ({ data: { ...order }, error: null }),
+            }
+            return chain
+          },
+          update: (payload: Record<string, unknown>) => ({
+            eq: async () => {
+              if (failNextOrderUpdate) {
+                failNextOrderUpdate = false
+                return { error: { message: 'connection lost' } }
+              }
+              orderUpdates.push(payload)
+              Object.assign(order, payload)
+              return { error: null }
+            },
+          }),
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+
+  return {
+    admin: admin as unknown as SupabaseClient<Database>,
+    order,
+    events,
+    orderUpdates,
+    failOrderUpdateOnce() {
+      failNextOrderUpdate = true
+    },
+  }
+}
+
+describe('handleWompiEvent replay safety', () => {
+  it('never downgrades a paid order when a stale PENDING delivery is retried after the APPROVED one', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const state = statefulAdmin(pendingOrder())
+
+    // 1. The PENDING delivery is stored, but the orders UPDATE fails, so the
+    //    row keeps `applied_at = NULL` and the route answers non-200.
+    state.failOrderUpdateOnce()
+    const first = await handleWompiEvent(
+      state.admin,
+      buildEvent({ status: 'PENDING' }),
+    )
+    expect(first).toEqual({ outcome: 'apply_failed' })
+    expect(state.events).toHaveLength(1)
+    expect(state.events[0]?.applied_at).toBeNull()
+
+    // 2. Before Wompi retries, the APPROVED delivery of the SAME transaction
+    //    arrives. Different status, so it is a different row: no unique
+    //    violation, and the order is correctly charged.
+    const second = await handleWompiEvent(
+      state.admin,
+      buildEvent({ status: 'APPROVED' }),
+    )
+    expect(second).toEqual({
+      outcome: 'applied',
+      paymentStatus: 'paid',
+      reopened: false,
+    })
+    expect(state.order.payment_status).toBe('paid')
+
+    // 3. Wompi now redelivers the original PENDING event. It hits the unique
+    //    constraint on the still-unapplied row, so the handler falls through
+    //    to "heal" the order — against an order that is already paid.
+    const replay = await handleWompiEvent(
+      state.admin,
+      buildEvent({ status: 'PENDING' }),
+    )
+
+    // The charge must survive. A stale event is a no-op, never a downgrade.
+    expect(state.order.payment_status).toBe('paid')
+    expect(state.orderUpdates).toEqual([{ payment_status: 'paid' }])
+    expect(replay).toEqual({
+      outcome: 'applied',
+      paymentStatus: 'pending',
+      reopened: false,
+    })
     expect(log).toHaveBeenCalled()
   })
 })

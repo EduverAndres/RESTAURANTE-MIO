@@ -121,6 +121,13 @@ describe('POST /api/webhooks/wompi', () => {
     expect(response.status).toBe(500)
   })
 
+  it('responds 500 when the order could not be updated so Wompi retries', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    handle.mockResolvedValue({ outcome: 'apply_failed' })
+    const response = await post(JSON.stringify(signedEvent(SECRET)))
+    expect(response.status).toBe(500)
+  })
+
   it('responds 500 when the handler throws', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     handle.mockRejectedValue(new Error('boom'))
