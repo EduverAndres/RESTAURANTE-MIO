@@ -32,8 +32,22 @@ export interface PayoutSummaryRow {
   net: number
 }
 
-function isEligible(order: PayoutOrderInput): boolean {
+/**
+ * A refunded order drops out here — `payment_status` is `refunded`, so it is
+ * neither `paid` nor eligible as cash. That covers everything refunded before
+ * its period was generated. What was refunded *after* generation is already
+ * inside a settled payout row this function can no longer see; that is what
+ * `lib/payouts/reversal.ts` carries in as a negative adjustment.
+ *
+ * MIRRORED IN SQL. Payout generation runs as one transaction inside
+ * `public.generate_payouts`, so this predicate also exists as SQL in
+ * `lib/payouts/sql.ts` and is embedded in
+ * `supabase/migrations/20260919000500_money_transactions.sql`. Changing it
+ * here fails `tests/payouts-sql-drift.test.ts` until the mirror follows.
+ */
+export function isEligible(order: PayoutOrderInput): boolean {
   if (order.status !== 'delivered') return false
+  if (order.payment_status === 'refunded') return false
   return order.payment_status === 'paid' || order.payment_method === 'cash'
 }
 
@@ -62,15 +76,29 @@ function inPeriod(
   return time >= fromMs && time < toExclusiveMs
 }
 
+/** A negative entry carried in from `lib/payouts/reversal.ts`. */
+export interface PayoutAdjustmentInput {
+  store_id: string
+  gross: number
+  commission: number
+}
+
 /**
  * Per-store settlement totals for delivered, eligible orders inside the
  * period. Eligible = delivered AND (paid electronically OR paid in cash);
  * cash orders never carry an online `payment_status`, so they are settled
  * on delivery instead of on payment confirmation.
+ *
+ * `adjustments` are reversals of sales settled in an earlier period (see
+ * `lib/payouts/reversal.ts`). They are folded in as ordinary — negative —
+ * contributions, so a store whose only activity this period is a reversal
+ * still gets a row, and a period whose reversals exceed its sales comes out
+ * negative rather than clamped: see `isDebtToPlatform`.
  */
 export function summarizePayouts(
   orders: readonly PayoutOrderInput[],
   { periodStart, periodEnd }: PayoutPeriod,
+  adjustments: readonly PayoutAdjustmentInput[] = [],
 ): PayoutSummaryRow[] {
   const fromMs = periodStartMs(periodStart)
   const toExclusiveMs = periodEndExclusive(periodEnd).getTime()
@@ -84,6 +112,16 @@ export function summarizePayouts(
     entry.gross += order.subtotal
     entry.commission += order.platform_fee
     totals.set(order.store_id, entry)
+  }
+
+  for (const adjustment of adjustments) {
+    const entry = totals.get(adjustment.store_id) ?? {
+      gross: 0,
+      commission: 0,
+    }
+    entry.gross += adjustment.gross
+    entry.commission += adjustment.commission
+    totals.set(adjustment.store_id, entry)
   }
 
   return [...totals.entries()]

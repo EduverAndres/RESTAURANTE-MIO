@@ -17,6 +17,8 @@ function order(overrides: Partial<BoardOrder> & { id: string }): BoardOrder {
     type: 'delivery',
     table_number: null,
     total: 25000,
+    payment_status: 'paid',
+    payment_method: 'cash',
     notes: null,
     created_at: '2026-09-11T14:50:00.000Z',
     customer_name: 'Ana',

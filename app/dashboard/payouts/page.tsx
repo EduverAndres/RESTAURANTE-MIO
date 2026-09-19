@@ -13,6 +13,7 @@ import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { formatCOP } from '@/lib/format'
 import { formatDateCO } from '@/lib/format-date'
 import { PAYOUT_STATUS_LABELS } from '@/lib/payouts/labels'
+import { isDebtToPlatform } from '@/lib/payouts/reversal'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Liquidaciones' }
@@ -38,7 +39,9 @@ export default async function DashboardPayoutsPage() {
         <p className="text-muted-foreground text-sm">
           Lo que {store.name} recibe por periodo, después de la comisión de
           la plataforma. El domicilio y la propina no hacen parte de la
-          liquidación: se pagan aparte al domiciliario.
+          liquidación: se pagan aparte al domiciliario. Un reembolso que
+          registres después de generado un periodo se descuenta del
+          siguiente, así que ese periodo puede salir en negativo.
         </p>
       </header>
 
@@ -70,6 +73,11 @@ export default async function DashboardPayoutsPage() {
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatCOP(Number(payout.net))}
+                    {isDebtToPlatform({ net: Number(payout.net) }) ? (
+                      <span className="text-destructive block text-xs font-normal">
+                        Saldo a favor de la plataforma
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell>
                     <StatusBadge

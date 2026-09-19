@@ -19,7 +19,7 @@ async function fetchBoardOrders(storeId: string): Promise<BoardOrder[]> {
   const { data } = await supabase
     .from('orders')
     .select(
-      'id, short_code, status, type, table_number, total, notes, created_at, customer:profiles!orders_customer_id_fkey(full_name), order_items(name_snapshot, quantity)',
+      'id, short_code, status, type, table_number, total, payment_status, payment_method, notes, created_at, customer:profiles!orders_customer_id_fkey(full_name), order_items(name_snapshot, quantity)',
     )
     .eq('store_id', storeId)
     .or(`status.not.in.(${terminal}),created_at.gte.${since}`)
@@ -33,6 +33,8 @@ async function fetchBoardOrders(storeId: string): Promise<BoardOrder[]> {
     type: order.type,
     table_number: order.table_number,
     total: Number(order.total),
+    payment_status: order.payment_status,
+    payment_method: order.payment_method,
     notes: order.notes,
     created_at: order.created_at,
     customer_name: order.customer?.full_name ?? null,

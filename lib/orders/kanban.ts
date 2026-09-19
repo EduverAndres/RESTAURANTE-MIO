@@ -1,5 +1,10 @@
 // Pure helpers behind the merchant Kanban. No React, no Supabase.
-import type { OrderStatus, OrderType } from '@/types/app'
+import type {
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
+  PaymentStatus,
+} from '@/types/app'
 
 export { startOfLocalDay } from '@/lib/dates'
 
@@ -19,6 +24,8 @@ export interface BoardOrder {
   type: OrderType
   table_number: number | null
   total: number
+  payment_status: PaymentStatus
+  payment_method: PaymentMethod
   notes: string | null
   created_at: string
   customer_name: string | null
