@@ -20,6 +20,20 @@ export async function register(): Promise<void> {
   }
   const { registerSentry } = await import('@/lib/observability/sentry')
   await registerSentry()
+
+  // Only the Node runtime, and only after the reporter is installed. The edge
+  // runtime has no settable `TZ` and never evaluates `lib/dates.ts`, so
+  // auditing it there would report a problem that cannot exist and cannot be
+  // fixed — the fastest way to teach everyone to ignore these lines.
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return
+
+  const [{ logger }, { startupWarnings }] = await Promise.all([
+    import('@/lib/log/logger'),
+    import('@/lib/config/startup-warnings'),
+  ])
+  for (const warning of startupWarnings(process.env)) {
+    logger.error(`startup.${warning.code}`, { detail: warning.message })
+  }
 }
 
 /**
