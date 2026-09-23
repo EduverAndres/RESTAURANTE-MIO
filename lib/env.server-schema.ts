@@ -29,8 +29,23 @@ export const serverEnvSchema = z.object({
 export type ServerEnv = z.infer<typeof serverEnvSchema>
 export type ServerEnvSource = Partial<Record<keyof ServerEnv, string | undefined>>
 
+/**
+ * A dashboard variable created and left blank, or pasted with a stray space,
+ * is an ordinary thing to have. Blank must read as "unset" -- otherwise an
+ * empty SENTRY_DSN fails the DSN regex and bricks the build, which is exactly
+ * what happened on the first Vercel deploy. The public env already does this
+ * (); the server env now matches it.
+ */
+function blankToUndefined(value: string | undefined): string | undefined {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
+
 export function parseServerEnv(source: ServerEnvSource) {
-  return serverEnvSchema.safeParse(source)
+  const normalized = Object.fromEntries(
+    Object.entries(source).map(([key, value]) => [key, blankToUndefined(value)]),
+  ) as ServerEnvSource
+  return serverEnvSchema.safeParse(normalized)
 }
 
 /** True once every key Wompi needs to create and verify payments is set. */
