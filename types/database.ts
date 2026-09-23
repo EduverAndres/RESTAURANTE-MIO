@@ -166,6 +166,7 @@ export type Database = {
           line_total: number | null
           name_snapshot: string
           options: Json
+          options_delta: number
           order_id: string
           product_id: string | null
           quantity: number
@@ -177,6 +178,7 @@ export type Database = {
           line_total?: never
           name_snapshot: string
           options?: Json
+          options_delta?: number
           order_id: string
           product_id?: string | null
           quantity: number
@@ -188,6 +190,7 @@ export type Database = {
           line_total?: never
           name_snapshot?: string
           options?: Json
+          options_delta?: number
           order_id?: string
           product_id?: string | null
           quantity?: number

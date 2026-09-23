@@ -6,7 +6,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { canApplyPaymentStatus } from '@/lib/payments/transitions'
 import type { PaymentResult } from '@/lib/payments/types'
-import { computeOrderTotals, computeTip, meetsMinOrder } from '@/lib/pricing'
+import {
+  computeOrderTotals,
+  computeTip,
+  meetsMinOrder,
+  optionsDelta,
+} from '@/lib/pricing'
 import type { OrderTotals } from '@/lib/pricing'
 import type { CartItemPayload } from '@/lib/validations/checkout'
 import type {
@@ -162,7 +167,16 @@ export function buildOrderTotals(
   return { ok: true, totals }
 }
 
-/** Rows for order_items; line notes are folded into the name snapshot. */
+/**
+ * Rows for order_items; line notes are folded into the name snapshot.
+ *
+ * `options_delta` is written explicitly rather than left for the database to
+ * infer from the `options` JSON. `order_items.line_total` is a generated
+ * column and an AFTER trigger overwrites `orders.subtotal` with the sum of
+ * it, so if that arithmetic omits the surcharges the database silently
+ * rewrites the total the customer was quoted. It did, until this column
+ * existed. `tests/order-item-option-deltas.test.ts` pins the two together.
+ */
 export function orderItemRows(
   orderId: string,
   items: readonly PricedItem[],
@@ -174,6 +188,7 @@ export function orderItemRows(
       ? `${item.name_snapshot} · ${item.notes}`
       : item.name_snapshot,
     unit_price: item.unit_price,
+    options_delta: optionsDelta(item.options),
     quantity: item.quantity,
     options: item.options as unknown as Json,
   }))
