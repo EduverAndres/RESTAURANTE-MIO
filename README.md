@@ -138,6 +138,7 @@ notifications configured at all).
 | `OSRM_BASE_URL`                        | server           | no (defaults to the public OSRM demo server)    | Base URL of an OSRM instance for delivery routing/ETA.                                                                                                 |
 | `ROUTING_PROVIDER`                     | server           | no (defaults to `osrm`)                         | `osrm`, `ors` or `haversine`; falls back to `haversine` automatically on failure.                                                                      |
 | `ORS_API_KEY`                          | server           | no (only used when `ROUTING_PROVIDER=ors`)      | OpenRouteService API key.                                                                                                                              |
+| `TZ`                                   | server           | no, but effectively required in production      | IANA time zone used for date-only logic (payout periods, the today/7d/30d metrics windows). Vercel defaults to UTC, which files every Colombian order placed after 19:00 under the next day. Set `America/Bogota`.                        |
 | `TZ`                                   | process          | no, but recommended (`America/Bogota`)          | Node's runtime time zone; date-only logic (payout periods, "today" metrics) is computed in local time, so this decides what "today" means.             |
 
 ## Scripts
