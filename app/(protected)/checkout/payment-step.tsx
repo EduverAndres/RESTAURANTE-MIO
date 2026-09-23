@@ -4,6 +4,7 @@ import { ChevronLeftIcon } from 'lucide-react'
 import { OptionCard } from './option-card'
 import { PaymentMark } from './payment-mark'
 import type { CheckoutController } from './use-checkout'
+import { WompiTrust } from '@/components/payments/wompi-trust'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -106,6 +107,10 @@ export function PaymentStep({
           />
         ))}
       </div>
+
+      {checkout.paymentOptions.some((option) => option.method === 'wompi') ? (
+        <WompiTrust />
+      ) : null}
 
       <TipSelector checkout={checkout} />
 

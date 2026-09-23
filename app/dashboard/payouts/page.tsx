@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { StatusBadge } from '@/components/orders/order-status-badge'
+import { WompiTrust } from '@/components/payments/wompi-trust'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
   Table,
@@ -43,6 +44,7 @@ export default async function DashboardPayoutsPage() {
           registres después de generado un periodo se descuenta del
           siguiente, así que ese periodo puede salir en negativo.
         </p>
+        <WompiTrust compact className="pt-1" />
       </header>
 
       {payouts && payouts.length > 0 ? (

@@ -6,11 +6,13 @@ import {
   LoaderCircleIcon,
   ShoppingBagIcon,
 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { placeTableOrder } from '../actions'
+import { WompiTrust } from '@/components/payments/wompi-trust'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
@@ -47,10 +49,22 @@ interface TableCheckoutFormProps {
   defaultGuestName: string
 }
 
+// Wompi gets its official mark (the solid-black "Principal" file, on the
+// white tile its brand rules never argue with, so it reads inside a dark
+// store theme too). The other methods keep monochrome icons.
 const PAYMENT_ICONS: Record<TablePaymentMethod, React.ReactNode> = {
   cash: <BanknoteIcon aria-hidden="true" className="size-5" />,
   mock: <CreditCardIcon aria-hidden="true" className="size-5" />,
-  wompi: <CreditCardIcon aria-hidden="true" className="size-5" />,
+  wompi: (
+    <Image
+      src="/brand/wompi/Wompi_ContraccionPrincipal.svg"
+      alt="Wompi"
+      width={24}
+      height={24}
+      unoptimized
+      className="size-6"
+    />
+  ),
 }
 
 function isTablePayment(value: string): value is TablePaymentMethod {
@@ -216,7 +230,14 @@ export function TableCheckoutForm({
                       : 'border-border hover:border-foreground/30',
                   )}
                 >
-                  <span className="rounded-control bg-muted text-primary flex size-10 items-center justify-center">
+                  <span
+                    className={cn(
+                      'rounded-control flex size-10 items-center justify-center',
+                      option.method === 'wompi'
+                        ? 'bg-white shadow-1'
+                        : 'bg-muted text-primary',
+                    )}
+                  >
                     {PAYMENT_ICONS[option.method]}
                   </span>
                   <span>
@@ -231,6 +252,9 @@ export function TableCheckoutForm({
               )
             })}
           </div>
+          {paymentOptions.some((option) => option.method === 'wompi') ? (
+            <WompiTrust className="mt-3" />
+          ) : null}
         </div>
       </section>
 

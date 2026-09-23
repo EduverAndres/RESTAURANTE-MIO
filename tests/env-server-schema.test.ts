@@ -32,6 +32,42 @@ describe('parseServerEnv', () => {
     expect(parsed.success).toBe(true)
   })
 
+  // A dashboard variable created and left blank is an ordinary thing to have
+  // (Vercel, .env files). It must read as "unset", not as an invalid value
+  // that bricks the build: the public env already does this, the server env
+  // did not, and a deployment failed on an empty SENTRY_DSN.
+  it('treats an empty string as unset', () => {
+    const parsed = parseServerEnv({
+      SENTRY_DSN: '',
+      WOMPI_PUBLIC_KEY: '',
+      WOMPI_EVENTS_SECRET: '',
+      VAPID_SUBJECT: '',
+    })
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data.SENTRY_DSN).toBeUndefined()
+    expect(parsed.data.WOMPI_PUBLIC_KEY).toBeUndefined()
+    expect(sentryConfiguredFrom(parsed.data)).toBe(false)
+    expect(wompiConfiguredFrom(parsed.data)).toBe(false)
+  })
+
+  it('trims surrounding whitespace, the usual copy-paste accident', () => {
+    const parsed = parseServerEnv({ WOMPI_PUBLIC_KEY: '  pub_prod_abc ' })
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data.WOMPI_PUBLIC_KEY).toBe('pub_prod_abc')
+  })
+
+  it('still rejects a wrong prefix once trimmed', () => {
+    const parsed = parseServerEnv({ WOMPI_PRIVATE_KEY: '  pub_prod_abc ' })
+    expect(parsed.success).toBe(false)
+  })
+
+  it('treats whitespace-only as unset', () => {
+    const parsed = parseServerEnv({ SENTRY_DSN: '   ' })
+    expect(parsed.success).toBe(true)
+  })
+
   it('rejects a Wompi public key without the expected prefix', () => {
     const parsed = parseServerEnv({ WOMPI_PUBLIC_KEY: 'not-a-key' })
     expect(parsed.success).toBe(false)
