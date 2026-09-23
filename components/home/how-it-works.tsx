@@ -13,8 +13,8 @@ const STEPS = [
     text: 'Sigue tu pedido estado por estado y habla con el restaurante.',
   },
   {
-    title: 'Sin intermediarios raros',
-    text: 'Comisión clara del 6 % que el restaurante conoce.',
+    title: 'El precio de la carta es el precio',
+    text: 'Sin recargos escondidos: pagás lo que dice el menú, más el envío y la propina que elijas.',
   },
 ]
 

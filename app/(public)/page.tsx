@@ -10,6 +10,7 @@ import {
 } from './store-grid'
 import { CategoryCarousel } from '@/components/home/category-carousel'
 import { HomeHero } from '@/components/home/home-hero'
+import { ForRestaurants } from '@/components/home/for-restaurants'
 import { HowItWorks } from '@/components/home/how-it-works'
 import { StoreRail } from '@/components/home/store-rail'
 import { type StoreCardData } from '@/components/store/store-card'
@@ -123,7 +124,12 @@ async function StoreSections({ category }: { category: string | null }) {
         which is the whole invitation; from `lg` there is room for a grid and
         the same markup lays itself out.
       */}
-      {!category && nearby.length > 1 ? (
+      {/*
+        Only when it is genuinely a shortlist. With fewer stores than the cap,
+        the rail would repeat the entire grid below it — the same seven cards
+        twice, one section apart, which reads as padding rather than guidance.
+      */}
+      {!category && stores.length > NEARBY_SHORTLIST ? (
         <section aria-labelledby="cerca-title" className="mb-10">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -199,6 +205,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       <HowItWorks />
+
+      <ForRestaurants />
 
       <SiteFooter />
     </>
