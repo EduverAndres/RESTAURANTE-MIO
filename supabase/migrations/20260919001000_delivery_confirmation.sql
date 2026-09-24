@@ -15,10 +15,16 @@
 -- to the realtime publication either, for the same reason.
 --
 -- The trigger below is what makes the code enforceable rather than a UI
--- courtesy: a courier-role update that flips a delivery order to delivered is
--- refused at the database, even through PostgREST directly. Owners, admins
--- and the service role (auth.uid() is null) are unaffected, so the confirmed
--- paths above keep working.
+-- courtesy: a courier-role update that flips a delivery order to delivered,
+-- or that touches the confirmation audit columns, is refused at the
+-- database, even through PostgREST directly. Owners, admins and the service
+-- role (auth.uid() is null) are unaffected, so the confirmed paths above
+-- keep working.
+--
+-- Four digits are only 10,000 guesses, so the table also counts wrong
+-- attempts and records when the code was locked; the server action stops
+-- comparing once locked and only the customer or the merchant can close the
+-- order from there.
 
 set lock_timeout = '3s';
 
@@ -28,11 +34,17 @@ set lock_timeout = '3s';
 create table public.delivery_codes (
   order_id uuid primary key references public.orders (id) on delete cascade,
   code text not null check (code ~ '^[0-9]{4}$'),
+  attempts integer not null default 0,
+  locked_at timestamptz,
   created_at timestamptz not null default now()
 );
 
 comment on table public.delivery_codes is
   'Four-digit handover code per delivery order. Readable by the customer only; written and compared server-side.';
+comment on column public.delivery_codes.attempts is
+  'Wrong codes typed by the courier so far; maintained by the server action.';
+comment on column public.delivery_codes.locked_at is
+  'Set once the attempt limit is reached: the code is no longer checked and the customer or merchant must confirm.';
 
 alter table public.delivery_codes enable row level security;
 
@@ -77,7 +89,8 @@ comment on column public.courier_locations.accuracy_m is
   'Reported GPS accuracy of the fix in metres; null when the device did not say.';
 
 -- ---------------------------------------------------------------------------
--- Refuse a courier-role update that marks a delivery order delivered
+-- Refuse a courier-role update that marks a delivery order delivered, or
+-- that writes the confirmation audit columns by hand
 -- ---------------------------------------------------------------------------
 create or replace function public.require_delivery_confirmation()
 returns trigger
@@ -85,11 +98,17 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if new.status = 'delivered'
-    and old.status is distinct from 'delivered'
-    and old.type = 'delivery'
-    and auth.uid() is not null
+  if auth.uid() is not null
     and public.user_role_of(auth.uid()) = 'courier'
+    and (
+      (
+        new.status = 'delivered'
+        and old.status is distinct from 'delivered'
+        and old.type = 'delivery'
+      )
+      or new.delivery_confirmed_by is distinct from old.delivery_confirmed_by
+      or new.delivery_confirmed_at is distinct from old.delivery_confirmed_at
+    )
   then
     raise exception 'delivery must be confirmed with the customer code'
       using errcode = 'insufficient_privilege';

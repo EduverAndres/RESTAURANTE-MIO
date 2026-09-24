@@ -17,6 +17,7 @@ import { sendPushToUsers } from '@/lib/push/send'
 import { estimateRoute } from '@/lib/routing'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { deliveryAttemptOutcome } from '@/lib/tracking/delivery-attempts'
 import {
   deliveryCodeMatches,
   generateDeliveryCode,
@@ -35,6 +36,8 @@ const SESSION_EXPIRED = 'Tu sesión expiró. Inicia sesión de nuevo.'
 const INVALID_ORDER = 'Pedido inválido.'
 const CODE_REQUIRED = 'Ingresa el código de entrega que te da el cliente.'
 const CODE_MISMATCH = 'El código no coincide. Pídeselo al cliente.'
+const CODE_LOCKED =
+  'Demasiados intentos. El cliente puede confirmar la entrega desde su pedido o el restaurante desde su panel.'
 const CODE_CHECK_FAILED = 'No pudimos verificar el código. Inténtalo de nuevo.'
 const UPDATE_FAILED = 'No pudimos actualizar el pedido.'
 const STATUS_CHANGED =
@@ -157,6 +160,9 @@ async function issueDeliveryCode(orderId: string): Promise<boolean> {
  * — that trigger is what makes the code mandatory rather than polite — but
  * it keeps the same guards the RLS path had, so only this courier's own
  * in-flight order can move.
+ *
+ * Wrong codes are counted on the row and the code locks for good at the
+ * limit: from then on only the customer or the merchant can close the order.
  */
 async function deliverWithCode(
   orderId: string,
@@ -173,16 +179,45 @@ async function deliverWithCode(
 
   const { data: issued, error: readError } = await admin
     .from('delivery_codes')
-    .select('code')
+    .select('code, attempts, locked_at')
     .eq('order_id', orderId)
     .maybeSingle()
   if (readError) {
     logger.error('courier.delivery_code.read_failed', { orderId }, readError)
     return { ok: false, error: CODE_CHECK_FAILED }
   }
-  if (!deliveryCodeMatches(issued?.code ?? null, enteredCode)) {
+  const now = new Date()
+  const outcome = deliveryAttemptOutcome({
+    attempts: issued?.attempts ?? 0,
+    lockedAt: issued?.locked_at ?? null,
+    matches: deliveryCodeMatches(issued?.code ?? null, enteredCode),
+    now,
+  })
+  if (outcome.kind === 'locked') return { ok: false, error: CODE_LOCKED }
+  if (outcome.kind === 'mismatch') {
     logger.warn('courier.delivery_code.mismatch', { orderId, courierId })
-    return { ok: false, error: CODE_MISMATCH }
+    // A row is guaranteed here: with none issued nothing can match, but
+    // there is also nothing to count against.
+    if (issued) {
+      const { error: countError } = await admin
+        .from('delivery_codes')
+        .update({
+          attempts: outcome.attempts,
+          ...(outcome.locked ? { locked_at: now.toISOString() } : {}),
+        })
+        .eq('order_id', orderId)
+      if (countError) {
+        logger.error(
+          'courier.delivery_code.count_failed',
+          { orderId },
+          countError,
+        )
+      }
+      if (outcome.locked) {
+        logger.warn('courier.delivery_code.locked', { orderId })
+      }
+    }
+    return { ok: false, error: outcome.locked ? CODE_LOCKED : CODE_MISMATCH }
   }
 
   const { data, error } = await admin

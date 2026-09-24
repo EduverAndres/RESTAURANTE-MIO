@@ -43,6 +43,8 @@ describe('delivery confirmation migration', () => {
     expect(sql()).toMatch(
       /code text not null check \(code ~ '\^\[0-9\]\{4\}\$'\)/,
     )
+    expect(sql()).toMatch(/attempts integer not null default 0/)
+    expect(sql()).toMatch(/locked_at timestamptz/)
     expect(sql()).toMatch(
       /alter table public\.delivery_codes enable row level security/,
     )
@@ -86,6 +88,21 @@ describe('delivery confirmation migration', () => {
     )
   })
 
+  it('refuses a courier-role write to the confirmation audit columns', () => {
+    const body = sql().slice(
+      sql().indexOf('function public.require_delivery_confirmation()'),
+      sql().indexOf('revoke all on function'),
+    )
+    expect(body).toMatch(
+      /or new\.delivery_confirmed_by is distinct from old\.delivery_confirmed_by/,
+    )
+    expect(body).toMatch(
+      /or new\.delivery_confirmed_at is distinct from old\.delivery_confirmed_at/,
+    )
+    // One raise covers both branches: same message, same errcode.
+    expect(body.match(/raise exception/g)).toHaveLength(1)
+  })
+
   it('stays inside the runner transaction and fails fast on locks', () => {
     expect(sql()).not.toMatch(/^\s*(begin|commit)\s*;/im)
     expect(sql()).toMatch(/set lock_timeout = '3s';/)
@@ -109,6 +126,12 @@ describe('types/database.ts declares the new schema', () => {
     )
     expect(table).toMatch(/Row: \{[^}]*code: string[^}]*order_id: string/)
     expect(table).toMatch(/Insert: \{[^}]*code: string[^}]*order_id: string/)
+    expect(table).toMatch(
+      /Row: \{[^}]*attempts: number[^}]*locked_at: string \| null/,
+    )
+    expect(table).toMatch(
+      /Update: \{[^}]*attempts\?: number[^}]*locked_at\?: string \| null/,
+    )
     expect(table).toMatch(/referencedRelation: "orders"/)
   })
 

@@ -93,18 +93,24 @@ export type Database = {
       }
       delivery_codes: {
         Row: {
+          attempts: number
           code: string
           created_at: string
+          locked_at: string | null
           order_id: string
         }
         Insert: {
+          attempts?: number
           code: string
           created_at?: string
+          locked_at?: string | null
           order_id: string
         }
         Update: {
+          attempts?: number
           code?: string
           created_at?: string
+          locked_at?: string | null
           order_id?: string
         }
         Relationships: [
