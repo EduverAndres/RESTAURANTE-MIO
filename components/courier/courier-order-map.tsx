@@ -11,7 +11,7 @@ import {
   type CourierFix,
 } from '@/components/orders/use-courier-position'
 import { formatEta } from '@/lib/courier/eta'
-import { BOGOTA_CENTER, formatDistance, type LatLng } from '@/lib/geo'
+import { DEFAULT_MAP_CENTER, formatDistance, type LatLng } from '@/lib/geo'
 import { signalLabel } from '@/lib/tracking/eta'
 import { courierTrackingView } from '@/lib/tracking/live-view'
 import { routeFromGeometry, toGeometry } from '@/lib/tracking/route-progress'
@@ -114,7 +114,7 @@ export function CourierOrderMap({
   return (
     <div className="space-y-2">
       <LocationMapLazy
-        center={points[0] ?? BOGOTA_CENTER}
+        center={points[0] ?? DEFAULT_MAP_CENTER}
         markers={markers}
         path={ahead}
         pathDone={done}

@@ -80,7 +80,7 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
 
         <FadeIn inView className="mt-10 text-center">
           <Link
-            href="#para-restaurantes"
+            href="/para-restaurantes"
             className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 transition-colors hover:underline"
           >
             ¿Tenés un restaurante? Vendé con tu propia marca →

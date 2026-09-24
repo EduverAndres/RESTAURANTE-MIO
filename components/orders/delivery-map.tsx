@@ -17,7 +17,7 @@ import {
   type CourierFix,
 } from '@/components/orders/use-courier-position'
 import { formatEta } from '@/lib/courier/eta'
-import { BOGOTA_CENTER, formatDistance, type LatLng } from '@/lib/geo'
+import { DEFAULT_MAP_CENTER, formatDistance, type LatLng } from '@/lib/geo'
 import { initialsOf } from '@/lib/format'
 import {
   delayLabel,
@@ -241,7 +241,7 @@ export function DeliveryMap({
       {fitPoints.length > 0 ? (
         <div className="relative">
           <LocationMapLazy
-            center={fitPoints[0] ?? BOGOTA_CENTER}
+            center={fitPoints[0] ?? DEFAULT_MAP_CENTER}
             markers={markers}
             path={ahead}
             pathDone={done}

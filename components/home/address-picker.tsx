@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useVisitorLocation } from '@/hooks/use-visitor-location'
-import { BOGOTA_CENTER, type LatLng } from '@/lib/geo'
+import { DEFAULT_MAP_CENTER, type LatLng } from '@/lib/geo'
 import {
   GeolocationFailureError,
   type GeolocationFailure,
@@ -46,7 +46,7 @@ export function AddressPicker({ initial, className }: AddressPickerProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeocodeResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [pin, setPin] = useState<LatLng>(location ?? BOGOTA_CENTER)
+  const [pin, setPin] = useState<LatLng>(location ?? DEFAULT_MAP_CENTER)
   const [label, setLabel] = useState(location?.label ?? '')
   const [gpsFailure, setGpsFailure] = useState<GeolocationFailure | null>(null)
   const [pending, startTransition] = useTransition()
@@ -59,7 +59,7 @@ export function AddressPicker({ initial, className }: AddressPickerProps) {
 
   useEffect(() => {
     if (open) {
-      setPin(location ?? BOGOTA_CENTER)
+      setPin(location ?? DEFAULT_MAP_CENTER)
       setLabel(location?.label ?? '')
       setQuery('')
       setResults([])

@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useVisitorLocation } from '@/hooks/use-visitor-location'
-import { BOGOTA_CENTER, type LatLng } from '@/lib/geo'
+import { DEFAULT_MAP_CENTER, type LatLng } from '@/lib/geo'
 import {
   GeolocationFailureError,
   type GeolocationFailure,
@@ -49,7 +49,7 @@ export function AddressFormDialog({
   const [line1, setLine1] = useState('')
   const [line2, setLine2] = useState('')
   const [isDefault, setIsDefault] = useState(false)
-  const [pin, setPin] = useState<LatLng>(BOGOTA_CENTER)
+  const [pin, setPin] = useState<LatLng>(DEFAULT_MAP_CENTER)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeocodeResult[]>([])
   const [gpsFailure, setGpsFailure] = useState<GeolocationFailure | null>(null)
@@ -72,7 +72,7 @@ export function AddressFormDialog({
     setPin(
       address && address.lat !== null && address.lng !== null
         ? { lat: Number(address.lat), lng: Number(address.lng) }
-        : (location ?? BOGOTA_CENTER),
+        : (location ?? DEFAULT_MAP_CENTER),
     )
     setQuery('')
     setResults([])

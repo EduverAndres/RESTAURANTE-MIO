@@ -7,8 +7,12 @@ export interface LatLng {
   lng: number
 }
 
-/** Default map centre when the visitor has not shared a location. */
-export const BOGOTA_CENTER: LatLng = { lat: 4.6533, lng: -74.0836 }
+/**
+ * Default map centre when the visitor has not shared a location: Barranquilla,
+ * the pilot city (OSM centroid). Named for what it is so a future city change
+ * is one constant, not a rename.
+ */
+export const DEFAULT_MAP_CENTER: LatLng = { lat: 11.0102, lng: -74.8232 }
 
 const EARTH_RADIUS_KM = 6371
 /** Average urban courier speed used for time estimates. */

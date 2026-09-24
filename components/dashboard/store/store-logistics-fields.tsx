@@ -6,7 +6,7 @@ import { StoreLocationPicker } from '@/components/dashboard/store/store-location
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { describedBy, errorId, hintId } from '@/lib/a11y/forms'
-import { BOGOTA_CENTER, type LatLng } from '@/lib/geo'
+import { DEFAULT_MAP_CENTER, type LatLng } from '@/lib/geo'
 import type { StoreLogisticsInput } from '@/lib/validations/store'
 
 interface StoreLogisticsFieldsProps {
@@ -75,7 +75,7 @@ export function StoreLogisticsFields({
   const pin: LatLng =
     typeof lat === 'number' && typeof lng === 'number' && !Number.isNaN(lat)
       ? { lat, lng }
-      : BOGOTA_CENTER
+      : DEFAULT_MAP_CENTER
 
   function setPin(point: LatLng) {
     form.setValue('lat', point.lat, { shouldValidate: true, shouldDirty: true })
