@@ -64,7 +64,7 @@ export function HowItWorks() {
           </ol>
 
           <Button asChild size="lg" variant="outline" className="rounded-pill">
-            <Link href="/register?role=merchant">
+            <Link href="/para-restaurantes">
               Tengo un restaurante
               <ArrowRightIcon aria-hidden="true" />
             </Link>

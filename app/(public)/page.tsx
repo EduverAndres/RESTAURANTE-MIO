@@ -10,7 +10,6 @@ import {
 } from './store-grid'
 import { CategoryCarousel } from '@/components/home/category-carousel'
 import { HomeHero } from '@/components/home/home-hero'
-import { ForRestaurants } from '@/components/home/for-restaurants'
 import { HowItWorks } from '@/components/home/how-it-works'
 import { StoreRail } from '@/components/home/store-rail'
 import { type StoreCardData } from '@/components/store/store-card'
@@ -205,8 +204,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       <HowItWorks />
-
-      <ForRestaurants />
 
       <SiteFooter />
     </>

@@ -30,12 +30,18 @@ const PROMISES = [
   },
 ] as const
 
-export function ForRestaurants() {
+export function ForRestaurants({
+  standalone = false,
+}: {
+  /** As a page of its own the headline is the h1 and there is no rule above. */
+  standalone?: boolean
+}) {
+  const Heading = standalone ? 'h1' : 'h2'
   return (
     <section
       id="para-restaurantes"
       aria-labelledby="para-restaurantes-title"
-      className="border-border/60 bg-card scroll-mt-24 border-t"
+      className={standalone ? 'bg-card' : 'border-border/60 bg-card scroll-mt-24 border-t'}
     >
       <div className="container-page py-section">
         <FadeIn inView className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-14">
@@ -44,13 +50,13 @@ export function ForRestaurants() {
               <p className="text-primary text-xs font-semibold tracking-wide uppercase">
                 Para restaurantes
               </p>
-              <h2
+              <Heading
                 id="para-restaurantes-title"
                 className="text-h1 font-display font-semibold text-balance"
               >
                 Tus clientes ya son tuyos. Tu canal de venta también debería
                 serlo.
-              </h2>
+              </Heading>
               <p className="text-muted-foreground text-pretty">
                 Recibí pedidos a domicilio, para recoger y desde la mesa con tu
                 propia marca. Una mensualidad fija, no un porcentaje de cada
