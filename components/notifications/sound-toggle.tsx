@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { playSoundEvent } from '@/lib/sound/player'
+import { playSoundEvent, unlockAudio } from '@/lib/sound/player'
 import { useSoundPreferences } from '@/lib/sound/preferences'
 import { cn } from '@/lib/utils'
 
@@ -28,7 +28,18 @@ export function SoundToggle({ className, compact = false }: SoundToggleProps) {
   const checked = hydrated ? enabled : true
 
   const onCheckedChange = (next: boolean) => {
-    setEnabled(next)
+    // Unlock first: this click is the gesture the browser needs, and it must
+    // count even if persisting the preference fails right after.
+    if (next) unlockAudio()
+    try {
+      setEnabled(next)
+    } catch {
+      // zustand `persist` updates the in-memory state before it writes, so
+      // when `localStorage.setItem` throws (Safari private mode, full quota)
+      // the switch has already flipped for this session; only the write is
+      // lost, and that is fine.
+    }
+    // After the flip: `playSoundEvent` is a no-op while the store says off.
     if (next) playSoundEvent('accepted')
   }
 
@@ -61,7 +72,7 @@ export function SoundToggle({ className, compact = false }: SoundToggleProps) {
           Sonido en los cambios de estado
         </Label>
         <p className="text-muted-foreground text-xs">
-          Un tono suave cuando tu pedido avanza.
+          Un tono suave cuando un pedido cambia de estado.
         </p>
       </div>
       <Switch

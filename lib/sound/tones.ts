@@ -33,14 +33,39 @@ export const TONE_GAIN = 0.12
 /** Attack length in seconds, so a tone fades in rather than clicks. */
 export const ATTACK_S = 0.03
 
+/**
+ * Offset of a pair's second note, in seconds: it overlaps the first so the
+ * two read as one gesture rather than two beeps.
+ */
+export const NOTE_GAP_S = 0.16
+
+/**
+ * Minimum time between two played events, in milliseconds. A resync backfill
+ * can replay several status updates at once, and stacked voices clip.
+ */
+export const MIN_GAP_MS = 500
+
 /** Gain floor for the exponential ramps (they cannot reach zero). */
 const SILENT = 0.0001
+
+/**
+ * Burst guard: whether an event at `now` may play given when the last one
+ * was accepted (`lastAt`, `null` when nothing has played yet). Both are
+ * epoch milliseconds.
+ */
+export function shouldPlayNow(
+  lastAt: number | null,
+  now: number,
+  minGapMs = MIN_GAP_MS,
+): boolean {
+  return lastAt === null || now - lastAt >= minGapMs
+}
 
 function pair(
   first: number,
   second: number,
   duration: number,
-  gap = 0.16,
+  gap = NOTE_GAP_S,
 ): ToneStep[] {
   return [
     { freq: first, at: 0, duration },

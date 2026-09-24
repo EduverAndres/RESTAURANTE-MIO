@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   ATTACK_S,
+  MIN_GAP_MS,
   NOTE,
+  NOTE_GAP_S,
   TONE_GAIN,
   scheduleTones,
+  shouldPlayNow,
   toneSequenceFor,
   type AudioContextLike,
   type SoundEvent,
@@ -55,6 +58,9 @@ describe('toneSequenceFor', () => {
         expect(step.freq, event).toBeLessThanOrEqual(MAX_FREQ_HZ)
         expect(step.duration, event).toBeLessThanOrEqual(MAX_STEP_S)
         expect(step.duration, event).toBeGreaterThan(0)
+        // An attack longer than the note would schedule the release ramp
+        // before the attack ramp ends.
+        expect(step.duration, event).toBeGreaterThan(ATTACK_S)
         expect(step.at, event).toBeGreaterThanOrEqual(0)
       }
       expect(totalLength(steps), event).toBeLessThanOrEqual(MAX_TOTAL_S)
@@ -80,9 +86,10 @@ describe('toneSequenceFor', () => {
   })
 
   it('rings the merchant ding-dong for a new order', () => {
+    expect(NOTE_GAP_S).toBe(0.16)
     expect(toneSequenceFor('new_order')).toEqual([
       { freq: NOTE.C5, at: 0, duration: 0.28 },
-      { freq: NOTE.E5, at: 0.16, duration: 0.28 },
+      { freq: NOTE.E5, at: NOTE_GAP_S, duration: 0.28 },
     ])
   })
 
@@ -126,6 +133,28 @@ describe('TONE_GAIN', () => {
     expect(TONE_GAIN).toBe(0.12)
     expect(TONE_GAIN).toBeLessThan(0.2)
     expect(ATTACK_S).toBe(0.03)
+  })
+})
+
+describe('shouldPlayNow', () => {
+  it('plays the first event', () => {
+    expect(shouldPlayNow(null, 1_000)).toBe(true)
+  })
+
+  it('keeps one tone from stacking on the previous one', () => {
+    expect(MIN_GAP_MS).toBe(500)
+    expect(shouldPlayNow(1_000, 1_000)).toBe(false)
+    expect(shouldPlayNow(1_000, 1_000 + MIN_GAP_MS - 1)).toBe(false)
+  })
+
+  it('plays again once the gap has passed', () => {
+    expect(shouldPlayNow(1_000, 1_000 + MIN_GAP_MS)).toBe(true)
+    expect(shouldPlayNow(1_000, 5_000)).toBe(true)
+  })
+
+  it('honours a custom gap', () => {
+    expect(shouldPlayNow(1_000, 1_100, 200)).toBe(false)
+    expect(shouldPlayNow(1_000, 1_200, 200)).toBe(true)
   })
 })
 

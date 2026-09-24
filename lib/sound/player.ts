@@ -7,6 +7,7 @@
 import { useSoundPreferences } from '@/lib/sound/preferences'
 import {
   scheduleTones,
+  shouldPlayNow,
   toneSequenceFor,
   type SoundEvent,
 } from '@/lib/sound/tones'
@@ -14,6 +15,10 @@ import {
 type AudioContextCtor = typeof AudioContext
 
 let shared: AudioContext | null = null
+// When the last event was accepted for playback, epoch milliseconds. A
+// resync backfill can replay several status updates in the same tick, and
+// stacked voices clip; `shouldPlayNow` keeps one tone per `MIN_GAP_MS`.
+let lastPlayedAt: number | null = null
 
 function audioContextCtor(): AudioContextCtor | null {
   if (typeof window === 'undefined') return null
@@ -25,7 +30,9 @@ function audioContextCtor(): AudioContextCtor | null {
 }
 
 function sharedContext(): AudioContext | null {
-  if (shared) return shared
+  // Safari closes contexts under memory pressure; a closed one can never be
+  // resumed, so treat it as absent and create a fresh one.
+  if (shared && shared.state !== 'closed') return shared
   const Ctor = audioContextCtor()
   if (!Ctor) return null
   shared = new Ctor()
@@ -58,8 +65,11 @@ export function playSoundEvent(event: SoundEvent): void {
     if (!useSoundPreferences.getState().enabled) return
     const steps = toneSequenceFor(event)
     if (steps.length === 0) return
+    const now = Date.now()
+    if (!shouldPlayNow(lastPlayedAt, now)) return
     const context = sharedContext()
     if (!context) return
+    lastPlayedAt = now
     resumeIfSuspended(context)
     scheduleTones(context, steps, context.currentTime)
   } catch {
