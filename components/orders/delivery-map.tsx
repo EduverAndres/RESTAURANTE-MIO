@@ -16,7 +16,7 @@ import {
   useCourierPosition,
   type CourierFix,
 } from '@/components/orders/use-courier-position'
-import { formatEta } from '@/lib/courier/eta'
+import { formatClock } from '@/lib/courier/eta'
 import { DEFAULT_MAP_CENTER, formatDistance, type LatLng } from '@/lib/geo'
 import { initialsOf } from '@/lib/format'
 import {
@@ -154,7 +154,7 @@ export function DeliveryMap({
   )
 
   const etaAt = view.eta ?? estimatedAt
-  const etaClock = enRoute ? formatEta(etaAt) : null
+  const etaClock = enRoute ? formatClock(etaAt) : null
   const remaining =
     view.remainingKm !== null ? formatDistance(view.remainingKm) : null
 
