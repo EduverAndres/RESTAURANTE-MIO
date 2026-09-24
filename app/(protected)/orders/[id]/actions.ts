@@ -1,6 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import {
+  fetchCourierPosition,
+  type CourierPosition,
+} from '@/lib/courier/server'
 import { logger } from '@/lib/log/logger'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -10,6 +14,33 @@ import { orderIdSchema } from '@/lib/validations/orders'
 type Result = { ok: true } | { ok: false; error: string }
 
 const SESSION_EXPIRED = 'Tu sesión expiró. Inicia sesión de nuevo.'
+
+/**
+ * Polling fallback for the live map when realtime is quiet or down. Both
+ * reads run under the customer's RLS: the order proves ownership and the
+ * courier_locations policy only exposes the courier of an active order.
+ */
+export async function getCourierPosition(
+  orderId: string,
+): Promise<CourierPosition | null> {
+  const parsed = orderIdSchema.safeParse(orderId)
+  if (!parsed.success) return null
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('courier_id')
+    .eq('id', parsed.data)
+    .eq('customer_id', user.id)
+    .maybeSingle()
+  if (!order?.courier_id) return null
+  return fetchCourierPosition(supabase, order.courier_id)
+}
 
 /**
  * The customer confirms they received a delivery that is on its way, as an

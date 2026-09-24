@@ -852,6 +852,112 @@ html[data-text-size='xlarge'] {
 }
 
 /* ---------------------------------------------------------------------------
+ * Map markers (live tracking)
+ *
+ * Leaflet positions the 44x44 icon box; the badge sits centred in it and the
+ * label hangs below, outside the box, so the anchor stays on the point. The
+ * ring only exists on the courier and only pulses while `.is-live`; the
+ * reduced-motion block above already shortens every animation to 1ms, and
+ * the rule at the end hides the ring outright so nothing flickers.
+ * ------------------------------------------------------------------------- */
+.tienda-marker {
+  background: transparent;
+  border: 0;
+}
+
+.tienda-marker__badge {
+  position: absolute;
+  inset: 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--marker-fill, #1c1917);
+  color: #ffffff;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 2px 6px rgb(0 0 0 / 0.25);
+  transition: background-color 200ms ease;
+}
+
+.tienda-marker__glyph {
+  transition: transform 300ms ease;
+  transform-origin: 50% 50%;
+}
+
+.tienda-marker__label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #1c1917;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  pointer-events: none;
+}
+
+.tienda-marker--store {
+  --marker-fill: var(--primary);
+}
+
+.tienda-marker--customer {
+  --marker-fill: #0f766e;
+}
+
+.tienda-marker--courier {
+  --marker-fill: #2563eb;
+}
+
+.tienda-marker--pin {
+  --marker-fill: var(--primary);
+}
+
+.tienda-marker__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgb(37 99 235 / 0.35);
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.tienda-marker--courier.is-live .tienda-marker__ring {
+  animation: tienda-marker-pulse 1.8s ease-out infinite;
+}
+
+.tienda-marker.is-muted .tienda-marker__badge {
+  background: #9ca3af;
+}
+
+.tienda-marker.is-muted .tienda-marker__ring {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes tienda-marker-pulse {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tienda-marker__ring {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * App surfaces  (Phase 6)
  *
  * The storefront got its own vocabulary in Phase 3. These are the three
