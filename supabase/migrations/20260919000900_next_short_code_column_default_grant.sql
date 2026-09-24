@@ -1,0 +1,28 @@
+-- Restore EXECUTE on next_short_code() for the browser roles.
+--
+-- 20260919000700 revoked it from public, anon and authenticated as part of
+-- closing the leaked function grants. That was wrong for this one function,
+-- and it broke every order placed by a customer or a table guest:
+--
+--   * orders.short_code has DEFAULT public.next_short_code()
+--     (20260910000600). A column DEFAULT is evaluated as the role performing
+--     the INSERT -- it is not a trigger and does not run as the function
+--     owner, so the security definer trigger that also calls next_short_code
+--     never got the chance to help.
+--   * Both order flows insert through the RLS client, as `authenticated`
+--     (checkout) or `anon` (table guests). With the grant gone, the INSERT
+--     failed with "permission denied for function next_short_code" before a
+--     single row was written. Reproduced on the live database with
+--     `set local role authenticated; select public.next_short_code();`.
+--
+-- Granting it back is safe. next_short_code generates a random six-character
+-- code and retries until it is unique; it consumes no sequence and reads
+-- nothing but orders.short_code. A browser calling it directly can obtain an
+-- unused code and nothing else. scripts/audit-function-grants.sql lists it as
+-- intentional for exactly this reason.
+--
+-- Idempotent: granting a privilege a role already holds is a no-op. It was
+-- also applied directly as a hotfix the moment the cause was confirmed, so a
+-- fresh database and the live one end in the same state.
+
+grant execute on function public.next_short_code() to anon, authenticated;
