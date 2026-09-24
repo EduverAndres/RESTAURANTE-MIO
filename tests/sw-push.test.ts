@@ -24,7 +24,19 @@ function client(
 
 function loadWorker(clients: FakeClient[]) {
   const listeners = new Map<string, (event: unknown) => void>()
-  const showNotification = vi.fn(() => Promise.resolve())
+  // Chromium rejects `renotify` on a notification without a tag.
+  const showNotification = vi.fn(
+    (_title: string, options?: { tag?: unknown; renotify?: boolean }) => {
+      if (options?.renotify && !options.tag) {
+        return Promise.reject(
+          new TypeError(
+            'Notifications which set the renotify flag must specify a non-empty tag.',
+          ),
+        )
+      }
+      return Promise.resolve()
+    },
+  )
   const self = {
     addEventListener: (type: string, handler: (event: unknown) => void) => {
       listeners.set(type, handler)
@@ -86,6 +98,32 @@ describe('service worker push', () => {
         tag: 'order-abc',
         data: { url: '/orders/abc' },
       }),
+    )
+  })
+
+  it('alerts again when a same-tag notification is replaced', async () => {
+    const worker = await push([], ORDER_PUSH)
+    // Every status change for one order shares its tag, so without renotify
+    // the second push would replace the first silently.
+    expect(worker.showNotification).toHaveBeenCalledWith(
+      'Pedido listo',
+      expect.objectContaining({
+        tag: 'order-abc',
+        renotify: true,
+        silent: false,
+        vibrate: [80, 40, 80],
+      }),
+    )
+  })
+
+  it('still shows a push that carries no tag', async () => {
+    const { title, body, url } = ORDER_PUSH
+    const worker = await push([], { title, body, url })
+    expect(worker.showNotification).toHaveBeenCalledTimes(1)
+    const [, options] = worker.showNotification.mock.calls[0]
+    expect(options).not.toHaveProperty('renotify')
+    expect(options).toEqual(
+      expect.objectContaining({ silent: false, vibrate: [80, 40, 80] }),
     )
   })
 

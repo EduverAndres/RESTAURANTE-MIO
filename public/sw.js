@@ -97,13 +97,26 @@ self.addEventListener('push', (event) => {
           }
           return undefined
         }
-        return self.registration.showNotification(title, {
+        // Every status change for one order shares its tag, so the newer
+        // notification replaces the older one. Without `renotify` that
+        // replacement is silent and the phone never buzzes past the first
+        // push. The vibration is one short double-tap, not an alarm; Web
+        // Push cannot carry a custom sound, so the OS default plays.
+        const options = {
           body,
           data: { url },
           icon: '/icons/icon-192.png',
           badge: '/icons/badge-96.png',
-          tag,
-        })
+          silent: false,
+          vibrate: [80, 40, 80],
+        }
+        // Chromium throws a TypeError for `renotify` without a tag, and a
+        // push with no tag has nothing to replace anyway.
+        if (typeof tag === 'string' && tag !== '') {
+          options.tag = tag
+          options.renotify = true
+        }
+        return self.registration.showNotification(title, options)
       }),
   )
 })

@@ -30,6 +30,7 @@ import {
 } from '@/components/dashboard/store-switcher'
 import { initialsOf } from '@/lib/format'
 import { PushToggle } from '@/components/notifications/push-toggle'
+import { SoundToggle } from '@/components/notifications/sound-toggle'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -61,7 +62,11 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
   { label: 'Tiendas', href: '/admin/stores', icon: StoreIcon },
   { label: 'Usuarios', href: '/admin/users', icon: UsersIcon },
   { label: 'Liquidaciones', href: '/admin/payouts', icon: LandmarkIcon },
-  { label: 'Pagos sin aplicar', href: '/admin/payments', icon: TriangleAlertIcon },
+  {
+    label: 'Pagos sin aplicar',
+    href: '/admin/payments',
+    icon: TriangleAlertIcon,
+  },
   { label: 'Métricas', href: '/admin/metrics', icon: ClipboardListIcon },
 ]
 
@@ -307,6 +312,7 @@ export function DashboardShell({
               {user.email}
             </span>
             <PushToggle enabled={pushEnabled} className="hidden lg:flex" />
+            <SoundToggle compact className="hidden lg:flex" />
             <ThemeToggle />
           </div>
         </header>

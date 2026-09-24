@@ -9,6 +9,7 @@ import {
 import { createPoolTracker } from '@/lib/courier/pool'
 import type { CourierOrderSummary } from '@/lib/courier/orders'
 import { createDebouncer } from '@/lib/realtime/debounce'
+import { playSoundEvent } from '@/lib/sound/player'
 import { createClient } from '@/lib/supabase/client'
 
 /** A reconciliation per burst is enough; the round-trip is a single select. */
@@ -90,6 +91,7 @@ export function useCourierPool(
         const row = payload.new as { id?: string } & Record<string, unknown>
         if (tracker.observe(row)) {
           const shortCode = row.short_code
+          playSoundEvent('new_order')
           toast('Nuevo pedido disponible', {
             description:
               typeof shortCode === 'string'

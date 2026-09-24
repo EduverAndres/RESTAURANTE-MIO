@@ -10,7 +10,7 @@ import {
   ReceiptTextIcon,
   XIcon,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { EtaCountdown } from '@/components/orders/eta-countdown'
 import {
@@ -18,6 +18,7 @@ import {
   useRealtimeRefresh,
 } from '@/components/providers/realtime-provider'
 import { ORDER_STATUS_LABELS, ORDER_STATUS_SEQUENCE } from '@/lib/orders/status'
+import { playSoundEvent } from '@/lib/sound/player'
 import { cn } from '@/lib/utils'
 import type { OrderStatus, OrderType } from '@/types/app'
 
@@ -89,8 +90,15 @@ export function useLiveOrder(
 ): TrackedOrder {
   const refresh = useRealtimeRefresh()
   const [order, setOrder] = useState(initial)
+  // The status the page last showed. A transition is detected against this,
+  // not against `initial`: after the first change `initial` is stale, and
+  // comparing with it would announce every later event (or none of them).
+  const lastStatus = useRef(initial.status)
 
-  useEffect(() => setOrder(initial), [initial])
+  useEffect(() => {
+    setOrder(initial)
+    lastStatus.current = initial.status
+  }, [initial])
 
   useRealtimeChannel({
     name: `order-${initial.id}`,
@@ -100,8 +108,11 @@ export function useLiveOrder(
     enabled,
     onEvent: (payload) => {
       const next = payload.new as unknown as TrackedOrder
+      const previous = lastStatus.current
+      lastStatus.current = next.status
       setOrder((current) => ({ ...current, ...next }))
-      if (next.status !== initial.status) {
+      if (next.status !== previous) {
+        playSoundEvent(next.status)
         toast(ORDER_STATUS_LABELS[next.status], {
           description: STEP_DESCRIPTIONS[next.status],
         })

@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import {
   useRealtimeChannel,
   useRealtimeRefresh,
 } from '@/components/providers/realtime-provider'
 import { ORDER_STATUS_LABELS } from '@/lib/orders/status'
+import { playSoundEvent } from '@/lib/sound/player'
 import type { OrderStatus } from '@/types/app'
 
 interface CourierOrderLiveProps {
@@ -28,8 +30,12 @@ interface CourierOrderLiveProps {
 export function CourierOrderLive({ orderId, status }: CourierOrderLiveProps) {
   const refresh = useRealtimeRefresh()
   const [current, setCurrent] = useState(status)
+  const lastStatus = useRef(status)
 
-  useEffect(() => setCurrent(status), [status])
+  useEffect(() => {
+    setCurrent(status)
+    lastStatus.current = status
+  }, [status])
 
   useRealtimeChannel({
     name: `order-${orderId}`,
@@ -38,7 +44,14 @@ export function CourierOrderLive({ orderId, status }: CourierOrderLiveProps) {
     filter: `id=eq.${orderId}`,
     onEvent: (payload) => {
       const next = (payload.new as { status?: OrderStatus }).status
-      if (next && next in ORDER_STATUS_LABELS) setCurrent(next)
+      if (next && next in ORDER_STATUS_LABELS) {
+        if (next !== lastStatus.current) {
+          lastStatus.current = next
+          playSoundEvent(next)
+          toast(ORDER_STATUS_LABELS[next])
+        }
+        setCurrent(next)
+      }
       refresh()
     },
   })

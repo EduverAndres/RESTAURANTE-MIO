@@ -2,6 +2,7 @@ import { LogOutIcon } from 'lucide-react'
 import type { Metadata } from 'next'
 import { Wordmark } from '@/components/layout/site-header'
 import { PushToggle } from '@/components/notifications/push-toggle'
+import { SoundToggle } from '@/components/notifications/sound-toggle'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { requireRole } from '@/lib/auth'
@@ -34,6 +35,7 @@ export default async function CourierLayout({
           </div>
           <div className="flex items-center gap-1.5">
             <PushToggle enabled={pushConfigured()} className="hidden sm:flex" />
+            <SoundToggle compact className="hidden sm:flex" />
             <ThemeToggle />
             <form action="/auth/sign-out" method="post">
               <Button

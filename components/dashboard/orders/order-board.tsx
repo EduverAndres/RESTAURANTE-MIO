@@ -1,12 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateOrderStatus } from '@/app/dashboard/actions'
 import { BoardColumn } from '@/components/dashboard/orders/board-column'
 import { HistorySection } from '@/components/dashboard/orders/history-section'
-import { playNewOrderChime } from '@/components/dashboard/orders/new-order-chime'
 import {
   useRealtimeChannel,
   useRealtimeRefresh,
@@ -18,6 +17,7 @@ import {
   type BoardOrder,
 } from '@/lib/orders/kanban'
 import { ORDER_STATUS_LABELS } from '@/lib/orders/status'
+import { playSoundEvent } from '@/lib/sound/player'
 import type { Order, OrderStatus } from '@/types/app'
 
 interface OrderBoardProps {
@@ -67,6 +67,12 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
   // One live region for the whole board: twenty cards each announcing
   // themselves would be worse than none.
   const [announcement, setAnnouncement] = useState('')
+  // Latest committed orders, readable from the realtime handler without
+  // depending on which render its closure was captured in.
+  const ordersRef = useRef(orders)
+  useEffect(() => {
+    ordersRef.current = orders
+  }, [orders])
 
   useEffect(() => setOrders(initial), [initial])
 
@@ -79,7 +85,7 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
       if (payload.eventType === 'INSERT') {
         const inserted = payload.new as unknown as Order
         if (inserted.status === 'pending') {
-          playNewOrderChime()
+          playSoundEvent('new_order')
           toast(`Nuevo pedido #${inserted.short_code}`, {
             description: 'Acéptalo desde la columna Nuevos.',
           })
@@ -89,6 +95,15 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
         }
       } else if (payload.eventType === 'UPDATE') {
         const updated = payload.new as unknown as Order
+        // Only a remote move sounds (a courier picking up, a cancellation).
+        // The merchant's own transitions are applied optimistically, so by
+        // the time their echo arrives the local status already matches.
+        const previous = ordersRef.current.find(
+          (order) => order.id === updated.id,
+        )?.status
+        if (previous && previous !== updated.status) {
+          playSoundEvent(updated.status)
+        }
         setOrders((current) =>
           current.map((order) =>
             order.id === updated.id
