@@ -67,7 +67,12 @@ export function DeliveryCard({ order, compact = false }: DeliveryCardProps) {
 
       {!compact ? (
         <div className="flex flex-wrap items-center gap-2">
-          <AdvanceOrderButton orderId={order.id} status={order.status} />
+          {/* The board only ever lists delivery orders (see app/courier/page.tsx). */}
+          <AdvanceOrderButton
+            orderId={order.id}
+            status={order.status}
+            orderType="delivery"
+          />
           <Button asChild variant="outline" className="rounded-pill">
             <Link href={`/courier/${order.id}`}>
               Ver detalle

@@ -85,13 +85,18 @@ export function useGeolocationPublisher(
               : null
         lastRef.current = next
 
-        void publishLocation({ lat: next.lat, lng: next.lng, heading }).then(
-          (result) => {
-            if (cancelled || result.ok || warnedRef.current) return
-            warnedRef.current = true
-            toast.error(result.error)
-          },
-        )
+        // Accuracy travels with the fix so the customer's map can draw how
+        // much to trust it; the schema drops anything non-finite.
+        void publishLocation({
+          lat: next.lat,
+          lng: next.lng,
+          heading,
+          accuracyM: position.coords.accuracy,
+        }).then((result) => {
+          if (cancelled || result.ok || warnedRef.current) return
+          warnedRef.current = true
+          toast.error(result.error)
+        })
       },
       (error) => {
         if (cancelled) return

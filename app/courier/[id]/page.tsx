@@ -118,9 +118,11 @@ export default async function CourierOrderPage({
       <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
         <div className="space-y-4">
           <CourierOrderMap
+            courierId={user.id}
+            status={order.status}
             store={store}
             customer={customer}
-            courier={courier}
+            initialCourier={position}
             path={route?.geometry ?? []}
             routeKm={route?.distanceKm ?? null}
             routeMin={route?.durationMin ?? null}
@@ -128,6 +130,7 @@ export default async function CourierOrderPage({
           <AdvanceOrderButton
             orderId={order.id}
             status={order.status}
+            orderType={order.type}
             className="h-11 w-full text-base sm:w-auto"
           />
         </div>
