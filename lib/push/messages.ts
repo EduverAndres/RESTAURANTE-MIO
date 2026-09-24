@@ -88,3 +88,18 @@ export function courierAssignedMessage(
     tag: orderTag(orderId),
   }
 }
+
+/**
+ * Customer-facing push once the courier picks up a delivery: the handover
+ * code is waiting on the order page. The code itself is never put in the
+ * body — a notification sits on the lock screen for anyone to read — and
+ * the tag is distinct so this does not replace the "en camino" one.
+ */
+export function deliveryCodeMessage(orderId: string): PushPayload {
+  return {
+    title: 'Tu código de entrega',
+    body: 'Muéstralo al domiciliario cuando llegue.',
+    url: orderUrl(orderId),
+    tag: `${orderTag(orderId)}-code`,
+  }
+}
