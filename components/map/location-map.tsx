@@ -160,15 +160,13 @@ export function LocationMap({
       zoomControl: true,
       attributionControl: true,
     })
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      {
-        maxZoom: 19,
-        subdomains: 'abcd',
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      },
-    ).addTo(map)
+    // CARTO's public basemaps started requiring an API key (tiles render an
+    // "API KEY REQUIRED" watermark), so the standard OSM raster is used.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map)
     map.on('click', (event: L.LeafletMouseEvent) => {
       onPinChangeRef.current?.({ lat: event.latlng.lat, lng: event.latlng.lng })
     })
