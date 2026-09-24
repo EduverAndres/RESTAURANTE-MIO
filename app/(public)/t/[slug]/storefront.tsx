@@ -82,6 +82,9 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
 
   const sections = resolveSections(theme.sectionOrder, {
     featured: theme.featured.productIds.length > 0,
+    // Reviews are core, but a store nobody has rated yet has nothing to say,
+    // so the band is dropped instead of rendering its empty state.
+    reviews: (store.rating_count ?? 0) > 0,
     story: theme.story.enabled && theme.story.text.trim().length > 0,
     social: Boolean(
       theme.social.instagram ||
