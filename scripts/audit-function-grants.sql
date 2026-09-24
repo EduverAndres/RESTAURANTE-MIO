@@ -43,6 +43,7 @@ with intentional(name, reason) as (
   values
     ('can_edit_order_items', 'RLS predicate on order_items'),
     ('is_admin',             'RLS predicate, reads the caller own role claim'),
+    ('next_short_code',      'column default on orders.short_code: a DEFAULT runs as the inserting role, so anon/authenticated must execute it or no order can be placed (20260919000900)'),
     ('option_store_id',      'RLS predicate, resolves an option to its store'),
     ('owns_store',           'RLS predicate on every store-scoped table'),
     ('owns_store_folder',    'RLS predicate on storage objects'),
