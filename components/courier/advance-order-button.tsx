@@ -35,6 +35,8 @@ const SUCCESS_COPY: Partial<Record<OrderStatus, string>> = {
   picked_up: 'Pedido recogido. ¡Buen viaje!',
   delivered: 'Entrega confirmada.',
 }
+const NETWORK_FAILED =
+  'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.'
 
 /** Single "next step" button for a courier order; hidden when there is none. */
 export function AdvanceOrderButton({
@@ -58,7 +60,15 @@ export function AdvanceOrderButton({
   function run(input?: { code: string }) {
     if (!action) return
     startTransition(async () => {
-      const result = await advanceOrder(orderId, action.to, input)
+      let result: Awaited<ReturnType<typeof advanceOrder>>
+      try {
+        result = await advanceOrder(orderId, action.to, input)
+      } catch {
+        // The action never resolves on a dropped connection; the order is
+        // untouched and the courier just retries.
+        toast.error(NETWORK_FAILED)
+        return
+      }
       if (!result.ok) {
         if (input) {
           // A wrong code is answered inside the dialog, not as a toast the

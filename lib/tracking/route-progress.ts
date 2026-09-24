@@ -23,6 +23,11 @@ export function routeFromGeometry(geometry: [number, number][]): LatLng[] {
   return geometry.map(([lng, lat]) => ({ lat, lng }))
 }
 
+/** The inverse: LatLng points back to the `[lng, lat]` pairs the map draws. */
+export function toGeometry(points: LatLng[]): [number, number][] {
+  return points.map(({ lat, lng }) => [lng, lat] as [number, number])
+}
+
 export function routeLengthKm(route: LatLng[]): number {
   let total = 0
   for (let i = 1; i < route.length; i += 1) {

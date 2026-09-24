@@ -3,7 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import { etaFromRoute } from '@/lib/courier/eta'
-import { fetchAddressesById, fetchCourierPosition } from '@/lib/courier/server'
+import {
+  fetchAddressesById,
+  fetchCourierPosition,
+  type CourierPosition,
+} from '@/lib/courier/server'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { latLngOf, type LatLng } from '@/lib/geo'
 import { logger } from '@/lib/log/logger'
@@ -336,6 +340,19 @@ export async function advanceOrder(
   }
 
   return { ok: true }
+}
+
+/**
+ * Polling fallback for the courier's own map when realtime is quiet or
+ * down. Reads the caller's own `courier_locations` row under RLS.
+ */
+export async function getOwnPosition(): Promise<CourierPosition | null> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+  return fetchCourierPosition(supabase, user.id)
 }
 
 /**

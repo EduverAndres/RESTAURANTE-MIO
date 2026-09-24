@@ -6,6 +6,7 @@ import {
   routeFromGeometry,
   routeLengthKm,
   splitRoute,
+  toGeometry,
 } from '@/lib/tracking/route-progress'
 
 // A simple L-shaped route in Bogotá: ~1 km east, then ~1 km north.
@@ -26,6 +27,17 @@ describe('routeFromGeometry', () => {
 
   it('returns an empty route for empty geometry', () => {
     expect(routeFromGeometry([])).toEqual([])
+  })
+})
+
+describe('toGeometry', () => {
+  it('is the inverse of routeFromGeometry', () => {
+    const geometry: [number, number][] = [
+      [-74.08, 4.65],
+      [-74.071, 4.65],
+    ]
+    expect(toGeometry(routeFromGeometry(geometry))).toEqual(geometry)
+    expect(toGeometry([])).toEqual([])
   })
 })
 

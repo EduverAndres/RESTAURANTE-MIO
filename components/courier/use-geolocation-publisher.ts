@@ -92,11 +92,19 @@ export function useGeolocationPublisher(
           lng: next.lng,
           heading,
           accuracyM: position.coords.accuracy,
-        }).then((result) => {
-          if (cancelled || result.ok || warnedRef.current) return
-          warnedRef.current = true
-          toast.error(result.error)
         })
+          .then((result) => {
+            if (cancelled || result.ok || warnedRef.current) return
+            warnedRef.current = true
+            toast.error(result.error)
+          })
+          .catch(() => {
+            // A dropped connection rejects the action outright; the next
+            // fix retries, so it is worth one warning, not one per ping.
+            if (cancelled || warnedRef.current) return
+            warnedRef.current = true
+            toast.error('No pudimos compartir tu ubicación.')
+          })
       },
       (error) => {
         if (cancelled) return

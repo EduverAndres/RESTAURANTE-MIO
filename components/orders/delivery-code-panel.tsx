@@ -35,7 +35,15 @@ export function DeliveryCodePanel({ orderId, code }: DeliveryCodePanelProps) {
 
   function confirm() {
     startTransition(async () => {
-      const result = await confirmDelivery(orderId)
+      let result: Awaited<ReturnType<typeof confirmDelivery>>
+      try {
+        result = await confirmDelivery(orderId)
+      } catch {
+        toast.error(
+          'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.',
+        )
+        return
+      }
       if (!result.ok) {
         toast.error(result.error)
         router.refresh()

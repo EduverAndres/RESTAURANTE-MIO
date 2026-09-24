@@ -2,16 +2,19 @@
 
 import { RouteIcon } from 'lucide-react'
 import { useMemo } from 'react'
+import { getOwnPosition } from '@/app/courier/actions'
 import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import type { MapMarker } from '@/components/map/location-map'
+import { useNow } from '@/components/map/use-now'
 import {
   useCourierPosition,
   type CourierFix,
 } from '@/components/orders/use-courier-position'
+import { formatEta } from '@/lib/courier/eta'
 import { BOGOTA_CENTER, formatDistance, type LatLng } from '@/lib/geo'
-import { signalLabel, signalStatus } from '@/lib/tracking/eta'
+import { signalLabel } from '@/lib/tracking/eta'
 import { courierTrackingView } from '@/lib/tracking/live-view'
-import { routeFromGeometry } from '@/lib/tracking/route-progress'
+import { routeFromGeometry, toGeometry } from '@/lib/tracking/route-progress'
 import type { OrderStatus } from '@/types/app'
 
 interface CourierOrderMapProps {
@@ -28,14 +31,14 @@ interface CourierOrderMapProps {
   routeMin: number | null
 }
 
-function toGeometry(points: LatLng[]): [number, number][] {
-  return points.map(({ lat, lng }) => [lng, lat] as [number, number])
-}
-
 /**
  * Map of store, customer and the courier's own position with the route
  * drawn between them. The courier never sees a code here: the map is the
  * same one the customer gets, minus anything secret.
+ *
+ * The ETA shown en route is recomputed from the live position and the clock,
+ * not the minutes the server estimated at pickup: a courier stuck in traffic
+ * for ten minutes must see the estimate move.
  */
 export function CourierOrderMap({
   courierId,
@@ -52,9 +55,10 @@ export function CourierOrderMap({
     courierId,
     initial: initialCourier,
     expectLive: enRoute,
+    poll: getOwnPosition,
   })
+  const now = useNow(true)
   const route = useMemo(() => routeFromGeometry(path), [path])
-  const signal = signalStatus({ updatedAt: fix?.updatedAt ?? null })
 
   const view = useMemo(
     () =>
@@ -64,9 +68,11 @@ export function CourierOrderMap({
         destination: customer,
         updatedAt: fix?.updatedAt ?? null,
         estimatedAt: null,
+        now,
       }),
-    [customer, enRoute, fix, route],
+    [customer, enRoute, fix, now, route],
   )
+  const signal = view.signal
 
   const markers: MapMarker[] = []
   if (store)
@@ -103,6 +109,7 @@ export function CourierOrderMap({
   const ahead = split ? toGeometry(view.ahead) : path
   const done = split ? toGeometry(view.done) : []
   const remainingKm = split ? view.remainingKm : routeKm
+  const etaClock = split && view.eta ? formatEta(view.eta) : null
 
   return (
     <div className="space-y-2">
@@ -115,11 +122,15 @@ export function CourierOrderMap({
         className="rounded-card h-[60vh] max-h-[520px] min-h-72 w-full overflow-hidden md:h-96"
       />
       <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        {remainingKm !== null && routeMin !== null ? (
+        {remainingKm !== null ? (
           <p className="flex items-center gap-1.5">
             <RouteIcon aria-hidden="true" className="size-3.5" />
-            {formatDistance(remainingKm)} · unos{' '}
-            {Math.max(1, Math.round(routeMin))} min en moto
+            {formatDistance(remainingKm)}
+            {etaClock
+              ? ` · llegas ~${etaClock}`
+              : routeMin !== null
+                ? ` · unos ${Math.max(1, Math.round(routeMin))} min en moto`
+                : null}
           </p>
         ) : null}
         {fix ? <p>{signalLabel(signal)}</p> : null}

@@ -102,6 +102,8 @@ interface ManagedMarker {
   circle: L.Circle | null
   /** Where the marker is drawn right now (mid-glide it differs from the target). */
   shown: LatLng
+  /** The fix the marker is heading to; only a different one restarts a glide. */
+  target: LatLng
   animation: number | null
 }
 
@@ -254,15 +256,17 @@ export function LocationMap({
           marker: leafletMarker,
           circle: null,
           shown: target,
+          target,
           animation: null,
         }
         managed.set(marker.id, entry)
       } else if (
-        entry.shown.lat !== target.lat ||
-        entry.shown.lng !== target.lng
+        entry.target.lat !== target.lat ||
+        entry.target.lng !== target.lng
       ) {
         if (entry.animation !== null) cancelAnimationFrame(entry.animation)
         entry.animation = null
+        entry.target = target
         if (marker.kind === 'courier' && !prefersReducedMotion()) {
           glide(entry, target)
         } else {
@@ -367,20 +371,20 @@ export function LocationMap({
   )
 }
 
-/** Moves a marker from where it is drawn to `target` over GLIDE_MS. */
+/**
+ * Moves a marker from where it is drawn to `target` over GLIDE_MS. `shown`
+ * is updated on every frame so a fix that lands mid-glide restarts from the
+ * drawn position rather than jumping back to the previous target.
+ */
 function glide(entry: ManagedMarker, target: LatLng): void {
   const from = entry.shown
   const started = performance.now()
   const step = (now: number) => {
     const t = easeOut((now - started) / GLIDE_MS)
-    const at = interpolate(from, target, t)
+    const at = t < 1 ? interpolate(from, target, t) : target
+    entry.shown = at
     entry.marker.setLatLng([at.lat, at.lng])
-    if (t < 1) {
-      entry.animation = requestAnimationFrame(step)
-    } else {
-      entry.shown = target
-      entry.animation = null
-    }
+    entry.animation = t < 1 ? requestAnimationFrame(step) : null
   }
   entry.animation = requestAnimationFrame(step)
 }

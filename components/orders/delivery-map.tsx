@@ -7,10 +7,11 @@ import {
   SearchIcon,
   StoreIcon,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { getCourierPosition } from '@/app/(protected)/orders/[id]/actions'
 import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import type { MapMarker } from '@/components/map/location-map'
+import { useNow } from '@/components/map/use-now'
 import {
   useCourierPosition,
   type CourierFix,
@@ -25,7 +26,7 @@ import {
   type TimedPoint,
 } from '@/lib/tracking/eta'
 import { courierTrackingView } from '@/lib/tracking/live-view'
-import { routeFromGeometry } from '@/lib/tracking/route-progress'
+import { routeFromGeometry, toGeometry } from '@/lib/tracking/route-progress'
 import { cn } from '@/lib/utils'
 import type { OrderStatus } from '@/types/app'
 
@@ -46,21 +47,6 @@ interface DeliveryMapProps {
 
 /** Fixes kept to tell "parked" from "moving"; a few minutes at the throttle. */
 const HISTORY_LIMIT = 60
-
-function toGeometry(points: LatLng[]): [number, number][] {
-  return points.map(({ lat, lng }) => [lng, lat] as [number, number])
-}
-
-/** A clock that ticks once a second while `enabled`. */
-function useNow(enabled: boolean): Date {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    if (!enabled) return
-    const interval = window.setInterval(() => setNow(new Date()), 1_000)
-    return () => window.clearInterval(interval)
-  }, [enabled])
-  return now
-}
 
 export function DeliveryMap({
   orderId,

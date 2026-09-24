@@ -72,11 +72,15 @@ export async function fetchCourierPosition(
   courierId: string | null | undefined,
 ): Promise<CourierPosition | null> {
   if (!courierId) return null
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('courier_locations')
     .select('lat, lng, heading, accuracy_m, updated_at')
     .eq('courier_id', courierId)
     .maybeSingle()
+  if (error) {
+    logger.error('courier.position.load_failed', { courierId }, error)
+    return null
+  }
   if (!data) return null
   return {
     lat: data.lat,
