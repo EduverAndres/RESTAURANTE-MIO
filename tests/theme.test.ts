@@ -68,7 +68,13 @@ describe('mergeTheme', () => {
     expect(merged.primary).toBe(DEFAULT_STORE_THEME.primary)
     expect(merged.fontDisplay).toBe(DEFAULT_STORE_THEME.fontDisplay)
     expect(merged.buttonStyle).toBe(DEFAULT_STORE_THEME.buttonStyle)
-    expect(merged.sectionOrder).toEqual(['menu', 'hero', 'featured', 'info'])
+    expect(merged.sectionOrder).toEqual([
+      'menu',
+      'hero',
+      'featured',
+      'reviews',
+      'info',
+    ])
     expect('extra' in merged).toBe(false)
   })
 
@@ -91,6 +97,7 @@ describe('mergeTheme', () => {
       'hero',
       'featured',
       'menu',
+      'reviews',
     ])
     expect(mergeTheme({ sectionOrder: [] }).sectionOrder).toEqual([
       ...DEFAULT_STORE_THEME.sectionOrder,
@@ -101,7 +108,7 @@ describe('mergeTheme', () => {
     expect(
       mergeTheme({ sectionOrder: ['menu', 'menu', 'hero', 42, 'menu', 'info'] })
         .sectionOrder,
-    ).toEqual(['menu', 'hero', 'info', 'featured'])
+    ).toEqual(['menu', 'hero', 'info', 'featured', 'reviews'])
   })
 
   it('always contains every core section exactly once', () => {
@@ -111,10 +118,17 @@ describe('mergeTheme', () => {
     )
   })
 
+  it('adds reviews to a stored theme that predates it as a core section', () => {
+    expect(
+      mergeTheme({ sectionOrder: ['hero', 'featured', 'menu', 'info'] })
+        .sectionOrder,
+    ).toEqual(['hero', 'featured', 'menu', 'info', 'reviews'])
+  })
+
   it('keeps opt-in sections that are not part of the default order', () => {
     expect(
       mergeTheme({ sectionOrder: ['story', 'menu'] }).sectionOrder,
-    ).toEqual(['story', 'menu', 'hero', 'featured', 'info'])
+    ).toEqual(['story', 'menu', 'hero', 'featured', 'reviews', 'info'])
   })
 
   it('produces output that passes storeThemeSchema for messy input', () => {
@@ -574,10 +588,31 @@ describe('store theme migration', () => {
     }
   })
 
-  it('keeps the stored default in sync with DEFAULT_STORE_THEME', () => {
+  /** The v2 default predates reviews becoming a core section. */
+  const V2_CORE_SECTIONS = ['hero', 'featured', 'menu', 'info']
+
+  it('keeps the v2 default in sync with DEFAULT_STORE_THEME', () => {
     for (const literal of literals) {
-      expect(JSON.parse(literal)).toEqual(DEFAULT_STORE_THEME)
+      expect(JSON.parse(literal)).toEqual({
+        ...DEFAULT_STORE_THEME,
+        sectionOrder: V2_CORE_SECTIONS,
+      })
     }
+  })
+
+  it('keeps the current column default in sync with DEFAULT_STORE_THEME', () => {
+    const latest = readFileSync(
+      join(
+        process.cwd(),
+        'supabase/migrations/20260923000100_reviews_core_section.sql',
+      ),
+      'utf8',
+    )
+    const defaults = [...latest.matchAll(/'(\{[\s\S]*?\})'::jsonb/g)].map(
+      (match) => match[1],
+    )
+    expect(defaults).toHaveLength(1)
+    expect(JSON.parse(defaults[0])).toEqual(DEFAULT_STORE_THEME)
   })
 
   it('merges every nested group explicitly', () => {

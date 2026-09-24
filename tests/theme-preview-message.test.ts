@@ -125,7 +125,9 @@ describe('structureSignature', () => {
       { menuLayout: 'list' as const },
       { categoryNav: 'tabs' as const },
       { showPrices: 'on-hover' as const },
-      { sectionOrder: ['menu', 'hero', 'featured', 'info'] as never },
+      {
+        sectionOrder: ['menu', 'hero', 'featured', 'reviews', 'info'] as never,
+      },
       { banner: { ...DEFAULT_STORE_THEME.banner, layout: 'split' as const } },
       {
         hero: { ...DEFAULT_STORE_THEME.hero, tagline: 'Nuevo' },

@@ -96,7 +96,7 @@ export type ThemeBannerLayout = (typeof THEME_BANNER_LAYOUTS)[number]
 
 /**
  * Every section a storefront can render. `DEFAULT_STORE_THEME.sectionOrder`
- * holds the four that are on by default; the rest are opt-in, so a merchant
+ * holds the five that are on by default; the rest are opt-in, so a merchant
  * adds them to the order explicitly instead of having them appear on upgrade.
  */
 export const THEME_SECTIONS = [
@@ -110,11 +110,16 @@ export const THEME_SECTIONS = [
 ] as const
 export type ThemeSection = (typeof THEME_SECTIONS)[number]
 
-/** The sections every storefront always has; the others are opt-in. */
+/**
+ * The sections every storefront always has; the others are opt-in. Reviews
+ * are core because they are the social proof customers write for the store,
+ * so no merchant should have to opt in to showing them.
+ */
 export const THEME_CORE_SECTIONS = [
   'hero',
   'featured',
   'menu',
+  'reviews',
   'info',
 ] as const satisfies readonly ThemeSection[]
 

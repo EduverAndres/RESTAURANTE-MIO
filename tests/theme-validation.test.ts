@@ -37,7 +37,7 @@ const LEGACY_THEME = {
   fontBody: 'Inter',
   banner: { imageUrl: null, overlayOpacity: 0.35, layout: 'full' },
   logoUrl: null,
-  sectionOrder: ['hero', 'featured', 'menu', 'info'],
+  sectionOrder: ['hero', 'featured', 'menu', 'reviews', 'info'],
   buttonStyle: 'pill',
 }
 
@@ -86,7 +86,7 @@ describe('storeThemeSchema', () => {
     expect(
       storeThemeSchema.safeParse({
         ...DEFAULT_STORE_THEME,
-        sectionOrder: ['menu', 'hero', 'info', 'featured'],
+        sectionOrder: ['menu', 'hero', 'info', 'reviews', 'featured'],
       }).success,
     ).toBe(true)
     expect(
@@ -98,7 +98,7 @@ describe('storeThemeSchema', () => {
     expect(
       storeThemeSchema.safeParse({
         ...DEFAULT_STORE_THEME,
-        sectionOrder: ['hero', 'hero', 'menu', 'info'],
+        sectionOrder: ['hero', 'hero', 'featured', 'menu', 'reviews', 'info'],
       }).success,
     ).toBe(false)
   })
