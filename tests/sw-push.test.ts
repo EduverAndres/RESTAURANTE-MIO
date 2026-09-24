@@ -89,6 +89,21 @@ describe('service worker push', () => {
     )
   })
 
+  it('alerts again when a same-tag notification is replaced', async () => {
+    const worker = await push([], ORDER_PUSH)
+    // Every status change for one order shares its tag, so without renotify
+    // the second push would replace the first silently.
+    expect(worker.showNotification).toHaveBeenCalledWith(
+      'Pedido listo',
+      expect.objectContaining({
+        tag: 'order-abc',
+        renotify: true,
+        silent: false,
+        vibrate: [80, 40, 80],
+      }),
+    )
+  })
+
   it('shows the notification when the open window is on another page', async () => {
     const worker = await push(
       [client('https://app.test/account', 'visible')],

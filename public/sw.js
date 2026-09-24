@@ -97,12 +97,20 @@ self.addEventListener('push', (event) => {
           }
           return undefined
         }
+        // Every status change for one order shares its tag, so the newer
+        // notification replaces the older one. Without `renotify` that
+        // replacement is silent and the phone never buzzes past the first
+        // push. The vibration is one short double-tap, not an alarm; Web
+        // Push cannot carry a custom sound, so the OS default plays.
         return self.registration.showNotification(title, {
           body,
           data: { url },
           icon: '/icons/icon-192.png',
           badge: '/icons/badge-96.png',
           tag,
+          renotify: true,
+          silent: false,
+          vibrate: [80, 40, 80],
         })
       }),
   )
