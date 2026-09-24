@@ -6,7 +6,7 @@ import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import type { MapMarker } from '@/components/map/location-map'
 import { useRealtimeChannel } from '@/components/providers/realtime-provider'
 import {
-  BOGOTA_CENTER,
+  DEFAULT_MAP_CENTER,
   formatDistance,
   haversineKm,
   type LatLng,
@@ -146,7 +146,7 @@ export function DeliveryMap({
 
       {points.length > 0 ? (
         <LocationMapLazy
-          center={points[0] ?? BOGOTA_CENTER}
+          center={points[0] ?? DEFAULT_MAP_CENTER}
           markers={markers}
           path={courierId ? path : []}
           fitTo={points}

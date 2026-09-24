@@ -3,7 +3,7 @@
 import { RouteIcon } from 'lucide-react'
 import { LocationMapLazy } from '@/components/map/location-map-lazy'
 import type { MapMarker } from '@/components/map/location-map'
-import { BOGOTA_CENTER, formatDistance, type LatLng } from '@/lib/geo'
+import { DEFAULT_MAP_CENTER, formatDistance, type LatLng } from '@/lib/geo'
 
 interface CourierOrderMapProps {
   store: LatLng | null
@@ -49,7 +49,7 @@ export function CourierOrderMap({
   return (
     <div className="space-y-2">
       <LocationMapLazy
-        center={points[0] ?? BOGOTA_CENTER}
+        center={points[0] ?? DEFAULT_MAP_CENTER}
         markers={markers}
         path={path}
         fitTo={points}

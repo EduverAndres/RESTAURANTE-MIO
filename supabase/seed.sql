@@ -106,7 +106,7 @@ values
       "banner": { "imageUrl": "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=1200&q=80", "overlayOpacity": 0.55, "layout": "full" },
       "logoUrl": null, "sectionOrder": ["hero", "featured", "menu", "info"], "buttonStyle": "square"
     }'::jsonb,
-    'Carrera 6 # 119-40, Usaquén, Bogotá', 4.6980, -74.0410, 6, 30000, 6000, 35,
+    'Carrera 53 # 79-120, Alto Prado, Barranquilla', 11.0109, -74.8113, 6, 30000, 6000, 35,
     8, true,
     '{"mon":{"open":"12:00","close":"22:00"},"tue":{"open":"12:00","close":"22:00"},"wed":{"open":"12:00","close":"22:00"},"thu":{"open":"12:00","close":"23:00"},"fri":{"open":"12:00","close":"23:30"},"sat":{"open":"12:00","close":"23:30"},"sun":{"open":"12:00","close":"20:00"}}'::jsonb,
     '+573100000011', 'active'
@@ -126,7 +126,7 @@ values
       "banner": { "imageUrl": "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=1200&q=80", "overlayOpacity": 0.3, "layout": "full" },
       "logoUrl": null, "sectionOrder": ["hero", "menu", "featured", "info"], "buttonStyle": "rounded"
     }'::jsonb,
-    'Calle 57 # 9-25, Chapinero, Bogotá', 4.6486, -74.0632, 5, 12000, 4000, 15,
+    'Calle 72 # 54-35, El Prado, Barranquilla', 10.9978, -74.7969, 5, 12000, 4000, 15,
     6, true,
     '{"mon":{"open":"07:00","close":"21:00"},"tue":{"open":"07:00","close":"21:00"},"wed":{"open":"07:00","close":"21:00"},"thu":{"open":"07:00","close":"21:00"},"fri":{"open":"07:00","close":"22:00"},"sat":{"open":"08:00","close":"22:00"},"sun":{"open":"08:00","close":"18:00"}}'::jsonb,
     '+573100000012', 'active'
@@ -146,7 +146,7 @@ values
       "banner": { "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80", "overlayOpacity": 0.25, "layout": "full" },
       "logoUrl": null, "sectionOrder": ["hero", "featured", "menu", "info"], "buttonStyle": "pill"
     }'::jsonb,
-    'Carrera 11 # 93-52, Chicó, Bogotá', 4.6700, -74.0550, 5, 20000, 5000, 20,
+    'Carrera 51B # 84-40, Villa Country, Barranquilla', 11.0059, -74.8052, 5, 20000, 5000, 20,
     6, true,
     '{"mon":{"open":"08:00","close":"20:00"},"tue":{"open":"08:00","close":"20:00"},"wed":{"open":"08:00","close":"20:00"},"thu":{"open":"08:00","close":"20:00"},"fri":{"open":"08:00","close":"20:00"},"sat":{"open":"09:00","close":"17:00"},"sun":{"open":"09:00","close":"15:00"}}'::jsonb,
     '+573100000013', 'active'
@@ -160,8 +160,8 @@ values
     'Japonesa',
     null,
     'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1200&q=80',
-    '{"mode":"dark","logoUrl":null,"primary":"#c62f2a","onPrimary":"#ffffff","secondary":"#e8735f","accent":"#d9a441","background":"#121110","surface":"#1c1a18","text":"#f2ebe1","gradient":{"enabled":true,"from":"#c62f2a","to":"#d9a441","angle":150},"pattern":"noise","patternOpacity":0.07,"fontDisplay":"Playfair Display","fontBody":"DM Sans","headingWeight":600,"headingCase":"uppercase","letterSpacing":"wide","radius":6,"buttonStyle":"square","density":"comfortable","cardStyle":"glass","imageRatio":"4:3","imageShape":"squircle","banner":{"imageUrl":"https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1600&q=80","overlayOpacity":0.55,"layout":"editorial"},"hero":{"align":"left","showLogo":false,"logoSize":"md","tagline":"Rolls, nigiri y ramen hasta la madrugada.","showRating":true,"showEta":true,"showSchedule":true,"ctaLabel":"Ver la carta","videoUrl":null},"menuLayout":"masonry","categoryNav":"sidebar","productHover":"reveal","showPrices":"always","badges":{"newDays":0,"popularEnabled":true,"style":"outline"},"sectionOrder":["hero","featured","menu","story","info"],"featured":{"title":"Los de la casa","productIds":["40000000-0000-4000-8000-000000000042","40000000-0000-4000-8000-000000000041","40000000-0000-4000-8000-000000000044"],"layout":"bento"},"story":{"enabled":true,"title":"Abrimos cuando la ciudad cierra","text":"Empezamos como una barra de seis puestos para los que salían tarde del trabajo y no querían comer cualquier cosa. Seguimos cortando el pescado cada tarde, haciendo el caldo del ramen desde la mañana y cerrando cuando se va el último. Si llegás a la una, todavía hay cocina.","imageUrl":"https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1200&q=80"},"social":{"instagram":null,"tiktok":null,"facebook":null,"whatsapp":true},"footer":{"text":"Cocina abierta hasta las 2 a. m. Reservas y pedidos grandes por WhatsApp.","showMap":true,"showSchedule":true},"motion":"subtle","customCss":null}'::jsonb,
-    'Calle 82 # 12-15, Zona T, Bogotá', 4.6640, -74.0530, 7, 25000, 7000, 30,
+    '{"mode":"dark","logoUrl":null,"primary":"#c62f2a","onPrimary":"#ffffff","secondary":"#e8735f","accent":"#d9a441","background":"#121110","surface":"#1c1a18","text":"#f2ebe1","gradient":{"enabled":true,"from":"#c62f2a","to":"#d9a441","angle":150},"pattern":"noise","patternOpacity":0.07,"fontDisplay":"Playfair Display","fontBody":"DM Sans","headingWeight":600,"headingCase":"uppercase","letterSpacing":"wide","radius":6,"buttonStyle":"square","density":"comfortable","cardStyle":"glass","imageRatio":"4:3","imageShape":"squircle","banner":{"imageUrl":"https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1600&q=80","overlayOpacity":0.55,"layout":"editorial"},"hero":{"align":"left","showLogo":false,"logoSize":"md","tagline":"Rolls, nigiri y ramen hasta la madrugada.","showRating":true,"showEta":true,"showSchedule":true,"ctaLabel":"Ver la carta","videoUrl":null},"menuLayout":"grid","categoryNav":"sidebar","productHover":"reveal","showPrices":"always","badges":{"newDays":0,"popularEnabled":true,"style":"outline"},"sectionOrder":["hero","featured","menu","story","info"],"featured":{"title":"Los de la casa","productIds":["40000000-0000-4000-8000-000000000042","40000000-0000-4000-8000-000000000041","40000000-0000-4000-8000-000000000044"],"layout":"bento"},"story":{"enabled":true,"title":"Abrimos cuando la ciudad cierra","text":"Empezamos como una barra de seis puestos para los que salían tarde del trabajo y no querían comer cualquier cosa. Seguimos cortando el pescado cada tarde, haciendo el caldo del ramen desde la mañana y cerrando cuando se va el último. Si llegás a la una, todavía hay cocina.","imageUrl":"https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1200&q=80"},"social":{"instagram":null,"tiktok":null,"facebook":null,"whatsapp":true},"footer":{"text":"Cocina abierta hasta las 2 a. m. Reservas y pedidos grandes por WhatsApp.","showMap":true,"showSchedule":true},"motion":"subtle","customCss":null}'::jsonb,
+    'Carrera 55 # 96-85, Riomar, Barranquilla', 11.0189, -74.8221, 7, 25000, 7000, 30,
     7, true,
     '{"mon":{"open":"17:00","close":"02:00"},"tue":{"open":"17:00","close":"02:00"},"wed":{"open":"17:00","close":"02:00"},"thu":{"open":"17:00","close":"03:00"},"fri":{"open":"17:00","close":"04:00"},"sat":{"open":"17:00","close":"04:00"},"sun":{"open":"17:00","close":"01:00"}}'::jsonb,
     '+573100000014', 'active'
@@ -181,7 +181,7 @@ values
       "banner": { "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1200&q=80", "overlayOpacity": 0.4, "layout": "full" },
       "logoUrl": null, "sectionOrder": ["hero", "featured", "menu", "info"], "buttonStyle": "rounded"
     }'::jsonb,
-    'Calle 140 # 12-30, Cedritos, Bogotá', 4.7100, -74.0350, 6, 25000, 5500, 25,
+    'Calle 70 # 52-18, Bellavista, Barranquilla', 11.0014, -74.7950, 6, 25000, 5500, 25,
     6, true,
     '{"mon":{"open":"12:00","close":"22:00"},"tue":{"open":"12:00","close":"22:00"},"wed":{"open":"12:00","close":"22:00"},"thu":{"open":"12:00","close":"22:00"},"fri":{"open":"12:00","close":"23:00"},"sat":{"open":"12:00","close":"23:00"},"sun":{"open":"12:00","close":"21:00"}}'::jsonb,
     '+573100000015', 'active'
@@ -201,7 +201,7 @@ values
       "banner": { "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80", "overlayOpacity": 0.35, "layout": "full" },
       "logoUrl": null, "sectionOrder": ["hero", "menu", "info", "featured"], "buttonStyle": "pill"
     }'::jsonb,
-    'Carrera 24 # 40-12, Teusaquillo, Bogotá', 4.6560, -74.0980, 4, 10000, 4500, 15,
+    'Carrera 43 # 38-20, Centro, Barranquilla', 10.9796, -74.7787, 4, 10000, 4500, 15,
     6, true,
     '{"mon":{"open":"06:30","close":"19:00"},"tue":{"open":"06:30","close":"19:00"},"wed":{"open":"06:30","close":"19:00"},"thu":{"open":"06:30","close":"19:00"},"fri":{"open":"06:30","close":"20:00"},"sat":{"open":"07:00","close":"20:00"},"sun":{"open":"07:00","close":"16:00"}}'::jsonb,
     '+573100000016', 'active'
@@ -388,12 +388,12 @@ on conflict (id) do nothing;
 -- ---------------------------------------------------------------------------
 insert into public.addresses (id, user_id, label, line1, line2, lat, lng, is_default)
 values
-  ('70000000-0000-4000-8000-000000000211', '10000000-0000-4000-8000-000000000021', 'Casa', 'Calle 93 # 13-24', 'Apto 501', 4.6764, -74.0483, true),
-  ('70000000-0000-4000-8000-000000000212', '10000000-0000-4000-8000-000000000021', 'Oficina', 'Carrera 7 # 71-52', 'Torre B, piso 9', 4.6538, -74.0567, false),
-  ('70000000-0000-4000-8000-000000000221', '10000000-0000-4000-8000-000000000022', 'Casa', 'Carrera 15 # 106-30', 'Casa 4', 4.6935, -74.0435, true),
-  ('70000000-0000-4000-8000-000000000222', '10000000-0000-4000-8000-000000000022', 'Universidad', 'Calle 45 # 26-85', 'Portería principal', 4.6320, -74.0740, false),
-  ('70000000-0000-4000-8000-000000000231', '10000000-0000-4000-8000-000000000023', 'Apartamento', 'Calle 140 # 11-58', 'Apto 302', 4.7190, -74.0340, true),
-  ('70000000-0000-4000-8000-000000000232', '10000000-0000-4000-8000-000000000023', 'Trabajo', 'Calle 26 # 69-76', 'Recepción', 4.6580, -74.1050, false)
+  ('70000000-0000-4000-8000-000000000211', '10000000-0000-4000-8000-000000000021', 'Casa', 'Carrera 52 # 76-40', 'Apto 501', 11.0092, -74.8078, true),
+  ('70000000-0000-4000-8000-000000000212', '10000000-0000-4000-8000-000000000021', 'Oficina', 'Calle 77 # 59-35', 'Torre B, piso 9', 11.0035, -74.8025, false),
+  ('70000000-0000-4000-8000-000000000221', '10000000-0000-4000-8000-000000000022', 'Casa', 'Carrera 57 # 99-14', 'Casa 4', 11.0172, -74.8241, true),
+  ('70000000-0000-4000-8000-000000000222', '10000000-0000-4000-8000-000000000022', 'Universidad', 'Carrera 42 # 51-60', 'Portería principal', 10.9883, -74.7902, false),
+  ('70000000-0000-4000-8000-000000000231', '10000000-0000-4000-8000-000000000023', 'Apartamento', 'Calle 98 # 52-115', 'Apto 302', 11.0195, -74.8340, true),
+  ('70000000-0000-4000-8000-000000000232', '10000000-0000-4000-8000-000000000023', 'Trabajo', 'Carrera 44 # 34-22', 'Recepción', 10.9788, -74.7800, false)
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -572,8 +572,8 @@ on conflict (user_id, store_id) do nothing;
 -- ---------------------------------------------------------------------------
 insert into public.courier_locations (courier_id, lat, lng, heading)
 values
-  ('10000000-0000-4000-8000-000000000031', 4.6800, -74.0450, 120),
-  ('10000000-0000-4000-8000-000000000032', 4.6600, -74.0600, 45)
+  ('10000000-0000-4000-8000-000000000031', 11.0060, -74.8050, 120),
+  ('10000000-0000-4000-8000-000000000032', 10.9985, -74.7975, 45)
 on conflict (courier_id) do nothing;
 
 -- ---------------------------------------------------------------------------
