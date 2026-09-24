@@ -1,15 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import {
-  BOGOTA_CENTER,
+  DEFAULT_MAP_CENTER,
   estimateEtaMinutes,
   formatDistance,
   haversineKm,
   isWithinRadius,
 } from '@/lib/geo'
 
+describe('DEFAULT_MAP_CENTER', () => {
+  // The pilot is Barranquilla. A visitor who has not shared a location must
+  // see a map centred there, not on Bogotá -- and the constant must say so
+  // in its name rather than hide a Barranquilla point under BOGOTA_CENTER.
+  it('is Barranquilla', () => {
+    expect(DEFAULT_MAP_CENTER.lat).toBeCloseTo(11.01, 1)
+    expect(DEFAULT_MAP_CENTER.lng).toBeCloseTo(-74.82, 1)
+  })
+})
+
 describe('haversineKm', () => {
   it('returns 0 for the same point', () => {
-    expect(haversineKm(BOGOTA_CENTER, BOGOTA_CENTER)).toBe(0)
+    expect(haversineKm(DEFAULT_MAP_CENTER, DEFAULT_MAP_CENTER)).toBe(0)
   })
 
   it('measures the distance between two Bogotá points within tolerance', () => {
