@@ -114,6 +114,11 @@ export type ThemeSection = (typeof THEME_SECTIONS)[number]
  * The sections every storefront always has; the others are opt-in. Reviews
  * are core because they are the social proof customers write for the store,
  * so no merchant should have to opt in to showing them.
+ *
+ * The order here is only the starting order for NEW stores (`reviews` after
+ * `menu`). A store saved before a section became core keeps its own order and
+ * gets the missing section appended at the end, so an existing store shows
+ * `reviews` after `info` until the merchant reorders it.
  */
 export const THEME_CORE_SECTIONS = [
   'hero',

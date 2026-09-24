@@ -1,12 +1,14 @@
 -- Reviews become a core storefront section.
 --
--- `THEME_CORE_SECTIONS` now lists `reviews` after `menu`, so every
--- storefront shows the opinions its customers wrote instead of hiding them
--- behind an opt-in nobody switched on. `lib/theme.ts#normalizeTheme` appends
--- the missing core section at read time and the editor writes the completed
--- order back on the next save, so existing rows need no backfill; this
--- migration only keeps the column default in step with `DEFAULT_STORE_THEME`
--- so new stores start from the complete order.
+-- `THEME_CORE_SECTIONS` now includes `reviews`, so every storefront shows
+-- the opinions its customers wrote instead of hiding them behind an opt-in
+-- nobody switched on. Existing stores are not backfilled: `lib/theme.ts`
+-- (`normalizeTheme`) appends the missing core section at the END of their
+-- saved order at read time, so they get `reviews` after `info` until the
+-- merchant reorders it, and the editor writes the completed order back on
+-- the next save. Only new stores start with `reviews` after `menu`, which is
+-- what this migration does by keeping the column default in step with
+-- `DEFAULT_STORE_THEME`.
 
 alter table public.stores
   alter column theme set default '{

@@ -31,7 +31,7 @@ const SECTION_HINTS: Partial<Record<ThemeSection, string>> = {
   featured: 'Se muestra solo si eliges productos destacados.',
   story: 'Se muestra solo si escribes el texto de tu historia.',
   social: 'Se muestra solo si agregas al menos una red.',
-  reviews: 'Se muestra solo si tu tienda tiene reseñas.',
+  reviews: 'Siempre activa; aparece apenas tu tienda tenga reseñas.',
 }
 
 function move<T>(list: readonly T[], from: number, to: number): T[] {
