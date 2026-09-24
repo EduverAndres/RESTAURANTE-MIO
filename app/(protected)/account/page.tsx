@@ -5,6 +5,7 @@ import { AddressList } from './address-list'
 import { ProfileForm } from './profile-form'
 import { initialsOf } from '@/lib/format'
 import { PushToggle } from '@/components/notifications/push-toggle'
+import { SoundToggle } from '@/components/notifications/sound-toggle'
 import { AccountOrdersLive } from '@/components/orders/account-orders-live'
 import { OrderStatusBadge } from '@/components/orders/order-status-badge'
 import { StoreCard } from '@/components/store/store-card'
@@ -112,16 +113,15 @@ export default async function AccountPage() {
 
           <AddressList addresses={addresses ?? []} />
 
-          {pushConfigured() ? (
-            <div className="space-y-2">
-              <h2 className="font-display text-2xl font-semibold">
-                Notificaciones
-              </h2>
-              <div className="rounded-card border-border bg-card shadow-soft border p-4">
-                <PushToggle enabled />
-              </div>
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl font-semibold">
+              Notificaciones
+            </h2>
+            <div className="rounded-card border-border bg-card shadow-soft space-y-3 border p-4">
+              {pushConfigured() ? <PushToggle enabled /> : null}
+              <SoundToggle />
             </div>
-          ) : null}
+          </div>
 
           <div className="space-y-2">
             <h2 className="font-display text-2xl font-semibold">

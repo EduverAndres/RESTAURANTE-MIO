@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import { updateOrderStatus } from '@/app/dashboard/actions'
 import { BoardColumn } from '@/components/dashboard/orders/board-column'
 import { HistorySection } from '@/components/dashboard/orders/history-section'
-import { playNewOrderChime } from '@/components/dashboard/orders/new-order-chime'
 import {
   useRealtimeChannel,
   useRealtimeRefresh,
@@ -18,6 +17,7 @@ import {
   type BoardOrder,
 } from '@/lib/orders/kanban'
 import { ORDER_STATUS_LABELS } from '@/lib/orders/status'
+import { playSoundEvent } from '@/lib/sound/player'
 import type { Order, OrderStatus } from '@/types/app'
 
 interface OrderBoardProps {
@@ -79,7 +79,7 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
       if (payload.eventType === 'INSERT') {
         const inserted = payload.new as unknown as Order
         if (inserted.status === 'pending') {
-          playNewOrderChime()
+          playSoundEvent('new_order')
           toast(`Nuevo pedido #${inserted.short_code}`, {
             description: 'Acéptalo desde la columna Nuevos.',
           })
