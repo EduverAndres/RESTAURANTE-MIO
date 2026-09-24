@@ -42,6 +42,22 @@ export function formatEta(
   return etaFormatter.format(date)
 }
 
+// Customer-facing pages show a 12-hour clock ("10:31 p. m."); the courier
+// pages keep the 24-hour one above. Same guards as formatEta.
+const clockFormatter = new Intl.DateTimeFormat('es-CO', {
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+export function formatClock(
+  value: Date | string | null | undefined,
+): string | null {
+  if (value === null || value === undefined) return null
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return clockFormatter.format(date)
+}
+
 export interface TimedPosition extends LatLng {
   /** Epoch milliseconds when the fix was taken. */
   at: number

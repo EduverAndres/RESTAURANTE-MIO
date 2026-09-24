@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   courierAssignedMessage,
+  deliveryCodeMessage,
   newOrderMessage,
   orderStatusMessage,
 } from '@/lib/push/messages'
@@ -61,5 +62,26 @@ describe('courierAssignedMessage', () => {
       url: `/orders/${ORDER_ID}`,
       tag: `order-${ORDER_ID}`,
     })
+  })
+})
+
+describe('deliveryCodeMessage', () => {
+  it('tells the customer a code is waiting on the order page without leaking it', () => {
+    const message = deliveryCodeMessage(ORDER_ID)
+    expect(message).toEqual({
+      title: 'Tu código de entrega',
+      body: 'Muéstralo al domiciliario cuando llegue.',
+      url: `/orders/${ORDER_ID}`,
+      tag: `order-${ORDER_ID}-code`,
+    })
+    // The builder never even receives the code, so the visible text cannot
+    // carry it; pin that so a future "helpful" body does not put it back.
+    expect(`${message.title} ${message.body}`).not.toMatch(/\d/)
+  })
+
+  it('uses its own tag so it does not replace the "en camino" notification', () => {
+    expect(deliveryCodeMessage(ORDER_ID).tag).not.toBe(
+      orderStatusMessage('picked_up', 'A1B2', ORDER_ID)?.tag,
+    )
   })
 })

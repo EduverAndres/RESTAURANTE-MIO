@@ -13,6 +13,7 @@ import {
   type RefundFormInput,
 } from '@/lib/validations/refunds'
 import type { OrderStatus } from '@/types/app'
+import type { Database } from '@/types/database'
 
 export type UpdateOrderStatusResult =
   { ok: true } | { ok: false; error: string }
@@ -54,9 +55,17 @@ export async function updateOrderStatus(
     }
   }
 
+  // The merchant is trusted to close a delivery without the customer code
+  // (a lost phone, a courier who left); the order records that it was them.
+  const patch: Database['public']['Tables']['orders']['Update'] = { status: to }
+  if (to === 'delivered' && order.type === 'delivery') {
+    patch.delivery_confirmed_by = 'merchant'
+    patch.delivery_confirmed_at = new Date().toISOString()
+  }
+
   const { data, error } = await supabase
     .from('orders')
-    .update({ status: to })
+    .update(patch)
     .eq('id', orderId)
     .eq('status', order.status)
     .select('id')

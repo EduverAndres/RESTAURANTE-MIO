@@ -61,6 +61,8 @@ export async function fetchProfileName(
 
 export interface CourierPosition extends LatLng {
   heading: number | null
+  /** Reported GPS accuracy in metres, when the device said. */
+  accuracyM: number | null
   updatedAt: string
 }
 
@@ -70,16 +72,21 @@ export async function fetchCourierPosition(
   courierId: string | null | undefined,
 ): Promise<CourierPosition | null> {
   if (!courierId) return null
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('courier_locations')
-    .select('lat, lng, heading, updated_at')
+    .select('lat, lng, heading, accuracy_m, updated_at')
     .eq('courier_id', courierId)
     .maybeSingle()
+  if (error) {
+    logger.error('courier.position.load_failed', { courierId }, error)
+    return null
+  }
   if (!data) return null
   return {
     lat: data.lat,
     lng: data.lng,
     heading: data.heading,
+    accuracyM: data.accuracy_m === null ? null : Number(data.accuracy_m),
     updatedAt: data.updated_at,
   }
 }

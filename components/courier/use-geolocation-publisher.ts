@@ -85,13 +85,26 @@ export function useGeolocationPublisher(
               : null
         lastRef.current = next
 
-        void publishLocation({ lat: next.lat, lng: next.lng, heading }).then(
-          (result) => {
+        // Accuracy travels with the fix so the customer's map can draw how
+        // much to trust it; the schema drops anything non-finite.
+        void publishLocation({
+          lat: next.lat,
+          lng: next.lng,
+          heading,
+          accuracyM: position.coords.accuracy,
+        })
+          .then((result) => {
             if (cancelled || result.ok || warnedRef.current) return
             warnedRef.current = true
             toast.error(result.error)
-          },
-        )
+          })
+          .catch(() => {
+            // A dropped connection rejects the action outright; the next
+            // fix retries, so it is worth one warning, not one per ping.
+            if (cancelled || warnedRef.current) return
+            warnedRef.current = true
+            toast.error('No pudimos compartir tu ubicación.')
+          })
       },
       (error) => {
         if (cancelled) return

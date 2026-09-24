@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import { CancelOrderButton } from './cancel-order-button'
 import { OrderTimeline } from './order-tracker'
 import { ReviewForm } from './review-form'
+import { DeliveryCodePanel } from '@/components/orders/delivery-code-panel'
 import { DeliveryMap } from '@/components/orders/delivery-map'
 import { OrderConfirmation } from '@/components/orders/order-confirmation'
 import { OrderReceipt } from '@/components/orders/order-receipt'
@@ -19,9 +20,14 @@ import {
 } from '@/components/orders/order-status-badge'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
-import { fetchCourierPosition, fetchProfileName } from '@/lib/courier/server'
+import {
+  fetchCourierPosition,
+  fetchProfileName,
+  type CourierPosition,
+} from '@/lib/courier/server'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { latLngOf, type LatLng } from '@/lib/geo'
+import { logger } from '@/lib/log/logger'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
 import { buildCustomerInquiry, buildWhatsAppUrl } from '@/lib/orders/whatsapp'
 import { reconcileWompiTransaction } from '@/lib/payments/wompi/reconcile'
@@ -38,8 +44,25 @@ interface DeliveryTracking {
   courierName: string | null
   store: LatLng | null
   customer: LatLng | null
-  courier: LatLng | null
+  courier: CourierPosition | null
   path: [number, number][]
+  /** Handover code, only while the courier is on the way. */
+  deliveryCode: string | null
+}
+
+/**
+ * The customer's own handover code. Read under RLS: the policy on
+ * delivery_codes resolves to exactly this customer's orders, and nobody
+ * else on the platform has a select policy on the table.
+ */
+async function fetchDeliveryCode(orderId: string): Promise<string | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('delivery_codes')
+    .select('code')
+    .eq('order_id', orderId)
+    .maybeSingle()
+  return data?.code ?? null
 }
 
 /**
@@ -53,21 +76,22 @@ async function loadDeliveryTracking(
     return null
   }
   const supabase = await createClient()
-  const [courierName, position] = await Promise.all([
+  const enRoute = order.status === 'picked_up'
+  const [courierName, courier, deliveryCode] = await Promise.all([
     fetchProfileName(order.courier_id),
     fetchCourierPosition(supabase, order.courier_id),
+    enRoute ? fetchDeliveryCode(order.id) : Promise.resolve(null),
   ])
   const store = latLngOf(order.stores)
   const customer = latLngOf(order.addresses)
-  const courier = position ? { lat: position.lat, lng: position.lng } : null
-  const origin = order.status === 'picked_up' && courier ? courier : store
+  const origin = enRoute && courier ? courier : store
 
   let path: [number, number][] = []
   if (order.courier_id && origin && customer) {
     try {
       path = (await estimateRoute(origin, customer)).geometry
     } catch (error) {
-      console.error('Failed to route customer tracking', error)
+      logger.error('orders.tracking.route_failed', { orderId: order.id }, error)
     }
   }
   return {
@@ -77,6 +101,7 @@ async function loadDeliveryTracking(
     customer,
     courier,
     path,
+    deliveryCode,
   }
 }
 
@@ -201,12 +226,22 @@ export default async function OrderPage({
 
           {tracking ? (
             <DeliveryMap
+              orderId={order.id}
+              status={order.status}
               courierId={tracking.courierId}
               courierName={tracking.courierName}
               store={tracking.store}
               customer={tracking.customer}
               initialCourier={tracking.courier}
               path={tracking.path}
+              estimatedAt={order.estimated_at}
+            />
+          ) : null}
+
+          {tracking?.deliveryCode && order.status === 'picked_up' ? (
+            <DeliveryCodePanel
+              orderId={order.id}
+              code={tracking.deliveryCode}
             />
           ) : null}
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   compassHeading,
   etaFromRoute,
+  formatClock,
   formatEta,
   shouldPublishPosition,
 } from '@/lib/courier/eta'
@@ -89,5 +90,18 @@ describe('compassHeading', () => {
 
   it('returns null when the points coincide', () => {
     expect(compassHeading(origin, origin)).toBeNull()
+  })
+})
+
+describe('formatClock', () => {
+  it('uses the 12-hour clock the customer pages already show', () => {
+    const text = formatClock(new Date(2026, 0, 1, 22, 34))
+    expect(text).toMatch(/10:34/)
+    expect(text).toMatch(/p\.\s?m\./)
+  })
+
+  it('returns null for missing or invalid values', () => {
+    expect(formatClock(null)).toBeNull()
+    expect(formatClock('not a date')).toBeNull()
   })
 })

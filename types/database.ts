@@ -58,6 +58,7 @@ export type Database = {
       }
       courier_locations: {
         Row: {
+          accuracy_m: number | null
           courier_id: string
           heading: number | null
           lat: number
@@ -65,6 +66,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accuracy_m?: number | null
           courier_id: string
           heading?: number | null
           lat: number
@@ -72,6 +74,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accuracy_m?: number | null
           courier_id?: string
           heading?: number | null
           lat?: number
@@ -84,6 +87,38 @@ export type Database = {
             columns: ["courier_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_codes: {
+        Row: {
+          attempts: number
+          code: string
+          created_at: string
+          locked_at: string | null
+          order_id: string
+        }
+        Insert: {
+          attempts?: number
+          code: string
+          created_at?: string
+          locked_at?: string | null
+          order_id: string
+        }
+        Update: {
+          attempts?: number
+          code?: string
+          created_at?: string
+          locked_at?: string | null
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_codes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -222,6 +257,8 @@ export type Database = {
           created_at: string
           customer_id: string | null
           delivered_at: string | null
+          delivery_confirmed_at: string | null
+          delivery_confirmed_by: string | null
           delivery_fee: number
           estimated_at: string | null
           id: string
@@ -251,6 +288,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           delivered_at?: string | null
+          delivery_confirmed_at?: string | null
+          delivery_confirmed_by?: string | null
           delivery_fee?: number
           estimated_at?: string | null
           id?: string
@@ -280,6 +319,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           delivered_at?: string | null
+          delivery_confirmed_at?: string | null
+          delivery_confirmed_by?: string | null
           delivery_fee?: number
           estimated_at?: string | null
           id?: string
