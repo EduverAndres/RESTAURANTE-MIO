@@ -5,6 +5,7 @@ import {
   pushConfiguredFrom,
   sentryConfiguredFrom,
   wompiConfiguredFrom,
+  mercadopagoConfiguredFrom,
   type ServerEnv,
 } from '@/lib/env.server-schema'
 
@@ -18,6 +19,9 @@ const parsed = parseServerEnv({
   WOMPI_PRIVATE_KEY: process.env.WOMPI_PRIVATE_KEY,
   WOMPI_EVENTS_SECRET: process.env.WOMPI_EVENTS_SECRET,
   WOMPI_INTEGRITY_SECRET: process.env.WOMPI_INTEGRITY_SECRET,
+  MERCADOPAGO_ACCESS_TOKEN: process.env.MERCADOPAGO_ACCESS_TOKEN,
+  MERCADOPAGO_PUBLIC_KEY: process.env.MERCADOPAGO_PUBLIC_KEY,
+  MERCADOPAGO_WEBHOOK_SECRET: process.env.MERCADOPAGO_WEBHOOK_SECRET,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   VAPID_SUBJECT: process.env.VAPID_SUBJECT,
@@ -47,4 +51,9 @@ export function pushConfigured(): boolean {
 /** Whether Sentry has a DSN to report errors to. */
 export function sentryConfigured(): boolean {
   return sentryConfiguredFrom(serverEnv)
+}
+
+/** Whether Mercado Pago has every key it needs to create and verify payments. */
+export function mercadopagoConfigured(): boolean {
+  return mercadopagoConfiguredFrom(serverEnv)
 }

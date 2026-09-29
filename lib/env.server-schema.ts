@@ -12,6 +12,9 @@ export const serverEnvSchema = z.object({
   WOMPI_PRIVATE_KEY: z.string().startsWith('prv_').optional(),
   WOMPI_EVENTS_SECRET: z.string().min(1).optional(),
   WOMPI_INTEGRITY_SECRET: z.string().min(1).optional(),
+  MERCADOPAGO_ACCESS_TOKEN: z.string().min(1).optional(),
+  MERCADOPAGO_PUBLIC_KEY: z.string().min(1).optional(),
+  MERCADOPAGO_WEBHOOK_SECRET: z.string().min(1).optional(),
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().startsWith('mailto:').optional(),
@@ -75,4 +78,13 @@ export function pushConfiguredFrom(source: ServerEnvSource): boolean {
  */
 export function sentryConfiguredFrom(source: ServerEnvSource): boolean {
   return Boolean(source.SENTRY_DSN)
+}
+
+/** True once every key Mercado Pago needs to create and verify payments is set. */
+export function mercadopagoConfiguredFrom(source: ServerEnvSource): boolean {
+  return Boolean(
+    source.MERCADOPAGO_ACCESS_TOKEN &&
+      source.MERCADOPAGO_PUBLIC_KEY &&
+      source.MERCADOPAGO_WEBHOOK_SECRET,
+  )
 }
