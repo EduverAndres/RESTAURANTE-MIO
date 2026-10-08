@@ -138,7 +138,7 @@ notifications configured at all).
 | `OSRM_BASE_URL`                        | server           | no (defaults to the public OSRM demo server)    | Base URL of an OSRM instance for delivery routing/ETA.                                                                                                 |
 | `ROUTING_PROVIDER`                     | server           | no (defaults to `osrm`)                         | `osrm`, `ors` or `haversine`; falls back to `haversine` automatically on failure.                                                                      |
 | `ORS_API_KEY`                          | server           | no (only used when `ROUTING_PROVIDER=ors`)      | OpenRouteService API key.                                                                                                                              |
-| `TZ`                                   | server           | no, but effectively required in production      | IANA time zone used for date-only logic (payout periods, the today/7d/30d metrics windows). Vercel defaults to UTC, which files every Colombian order placed after 19:00 under the next day. Set `America/Bogota`.                        |
+| `TZ`                                   | server           | no, but effectively required in production      | IANA time zone used for date-only logic (payout periods, the today/7d/30d metrics windows). A Lightsail instance defaults to UTC, which files every Colombian order placed after 19:00 under the next day. Set `America/Bogota`.                        |
 | `TZ`                                   | process          | no, but recommended (`America/Bogota`)          | Node's runtime time zone; date-only logic (payout periods, "today" metrics) is computed in local time, so this decides what "today" means.             |
 
 ## Scripts
@@ -395,15 +395,32 @@ on the register page.
 1. **Supabase**: create a project, then run `npm run db:push` and
    `npm run db:seed` (or your own data) against it with `SUPABASE_DB_URL`
    set to that project's connection string.
-2. **Vercel**: import the repository, set Node 22, and configure every
-   environment variable from the table above that applies to your
-   deployment (at minimum the public Supabase vars, `NEXT_PUBLIC_SITE_URL`
-   and `NEXT_PUBLIC_ROOT_DOMAIN`; add the Wompi and VAPID secrets to enable
-   those features). Set `TZ=America/Bogota`. Deploy.
-3. **Wildcard subdomains**: add `*.<root-domain>` as a domain on the Vercel
-   project (in addition to the apex/root domain) and point its DNS at
-   Vercel per their instructions, so `<slug>.<root-domain>` resolves to the
-   app and the middleware rewrite in `lib/subdomain.ts` takes over.
+2. **AWS Lightsail** (the production host; Vercel is not used). The app
+   builds with `output: 'standalone'`:
+   - Node 22 on the instance; check out the `aws` branch, which always
+     matches what is deployed.
+   - Set every environment variable from the table above **before building**:
+     `NEXT_PUBLIC_*` values are inlined at build time, so a build made with
+     `NEXT_PUBLIC_SITE_URL=http://localhost:3000` prints table QR codes and
+     auth redirects that point at localhost. At minimum: the public Supabase
+     vars, `NEXT_PUBLIC_SITE_URL` (`https://` + your domain),
+     `NEXT_PUBLIC_ROOT_DOMAIN`, the `NEXT_PUBLIC_LEGAL_*` identity, a real
+     `PAYMENT_PROVIDER` (never `mock`) and `TZ=America/Bogota`.
+   - Build and assemble: `npm ci && npm run build`, then
+     `cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/`.
+   - Run `node .next/standalone/server.js` under a supervisor (systemd or
+     pm2) with `PORT=3000` and `HOSTNAME=127.0.0.1`, server-side secrets in
+     the service environment.
+   - Put Nginx in front with TLS (Let's Encrypt). It must **overwrite**, not
+     append, the client address (`proxy_set_header X-Forwarded-For
+     $remote_addr;`), plus `Host $host` and `X-Forwarded-Proto $scheme`:
+     rate limits (`lib/http/client-ip.ts`) and redirect origins
+     (`lib/http/request-origin.ts`) trust these headers.
+3. **Wildcard subdomains** (optional): point `*.<root-domain>` at the
+   instance and issue a wildcard certificate (DNS challenge) so
+   `<slug>.<root-domain>` resolves to the app and the middleware rewrite in
+   `lib/subdomain.ts` takes over. Nothing depends on it: table QR codes and
+   share links use the `/t/<slug>` path, which works on the apex domain.
 4. **Wompi**: in the Wompi dashboard, set the events webhook URL to
    `https://<site>/api/webhooks/wompi` and the redirect URL to your site;
    copy the public/private/events/integrity keys into the matching
@@ -414,10 +431,10 @@ on the register page.
    environment variables.
 6. **Icons**: run `npm run icons` once and commit the generated files in
    `public/icons/` if you changed `public/icon.svg`.
-7. **CI**: `.github/workflows/ci.yml` runs typecheck, lint, unit tests and a
-   build with dummy public env values on every push/PR; it does not deploy.
-   There is no `vercel.json`: the project needs no build/route overrides
-   beyond what Vercel's Next.js detection already provides.
+7. **CI and branches**: `.github/workflows/ci.yml` runs typecheck, lint, unit
+   tests and a build with dummy public env values on every push/PR; it does
+   not deploy. Work lands on `develop`, reaches `main` through a pull request
+   once CI is green, and `aws` is then fast-forwarded to `main` and deployed.
 8. **Health check**: point uptime monitoring at `GET /api/health`. It answers
    `200 {"status":"ok"}` when Supabase is reachable and
    `503 {"status":"degraded"}` when it is not, plus the app version and the
