@@ -3,8 +3,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchTablesWithQr } from '../page'
 import { PrintButton } from '@/components/dashboard/tables/print-button'
+import { QrReachNotice } from '@/components/dashboard/tables/qr-reach-notice'
 import { EmptyState } from '@/components/ui/empty-state'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
+import { tableQrBase } from '@/lib/tables/qr-base'
 
 export const metadata: Metadata = { title: 'Imprimir códigos QR' }
 export const dynamic = 'force-dynamic'
@@ -12,7 +14,8 @@ export const dynamic = 'force-dynamic'
 /** Print-friendly sheet: one card per table, two per row on paper. */
 export default async function PrintTablesPage() {
   const { store } = await requireActiveStoreRow('/dashboard/tables/print')
-  const tables = await fetchTablesWithQr(store.id, store.slug)
+  const qrBase = await tableQrBase()
+  const tables = await fetchTablesWithQr(store.id, store.slug, qrBase.origin)
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -34,8 +37,11 @@ export default async function PrintTablesPage() {
             Recorta cada tarjeta y ponla sobre la mesa correspondiente.
           </p>
         </div>
-        {tables.length > 0 ? <PrintButton /> : null}
+        {/* Never print codes a phone cannot open: they end up glued to tables. */}
+        {tables.length > 0 && qrBase.reachable ? <PrintButton /> : null}
       </header>
+
+      <QrReachNotice base={qrBase} className="print:hidden" />
 
       {tables.length === 0 ? (
         <EmptyState

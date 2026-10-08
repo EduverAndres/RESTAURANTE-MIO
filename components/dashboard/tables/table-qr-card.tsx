@@ -1,3 +1,5 @@
+import { ExternalLinkIcon } from 'lucide-react'
+
 interface TableQrCardProps {
   number: number
   url: string
@@ -21,9 +23,19 @@ export function TableQrCard({ number, url, svg, actions }: TableQrCardProps) {
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       <p className="font-display text-2xl font-semibold">Mesa {number}</p>
-      <p className="text-muted-foreground w-full truncate text-xs" title={url}>
-        {url}
-      </p>
+      {/* Opens exactly what the printed code opens, so the merchant can check
+          a table before a customer does. */}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={url}
+        className="text-muted-foreground hover:text-foreground inline-flex w-full items-center justify-center gap-1 text-xs underline-offset-4 hover:underline"
+      >
+        <span className="truncate">{url}</span>
+        <ExternalLinkIcon aria-hidden="true" className="size-3 shrink-0" />
+        <span className="sr-only">(abre la mesa en otra pestaña)</span>
+      </a>
       {actions}
     </article>
   )

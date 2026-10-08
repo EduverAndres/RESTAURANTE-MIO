@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { TableCardActions } from '@/components/dashboard/tables/table-card-actions'
 import { TableQrCard } from '@/components/dashboard/tables/table-qr-card'
+import { QrReachNotice } from '@/components/dashboard/tables/qr-reach-notice'
 import { TablesToolbar } from '@/components/dashboard/tables/tables-toolbar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { createClient } from '@/lib/supabase/server'
 import { MAX_TABLES_PER_STORE, nextTableNumber } from '@/lib/tables/qr'
+import { tableQrBase } from '@/lib/tables/qr-base'
 import { renderQrSvg, tableQrTargetUrl } from '@/lib/tables/server'
 
 export const metadata: Metadata = { title: 'Mesas' }
@@ -22,6 +24,7 @@ export interface TableWithQr {
 export async function fetchTablesWithQr(
   storeId: string,
   slug: string,
+  origin: string,
 ): Promise<TableWithQr[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -36,7 +39,7 @@ export async function fetchTablesWithQr(
   }
   return Promise.all(
     (data ?? []).map(async (table) => {
-      const url = tableQrTargetUrl(slug, table.qr_token)
+      const url = tableQrTargetUrl(origin, slug, table.qr_token)
       return { id: table.id, number: table.number, url, svg: await renderQrSvg(url) }
     }),
   )
@@ -44,7 +47,8 @@ export async function fetchTablesWithQr(
 
 export default async function TablesPage() {
   const { store } = await requireActiveStoreRow('/dashboard/tables')
-  const tables = await fetchTablesWithQr(store.id, store.slug)
+  const qrBase = await tableQrBase()
+  const tables = await fetchTablesWithQr(store.id, store.slug, qrBase.origin)
   const nextNumber = nextTableNumber(tables.map((table) => table.number))
 
   return (
@@ -61,6 +65,8 @@ export default async function TablesPage() {
         </div>
         <TablesToolbar nextNumber={nextNumber} hasTables={tables.length > 0} />
       </header>
+
+      <QrReachNotice base={qrBase} />
 
       {tables.length === 0 ? (
         <EmptyState
