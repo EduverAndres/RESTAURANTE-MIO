@@ -1,11 +1,14 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { buildAuthRedirectUrl } from '@/lib/auth/callback'
 import { mapAuthError } from '@/lib/auth/errors'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { getRoleHome } from '@/lib/auth/roles'
 import { safeNextPath } from '@/lib/auth/safe-next'
 import { env } from '@/lib/env'
+import { legalMetadata, type ConsentSource } from '@/lib/legal/consent'
+import { logConsent, recordLegalAcceptance } from '@/lib/legal/record'
 import { createClient } from '@/lib/supabase/server'
 import {
   emailSchema,
@@ -38,8 +41,20 @@ export async function signInWithPassword(
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
 
   const supabase = await createClient()
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  })
   if (error || !data.user) return { ok: false, error: mapAuthError(error) }
+
+  // The form only submits with the box ticked; this records it (once per
+  // document version) so the middleware gate lets the session through.
+  await recordLegalAcceptance({
+    supabase,
+    user: data.user,
+    source: 'login-password',
+    headers: await headers(),
+  })
 
   // The claim may not be mirrored yet for freshly created accounts, so fall
   // back to the profile row rather than sending a merchant to the home page.
@@ -54,13 +69,21 @@ export async function signUp(
   const parsed = registerSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
 
-  const { email, password, full_name, phone, role } = parsed.data
+  const { email, password, full_name, phone, role, marketing_opt_in } =
+    parsed.data
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { full_name, phone: phone ?? null, role },
+      // The acceptance travels with the account from its first second, so a
+      // new user is never stopped by the gate after confirming the email.
+      data: {
+        full_name,
+        phone: phone ?? null,
+        role,
+        ...legalMetadata('register', marketing_opt_in),
+      },
       emailRedirectTo: authRedirectUrl(getRoleHome(role)),
     },
   })
@@ -70,6 +93,15 @@ export async function signUp(
   // already registered and confirmation is enabled, to avoid enumeration.
   if (data.user && data.user.identities?.length === 0) {
     return { ok: false, error: mapAuthError({ code: 'user_already_exists' }) }
+  }
+
+  if (data.user) {
+    await logConsent({
+      userId: data.user.id,
+      source: 'register',
+      headers: await headers(),
+      marketingOptIn: marketing_opt_in,
+    })
   }
 
   return {
@@ -133,4 +165,37 @@ export async function updatePassword(
   })
   if (error) return { ok: false, error: mapAuthError(error) }
   return { ok: true }
+}
+
+/**
+ * Records acceptance of the current legal documents for the signed-in user:
+ * the "Aceptar y continuar" button of the gate page, and the SMS login,
+ * whose session is created in the browser.
+ */
+export async function acceptLegalTerms(
+  source: Extract<ConsentSource, 'gate' | 'login-sms'>,
+  next?: string | null,
+): Promise<ActionResult<{ redirectTo: string }>> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user)
+    return { ok: false, error: 'Tu sesión expiró. Inicia sesión de nuevo.' }
+
+  const result = await recordLegalAcceptance({
+    supabase,
+    user,
+    source,
+    headers: await headers(),
+  })
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: 'No pudimos guardar tu aceptación. Inténtalo de nuevo.',
+    }
+  }
+
+  const role = await resolveUserRole(supabase, user)
+  return { ok: true, redirectTo: safeNextPath(next) ?? getRoleHome(role) }
 }

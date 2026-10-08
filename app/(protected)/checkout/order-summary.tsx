@@ -145,6 +145,27 @@ export function OrderSummary({
       <p className="text-muted-foreground text-center text-xs">
         Podrás cancelar mientras el restaurante no lo acepte.
       </p>
+      <p className="text-muted-foreground text-center text-xs text-pretty">
+        Al confirmar aceptas los{' '}
+        <a
+          href="/terminos"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          Términos
+        </a>{' '}
+        y la{' '}
+        <a
+          href="/proteccion-al-consumidor"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          Política de Protección al Consumidor
+        </a>
+        . El pedido lo prepara y vende {store.name}.
+      </p>
 
       <div className="md:hidden">
         <Button

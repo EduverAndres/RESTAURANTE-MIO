@@ -7,11 +7,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { signInWithPassword } from '../actions'
+import { acceptLegalTerms, signInWithPassword } from '../actions'
+import { OAuthButtons } from '@/components/auth/oauth-buttons'
+import { ConsentCheckbox } from '@/components/legal/consent-checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { callbackErrorFromParams } from '@/lib/auth/callback'
 import {
@@ -32,6 +33,10 @@ interface LoginFormProps {
   next: string | null
   /** Error key from `/login?error=<key>`, set by the auth callback. */
   callbackError: string | null
+  /** Sign-in methods switched on in Supabase; the rest are not rendered. */
+  providers: { google: boolean; microsoft: boolean; phone: boolean }
+  /** Development: render Google/Microsoft even when off (see OAuthButtons). */
+  showUnavailableProviders: boolean
 }
 
 // GoTrue reports implicit-flow failures in the URL hash (never sent to the
@@ -45,16 +50,8 @@ function callbackErrorFromHash(): string | null {
   return key
 }
 
-function GoogleIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5">
-      <path
-        fill="#EA4335"
-        d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.9 1.5l2.6-2.6C16.8 3 14.6 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.8 0 9.6-4.1 9.6-9.8 0-.7-.1-1.2-.2-1.7H12z"
-      />
-    </svg>
-  )
-}
+const CONSENT_REQUIRED =
+  'Debes aceptar los Términos y la Política de Tratamiento de Datos para continuar.'
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null
@@ -65,7 +62,12 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   )
 }
 
-export function LoginForm({ next, callbackError }: LoginFormProps) {
+export function LoginForm({
+  next,
+  callbackError,
+  providers,
+  showUnavailableProviders,
+}: LoginFormProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [showPassword, setShowPassword] = useState(false)
@@ -79,8 +81,17 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', accept_terms: false },
   })
+
+  // One box covers every way in. Google and SMS do not go through the
+  // resolver, so they ask through here and get the same error.
+  function ensureAccepted(): boolean {
+    if (form.getValues('accept_terms')) return true
+    form.setError('accept_terms', { message: CONSENT_REQUIRED })
+    document.getElementById('login-accept')?.focus()
+    return false
+  }
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
@@ -95,35 +106,33 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
     })
   })
 
-  async function signInWithGoogle() {
-    const supabase = createClient()
-    const params = next ? `?next=${encodeURIComponent(next)}` : ''
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback${params}`,
-      },
-    })
-    if (error) {
-      const message = mapAuthError(error)
-      toast.error(
-        message === AUTH_ERROR_MESSAGES.providerDisabled
-          ? 'Google no está habilitado todavía.'
-          : message,
-      )
-    }
-  }
-
   return (
     <Tabs defaultValue="email" className="w-full">
-      <TabsList className="rounded-pill grid w-full grid-cols-2">
-        <TabsTrigger value="email" className="rounded-pill">
-          Correo
-        </TabsTrigger>
-        <TabsTrigger value="phone" className="rounded-pill">
-          Teléfono
-        </TabsTrigger>
-      </TabsList>
+      {/* A single way in needs no tabs to choose between. */}
+      {providers.phone ? (
+        <TabsList className="rounded-pill grid w-full grid-cols-2">
+          <TabsTrigger value="email" className="rounded-pill">
+            Correo
+          </TabsTrigger>
+          <TabsTrigger value="phone" className="rounded-pill">
+            Teléfono
+          </TabsTrigger>
+        </TabsList>
+      ) : null}
+
+      {/*
+        Above both tabs and every button: whichever way the person signs in,
+        they say yes first. Unticked by default — a pre-ticked box is not
+        consent.
+      */}
+      <ConsentCheckbox
+        id="login-accept"
+        className={providers.phone ? 'pt-4' : undefined}
+        error={form.formState.errors.accept_terms?.message}
+        {...form.register('accept_terms', {
+          onChange: () => form.clearErrors('accept_terms'),
+        })}
+      />
 
       <TabsContent value="email" className="space-y-5 pt-4">
         {/*
@@ -131,20 +140,13 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
           fields and a password they half remember; burying it under the form
           it replaces is the wrong way round.
         */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={signInWithGoogle}
-          className="rounded-pill h-14 w-full text-base"
-        >
-          <GoogleIcon />
-          Continuar con Google
-        </Button>
-
-        <div className="text-muted-foreground flex items-center gap-3 text-xs">
-          <Separator className="flex-1" />o con tu correo
-          <Separator className="flex-1" />
-        </div>
+        <OAuthButtons
+          enabled={providers}
+          showUnavailable={showUnavailableProviders}
+          next={next}
+          ensureAccepted={ensureAccepted}
+          separatorLabel="o con tu correo"
+        />
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <div className="space-y-1.5">
@@ -221,14 +223,22 @@ export function LoginForm({ next, callbackError }: LoginFormProps) {
         </form>
       </TabsContent>
 
-      <TabsContent value="phone" className="pt-4">
-        <PhoneOtpForm next={next} />
-      </TabsContent>
+      {providers.phone ? (
+        <TabsContent value="phone" className="pt-4">
+          <PhoneOtpForm next={next} ensureAccepted={ensureAccepted} />
+        </TabsContent>
+      ) : null}
     </Tabs>
   )
 }
 
-function PhoneOtpForm({ next }: { next: string | null }) {
+function PhoneOtpForm({
+  next,
+  ensureAccepted,
+}: {
+  next: string | null
+  ensureAccepted: () => boolean
+}) {
   const router = useRouter()
   const [phone, setPhone] = useState('')
   const [token, setToken] = useState('')
@@ -248,6 +258,7 @@ function PhoneOtpForm({ next }: { next: string | null }) {
 
   function sendCode(event: React.FormEvent) {
     event.preventDefault()
+    if (!ensureAccepted()) return
     const parsed = phoneOtpSchema.safeParse({ phone })
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Teléfono inválido.')
@@ -288,7 +299,15 @@ function PhoneOtpForm({ next }: { next: string | null }) {
         setError(mapOtpError(verifyError ?? {}))
         return
       }
+      // The session was created in the browser; record the box ticked on
+      // this form before the first navigation meets the legal gate.
+      const accepted = await acceptLegalTerms('login-sms', next)
       toast.success('Bienvenido.')
+      if (accepted.ok) {
+        router.push(accepted.redirectTo)
+        router.refresh()
+        return
+      }
       router.push(next ?? getRoleHome(data.session.user.app_metadata?.role))
       router.refresh()
     })

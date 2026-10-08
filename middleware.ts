@@ -3,12 +3,28 @@ import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { canAccess, requiredRolesFor } from '@/lib/auth/roles'
 import { env } from '@/lib/env'
 import { requestOrigin } from '@/lib/http/request-origin'
+import { ACCEPT_PATH, needsLegalAcceptance } from '@/lib/legal/consent'
 import { rewriteForStore, storeSlugFromHost } from '@/lib/subdomain'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
   const { supabase, response, user } = await updateSession(request)
   const { pathname, search } = request.nextUrl
+
+  // Legal gate. A signed-in session that has not accepted the documents in
+  // force goes to the acceptance page before anything else — whatever way it
+  // signed in (password, Google, SMS, an email link) and however old the
+  // account is. `getUser()` above reads the metadata from Supabase Auth, not
+  // from the cookie, so the check costs nothing extra and cannot be spoofed
+  // by editing a token. The documents and the auth routes stay reachable.
+  if (user && needsLegalAcceptance(pathname, user.user_metadata)) {
+    const origin = requestOrigin(request.headers, env.NEXT_PUBLIC_SITE_URL)
+    const gateUrl = new URL(ACCEPT_PATH, origin)
+    gateUrl.searchParams.set('next', `${pathname}${search}`)
+    const redirect = NextResponse.redirect(gateUrl)
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+    return redirect
+  }
 
   // Store subdomains (`<slug>.<root>`) transparently render the `/t/<slug>`
   // storefront routes. The rewrite happens before the role gate so it never

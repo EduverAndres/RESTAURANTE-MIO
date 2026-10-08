@@ -156,6 +156,39 @@ export type Database = {
           },
         ]
       }
+      legal_consents: {
+        Row: {
+          accepted_at: string
+          document_version: string
+          id: string
+          ip: unknown
+          marketing_opt_in: boolean | null
+          source: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          document_version: string
+          id?: string
+          ip?: unknown
+          marketing_opt_in?: boolean | null
+          source: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          document_version?: string
+          id?: string
+          ip?: unknown
+          marketing_opt_in?: boolean | null
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           created_at: string

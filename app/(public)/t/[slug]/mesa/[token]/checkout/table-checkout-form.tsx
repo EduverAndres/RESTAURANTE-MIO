@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { placeTableOrder } from '../actions'
+import { ConsentCheckbox } from '@/components/legal/consent-checkbox'
 import { WompiTrust } from '@/components/payments/wompi-trust'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -82,6 +83,10 @@ export function TableCheckoutForm({
   const [hydrated, setHydrated] = useState(false)
   const [guestName, setGuestName] = useState(defaultGuestName)
   const [notes, setNotes] = useState('')
+  // A guest gives a name without an account, so the authorisation to process
+  // it is asked here, at the moment of ordering (Ley 1581, art. 9).
+  const [accepted, setAccepted] = useState(false)
+  const [consentError, setConsentError] = useState<string | undefined>()
   const [paymentMethod, setPaymentMethod] = useState<TablePaymentMethod | null>(
     () => {
       const first = paymentOptions[0]?.method
@@ -112,6 +117,13 @@ export function TableCheckoutForm({
     }
     if (guestName.trim().length < 2) {
       toast.error('Dinos tu nombre (mínimo 2 letras).')
+      return
+    }
+    if (!accepted) {
+      setConsentError(
+        'Acepta los Términos y la Política de Tratamiento de Datos para pedir.',
+      )
+      document.getElementById('table-accept')?.focus()
       return
     }
     const payload: TableOrderInput = {
@@ -313,6 +325,15 @@ export function TableCheckoutForm({
             El restaurante está cerrado en este momento.
           </p>
         ) : null}
+        <ConsentCheckbox
+          id="table-accept"
+          checked={accepted}
+          onChange={(event) => {
+            setAccepted(event.target.checked)
+            setConsentError(undefined)
+          }}
+          error={consentError}
+        />
         <Button
           type="button"
           onClick={submit}

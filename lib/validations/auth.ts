@@ -23,12 +23,23 @@ export const passwordSchema = z
   .min(8, 'La contraseña debe tener al menos 8 caracteres.')
   .max(72, 'La contraseña no puede superar 72 caracteres.')
 
+/**
+ * Express, prior acceptance of the Terms and the data-processing policy
+ * (Ley 1581 de 2012, art. 9). A boolean that must be `true`, not a literal,
+ * so a form can start unticked — a pre-ticked box is not consent.
+ */
+export const acceptTermsSchema = z.boolean().refine((value) => value === true, {
+  message:
+    'Debes aceptar los Términos y la Política de Tratamiento de Datos para continuar.',
+})
+
 export const REGISTER_ROLES = ['customer', 'merchant', 'courier'] as const
 export type RegisterRole = (typeof REGISTER_ROLES)[number]
 
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Ingresa tu contraseña.'),
+  accept_terms: acceptTermsSchema,
 })
 export type LoginInput = z.infer<typeof loginSchema>
 
@@ -47,6 +58,10 @@ export const registerSchema = z.object({
   role: z.enum(REGISTER_ROLES, {
     error: 'Selecciona cómo quieres usar la plataforma.',
   }),
+  accept_terms: acceptTermsSchema,
+  // Separate and optional on purpose: authorising promotional messages can
+  // never be a condition for using the service.
+  marketing_opt_in: z.boolean().optional().default(false),
 })
 export type RegisterInput = z.input<typeof registerSchema>
 export type RegisterValues = z.output<typeof registerSchema>
