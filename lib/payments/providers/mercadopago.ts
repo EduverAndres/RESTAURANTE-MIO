@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { env } from '@/lib/env';
 import { serverEnv, mercadopagoConfigured } from '@/lib/env.server';
 import { logger } from '@/lib/log/logger';
 import type { PaymentProvider, PaymentResult, CreatePaymentInput } from '@/lib/payments/types';
@@ -31,7 +32,8 @@ export const mercadopagoProvider: PaymentProvider = {
         {
           title: `Pedido ${input.shortCode}`,
           quantity: 1,
-          unit_price: Math.round(input.amount), // amount already in cents (COP)
+          // Whole pesos: Mercado Pago takes COP as units, not cents.
+          unit_price: Math.round(input.amount),
           currency_id: 'COP',
         },
       ],
@@ -43,7 +45,7 @@ export const mercadopagoProvider: PaymentProvider = {
       },
       auto_return: 'approved',
       external_reference: input.shortCode,
-      notification_url: `${serverEnv.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
+      notification_url: `${env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
       expires: false,
     };
 
