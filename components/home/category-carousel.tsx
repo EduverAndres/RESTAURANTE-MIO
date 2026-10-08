@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { iconForCategory } from '@/lib/marketplace/category-icons'
 import { cn } from '@/lib/utils'
 
 export interface CategoryChip {
@@ -8,36 +9,26 @@ export interface CategoryChip {
   count: number
 }
 
-/** Emoji glyphs are decorative; the category name carries the meaning. */
-const GLYPHS: Record<string, string> = {
-  parrilla: '🥩',
-  saludable: '🥗',
-  italiana: '🍕',
-  'comida rápida': '🍔',
-  japonesa: '🍣',
-  'café y panadería': '☕',
-  postres: '🍰',
-  mexicana: '🌮',
-  colombiana: '🫓',
-  pollo: '🍗',
-}
-
 /**
- * The glyph lives in its own tinted medallion rather than sitting inline with
+ * The icon lives in its own tinted medallion rather than sitting inline with
  * the text: at a glance the row reads as a strip of pictures, which is what
  * makes it scannable while scrolling, and the label underneath is what makes
- * it usable when the picture means nothing to you.
+ * it usable when the picture means nothing to you. Decorative: the category
+ * name carries the meaning.
  */
 function Glyph({ name, active }: { name: string; active: boolean }) {
+  const Icon = iconForCategory(name)
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'grid size-7 shrink-0 place-items-center rounded-full text-base leading-none',
-        active ? 'bg-background/20' : 'bg-primary/10',
+        'grid size-8 shrink-0 place-items-center rounded-full',
+        active
+          ? 'bg-background/15 text-background'
+          : 'bg-primary/10 text-primary-on-tint',
       )}
     >
-      {GLYPHS[name.toLowerCase()] ?? '🍽️'}
+      <Icon className="size-4" strokeWidth={1.75} />
     </span>
   )
 }

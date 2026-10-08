@@ -86,11 +86,14 @@ export function AccessibilityMenu({
             <button
               type="button"
               className={cn(
-                'text-muted-foreground hover:text-foreground flex w-full flex-col items-center gap-1 px-2 py-2.5 text-[11px] font-medium transition-colors',
+                'text-muted-foreground hover:text-foreground flex w-full flex-col items-center gap-1 px-2 py-2 text-[11px] font-medium transition-[color,transform] duration-150 active:scale-95',
                 className,
               )}
             >
-              <AccessibilityIcon aria-hidden="true" className="size-5" />
+              {/* Same 28px slot as the tab bar's icons, so all five line up. */}
+              <span className="grid h-7 w-12 place-items-center">
+                <AccessibilityIcon aria-hidden="true" className="size-5" />
+              </span>
               Accesibilidad
             </button>
           ) : (

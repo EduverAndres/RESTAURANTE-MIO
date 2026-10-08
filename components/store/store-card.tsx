@@ -1,13 +1,27 @@
 'use client'
 
 import { motion, useReducedMotion } from 'framer-motion'
-import { BikeIcon, ClockIcon, NavigationIcon, StarIcon } from 'lucide-react'
+import {
+  BadgeCheckIcon,
+  BikeIcon,
+  ClockIcon,
+  FlameIcon,
+  NavigationIcon,
+  SparklesIcon,
+  StarIcon,
+  ZapIcon,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FavoriteButton } from '@/components/store/favorite-button'
 import { MediaChip } from '@/components/ui/media-chip'
 import { formatCOP, initialsOf } from '@/lib/format'
 import { formatDistance } from '@/lib/geo'
+import {
+  etaOf,
+  hasFreeDelivery,
+  primaryHighlight,
+} from '@/lib/marketplace/highlights'
 import { cn } from '@/lib/utils'
 import type { Store } from '@/types/app'
 
@@ -26,6 +40,8 @@ export type StoreCardData = Pick<
 > & {
   /** Optional: callers that do not select it simply get the initials mark. */
   logo_url?: string | null
+  /** Optional: shown as "Mín." in the footer when the caller selected it. */
+  min_order?: number | null
   /** Present when the visitor shared a location. */
   distance_km?: number | null
   eta_min?: number | null
@@ -49,6 +65,12 @@ const SIZES = {
   rail: '(min-width: 1024px) 33vw, 78vw',
 } as const
 
+const HIGHLIGHTS = {
+  popular: { icon: FlameIcon, label: 'Popular' },
+  fast: { icon: ZapIcon, label: 'Entrega rápida' },
+  new: { icon: SparklesIcon, label: 'Nuevo' },
+} as const
+
 export function StoreCard({
   store,
   priority = false,
@@ -57,17 +79,21 @@ export function StoreCard({
   className,
 }: StoreCardProps) {
   const reduceMotion = useReducedMotion()
-  const eta = store.eta_min ?? store.prep_time_min ?? 20
+  const eta = etaOf(store)
   const fee = Number(store.delivery_fee ?? 0)
+  const freeDelivery = hasFreeDelivery(store)
   const rating = Number(store.rating_avg ?? 0)
   const ratingCount = store.rating_count ?? 0
+  const minOrder = Number(store.min_order ?? 0)
+  const highlight = primaryHighlight(store)
+  const Highlight = highlight ? HIGHLIGHTS[highlight] : null
 
   return (
     <motion.article
-      whileHover={reduceMotion ? undefined : { y: -6 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       className={cn(
-        'group rounded-card bg-card shadow-1 hover:shadow-2 relative isolate overflow-hidden transition-shadow',
+        'group rounded-card bg-card shadow-1 hover:shadow-3 ring-foreground/5 relative isolate overflow-hidden ring-1 transition-shadow duration-300',
         className,
       )}
     >
@@ -119,8 +145,13 @@ export function StoreCard({
                 </MediaChip>
                 <MediaChip
                   icon={<BikeIcon aria-hidden="true" className="size-3.5" />}
+                  className={
+                    freeDelivery
+                      ? 'bg-success text-success-foreground'
+                      : undefined
+                  }
                 >
-                  {fee > 0 ? formatCOP(fee) : 'Envío gratis'}
+                  {freeDelivery ? 'Envío gratis' : formatCOP(fee)}
                 </MediaChip>
               </>
             ) : (
@@ -150,8 +181,15 @@ export function StoreCard({
               )}
             </span>
             <span className="min-w-0 flex-1">
-              <h3 className="font-display truncate text-xl leading-tight font-semibold text-white drop-shadow-sm sm:text-2xl">
-                {store.name}
+              <h3 className="font-display flex items-center gap-1.5 text-xl leading-tight font-semibold text-white drop-shadow-sm sm:text-2xl">
+                <span className="min-w-0 truncate">{store.name}</span>
+                {/* Every listed store passed the admin review that turns
+                    `pending` into `active`, so the mark is always earned. */}
+                <BadgeCheckIcon
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-white/90 sm:size-5"
+                />
+                <span className="sr-only">, comercio verificado</span>
               </h3>
               {store.category ? (
                 <p className="truncate text-sm text-white/85">
@@ -162,24 +200,41 @@ export function StoreCard({
           </div>
         </div>
 
-        <div className="text-muted-foreground flex items-center justify-between gap-3 px-4 py-3 text-sm">
-          <span className="inline-flex items-center gap-1.5">
-            <StarIcon
-              aria-hidden="true"
-              className="fill-accent text-accent size-4"
-            />
-            <span className="text-foreground font-medium">
-              {rating.toFixed(1)}
-            </span>
-            <span className="sr-only">de 5,</span>
-            <span>({ratingCount})</span>
-          </span>
-          {typeof store.distance_km === 'number' ? (
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm">
+          {ratingCount > 0 ? (
             <span className="inline-flex items-center gap-1.5">
-              <NavigationIcon aria-hidden="true" className="size-3.5" />
-              {formatDistance(store.distance_km)}
+              <StarIcon
+                aria-hidden="true"
+                className="fill-accent text-accent size-4"
+              />
+              <span className="text-foreground font-medium">
+                {rating.toFixed(1)}
+              </span>
+              <span className="sr-only">de 5,</span>
+              <span>({ratingCount})</span>
             </span>
           ) : null}
+          {Highlight ? (
+            <span className="rounded-pill bg-primary/10 text-primary-on-tint inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium">
+              <Highlight.icon aria-hidden="true" className="size-3.5" />
+              {Highlight.label}
+            </span>
+          ) : null}
+          <span className="ml-auto inline-flex items-center gap-3">
+            {minOrder > 0 ? (
+              <span className="tabular-nums">
+                <span className="sr-only">Pedido mínimo </span>
+                <span aria-hidden="true">Mín. </span>
+                {formatCOP(minOrder)}
+              </span>
+            ) : null}
+            {typeof store.distance_km === 'number' ? (
+              <span className="inline-flex items-center gap-1.5">
+                <NavigationIcon aria-hidden="true" className="size-3.5" />
+                {formatDistance(store.distance_km)}
+              </span>
+            ) : null}
+          </span>
         </div>
       </Link>
 

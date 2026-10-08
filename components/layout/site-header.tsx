@@ -56,7 +56,13 @@ export async function SiteHeader() {
             href="/#restaurantes"
             className="rounded-pill text-muted-foreground hover:bg-muted hover:text-foreground px-3 py-1.5 transition-colors"
           >
-            Restaurantes
+            Explorar
+          </Link>
+          <Link
+            href="/para-restaurantes"
+            className="rounded-pill text-muted-foreground hover:bg-muted hover:text-foreground px-3 py-1.5 transition-colors"
+          >
+            Para negocios
           </Link>
         </nav>
 

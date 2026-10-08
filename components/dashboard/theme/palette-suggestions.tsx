@@ -57,11 +57,16 @@ function PaletteCard({
           <span
             className={
               palette.passesAA
-                ? 'text-primary text-xs font-medium'
-                : 'text-destructive text-xs font-medium'
+                ? 'text-primary inline-flex items-center gap-1 text-xs font-medium'
+                : 'text-destructive inline-flex items-center gap-1 text-xs font-medium'
             }
           >
-            {palette.passesAA ? '✓ AA' : '⚠ Revisa'}
+            {palette.passesAA ? (
+              <CheckIcon aria-hidden="true" className="size-3.5" />
+            ) : (
+              <TriangleAlertIcon aria-hidden="true" className="size-3.5" />
+            )}
+            {palette.passesAA ? 'AA' : 'Revisa'}
           </span>
         </span>
 
