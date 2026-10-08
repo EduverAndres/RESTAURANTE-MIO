@@ -4,6 +4,8 @@ import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { getRoleHome } from '@/lib/auth/roles'
 import { env } from '@/lib/env'
 import { requestOrigin } from '@/lib/http/request-origin'
+import { LEGAL_PENDING_COOKIE, LEGAL_VERSION } from '@/lib/legal/consent'
+import { recordLegalAcceptance } from '@/lib/legal/record'
 import { createClient } from '@/lib/supabase/server'
 
 // Completes email confirmation, magic-link, password-recovery, invite and
@@ -37,8 +39,26 @@ export async function GET(request: NextRequest) {
     return fail(mapCallbackErrorCode(error?.code))
   }
 
+  // An OAuth sign-in started from the login form, where the person ticked
+  // the acceptance box: the browser left this marker before redirecting.
+  // Without it the middleware gate asks on the next request instead.
+  // `<version>` or `<version>.m` (the sign-up form's optional marketing box).
+  const pending = request.cookies.get(LEGAL_PENDING_COOKIE)?.value
+  if (pending?.split('.')[0] === LEGAL_VERSION) {
+    const provider = data.session.user.app_metadata?.provider
+    await recordLegalAcceptance({
+      supabase,
+      user: data.session.user,
+      source: provider === 'azure' ? 'login-microsoft' : 'login-google',
+      headers: request.headers,
+      marketingOptIn: pending.endsWith('.m') ? true : undefined,
+    })
+  }
+
   const destination =
     resolution.next ??
     getRoleHome(await resolveUserRole(supabase, data.session.user))
-  return NextResponse.redirect(`${origin}${destination}`)
+  const response = NextResponse.redirect(`${origin}${destination}`)
+  if (pending) response.cookies.delete(LEGAL_PENDING_COOKIE)
+  return response
 }

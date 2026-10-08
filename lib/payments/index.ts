@@ -1,15 +1,14 @@
-import { cashProvider } from '@/lib/payments/cash'
-import { mockProvider } from '@/lib/payments/mock'
+import { cashProvider, mockProvider, wompiProvider, mercadopagoProvider } from '@/lib/payments/providers'
 import type { PaymentProvider } from '@/lib/payments/types'
-import { wompiProvider } from '@/lib/payments/wompi/provider'
 import type { PaymentMethod } from '@/types/app'
 
-// Registry of gateways. Mercado Pago is wired in a later phase; the registry
-// shape does not change when it is added.
+// Registry of gateways. Adding a new provider only requires exporting it from
+// `lib/payments/providers` and adding a line here.
 const PROVIDERS: Partial<Record<PaymentMethod, PaymentProvider>> = {
   cash: cashProvider,
   mock: mockProvider,
   wompi: wompiProvider,
+  mercadopago: mercadopagoProvider,
 }
 
 export function getPaymentProvider(

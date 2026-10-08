@@ -12,7 +12,7 @@ import type { ScheduleDay, StoreSchedule, WeekDay } from '@/types/app'
 // Catalogue data
 // ---------------------------------------------------------------------------
 
-/** Curated categories; they match the glyphs on the home carousel. */
+/** Curated categories; each has an icon in `lib/marketplace/category-icons.ts`. */
 export const STORE_CATEGORIES = [
   'Parrilla',
   'Saludable',

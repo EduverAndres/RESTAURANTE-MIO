@@ -1049,3 +1049,66 @@ html[data-text-size='xlarge'] {
 @theme inline {
   --color-destructive-on-tint: var(--destructive-on-tint);
 }
+
+/* ---------------------------------------------------------------------------
+ * Marketplace home  (Phase 7)
+ *
+ * Two pieces of atmosphere for the landing, both built from the existing
+ * tokens so the dark ramp and the brand stay in charge. `brand-mesh` is the
+ * hero's wash; `animate-float` is the slow drift of the hero's tiles. The
+ * global reduced-motion block above collapses the drift to a still frame.
+ * ------------------------------------------------------------------------- */
+@utility brand-mesh {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(
+      ellipse 70% 60% at 10% 0%,
+      color-mix(in oklch, var(--primary) 14%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 60% 55% at 95% 30%,
+      color-mix(in oklch, var(--accent) 16%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 50% 100%,
+      color-mix(in oklch, var(--primary) 8%, transparent),
+      transparent 70%
+    );
+}
+
+/* A hairline grid that fades out toward the edges: texture, not decoration. */
+@utility brand-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklch, var(--foreground) 5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--foreground) 5%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 48px 48px;
+  mask-image: radial-gradient(
+    ellipse 70% 60% at 50% 40%,
+    #000 30%,
+    transparent 75%
+  );
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@theme inline {
+  --animate-float: float 6s ease-in-out infinite;
+}

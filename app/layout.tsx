@@ -9,6 +9,7 @@ import {
   Space_Grotesk,
 } from 'next/font/google'
 import { AccessibilityAttributes } from '@/components/a11y/accessibility-attributes'
+import { CookieBanner } from '@/components/legal/cookie-banner'
 import { RealtimeProvider } from '@/components/providers/realtime-provider'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
@@ -150,6 +151,7 @@ export default function RootLayout({
             <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
           </RealtimeProvider>
           <Toaster />
+          <CookieBanner />
           <InstallPrompt />
           <ServiceWorkerRegister />
           <SoundUnlock />

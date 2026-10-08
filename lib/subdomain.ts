@@ -22,6 +22,15 @@ const UNTOUCHED_PREFIXES = [
   '/dashboard',
   '/courier',
   '/admin',
+  // Legal documents and the consent gate: a storefront's footer links to
+  // them, and the middleware sends unaccepted sessions to the gate.
+  '/aceptar-politicas',
+  '/terminos',
+  '/privacidad',
+  '/cookies',
+  '/proteccion-al-consumidor',
+  '/legal',
+  '/register',
 ] as const
 
 function hostWithoutPort(host: string): string {

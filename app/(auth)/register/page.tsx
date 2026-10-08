@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { RegisterForm } from './register-form'
 import { getCurrentUser, getRoleHome } from '@/lib/auth'
+import { getAuthProviders } from '@/lib/auth/providers'
 import { safeNextPath } from '@/lib/auth/safe-next'
 import { REGISTER_ROLES, type RegisterRole } from '@/lib/validations/auth'
 
@@ -24,7 +25,10 @@ export default async function RegisterPage({
   const { role, next } = await searchParams
   const safeNext = safeNextPath(next)
 
-  const current = await getCurrentUser()
+  const [current, providers] = await Promise.all([
+    getCurrentUser(),
+    getAuthProviders(),
+  ])
   if (current) redirect(safeNext ?? getRoleHome(current.role))
 
   return (
@@ -36,7 +40,12 @@ export default async function RegisterPage({
         </p>
       </div>
 
-      <RegisterForm initialRole={initialRole(role)} />
+      <RegisterForm
+        initialRole={initialRole(role)}
+        next={safeNext}
+        providers={providers}
+        showUnavailableProviders={process.env.NODE_ENV !== 'production'}
+      />
 
       <p className="text-muted-foreground text-center text-sm">
         ¿Ya tienes cuenta?{' '}

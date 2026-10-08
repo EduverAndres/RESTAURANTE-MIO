@@ -16,6 +16,11 @@ import { useEffect, useState, useTransition } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { resendConfirmation, signUp } from '../actions'
+import { OAuthButtons } from '@/components/auth/oauth-buttons'
+import {
+  ConsentCheckbox,
+  MarketingCheckbox,
+} from '@/components/legal/consent-checkbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -124,7 +129,20 @@ function ResendConfirmation({
   )
 }
 
-export function RegisterForm({ initialRole }: { initialRole: RegisterRole }) {
+const CONSENT_REQUIRED =
+  'Debes aceptar los Términos y la Política de Tratamiento de Datos para continuar.'
+
+export function RegisterForm({
+  initialRole,
+  next,
+  providers,
+  showUnavailableProviders,
+}: {
+  initialRole: RegisterRole
+  next: string | null
+  providers: { google: boolean; microsoft: boolean }
+  showUnavailableProviders: boolean
+}) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [showPassword, setShowPassword] = useState(false)
@@ -141,8 +159,19 @@ export function RegisterForm({ initialRole }: { initialRole: RegisterRole }) {
       password: '',
       phone: '',
       role: initialRole,
+      accept_terms: false,
+      marketing_opt_in: false,
     },
   })
+  const role = form.watch('role')
+
+  // Google and Microsoft skip the resolver, so they ask for the box here.
+  function ensureAccepted(): boolean {
+    if (form.getValues('accept_terms')) return true
+    form.setError('accept_terms', { message: CONSENT_REQUIRED })
+    document.getElementById('register-accept')?.focus()
+    return false
+  }
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
@@ -255,6 +284,28 @@ export function RegisterForm({ initialRole }: { initialRole: RegisterRole }) {
         )}
       />
 
+      {/*
+        A Google or Microsoft sign-up cannot carry a role (the provider sends
+        its own profile, and `handle_new_user` reads the role from metadata we
+        do not control there), so it always creates a customer. Offering it to
+        a restaurant owner would quietly give them the wrong account.
+      */}
+      {role === 'customer' ? (
+        <OAuthButtons
+          enabled={providers}
+          showUnavailable={showUnavailableProviders}
+          next={next}
+          ensureAccepted={ensureAccepted}
+          marketingOptIn={() => Boolean(form.getValues('marketing_opt_in'))}
+          separatorLabel="o regístrate con tu correo"
+        />
+      ) : (
+        <p className="text-muted-foreground rounded-control bg-muted/60 px-3 py-2 text-xs">
+          Las cuentas de comercio y de repartidor se crean con correo, para
+          asignarles el rol correcto desde el inicio.
+        </p>
+      )}
+
       <div className="space-y-1.5">
         <Label htmlFor="register-name">Nombre completo</Label>
         <Input
@@ -343,6 +394,19 @@ export function RegisterForm({ initialRole }: { initialRole: RegisterRole }) {
           {...form.register('phone')}
         />
         <FieldError id="register-phone-error" message={errors.phone?.message} />
+      </div>
+
+      <div className="space-y-3">
+        <ConsentCheckbox
+          id="register-accept"
+          audience={role === 'customer' ? 'customer' : 'partner'}
+          error={errors.accept_terms?.message}
+          {...form.register('accept_terms')}
+        />
+        <MarketingCheckbox
+          id="register-marketing"
+          {...form.register('marketing_opt_in')}
+        />
       </div>
 
       <Button

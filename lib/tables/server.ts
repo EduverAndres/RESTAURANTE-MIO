@@ -3,8 +3,8 @@ import 'server-only'
 import QRCode from 'qrcode'
 import { env } from '@/lib/env'
 import { listPaymentOptions, type PaymentOption } from '@/lib/payments'
-import { storePublicUrl } from '@/lib/subdomain'
 import { createClient } from '@/lib/supabase/server'
+import { tableEntryUrl } from '@/lib/tables/qr'
 import {
   resolveTableWithClient,
   type ResolvedTable,
@@ -31,18 +31,21 @@ export function siteBaseUrl(): string {
 }
 
 /**
- * Absolute URL printed on a table's QR code. Resolves to the store
- * subdomain when one is configured, otherwise falls back to the `/t/<slug>`
- * path so local development and deployments without wildcard DNS keep
- * working.
+ * Absolute URL printed on a table's QR code: always the path form
+ * `<origin>/t/<slug>/mesa/<token>`, never the store subdomain.
+ *
+ * A printed QR outlives every infrastructure decision. The subdomain form
+ * only resolves with wildcard DNS and a wildcard TLS certificate in place, so
+ * a deployment without them printed codes that opened nothing. The path form
+ * works on any host that serves the app; a store subdomain, where it exists,
+ * still serves the same page. `origin` comes from `tableQrBase()`.
  */
-export function tableQrTargetUrl(slug: string, token: string): string {
-  const base = storePublicUrl({
-    slug,
-    siteUrl: env.NEXT_PUBLIC_SITE_URL,
-    rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-  })
-  return `${base}/mesa/${token}`
+export function tableQrTargetUrl(
+  origin: string,
+  slug: string,
+  token: string,
+): string {
+  return tableEntryUrl(origin, slug, token)
 }
 
 /** Inline SVG markup for a QR code; rendered server-side, no client library. */

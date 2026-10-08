@@ -1,4 +1,4 @@
-import { HeartIcon, RotateCcwIcon } from 'lucide-react'
+import { FlameIcon, HeartIcon, RotateCcwIcon, ZapIcon } from 'lucide-react'
 import { Suspense } from 'react'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { ForbiddenToast } from './forbidden-toast'
@@ -10,12 +10,18 @@ import {
 } from './store-grid'
 import { CategoryCarousel } from '@/components/home/category-carousel'
 import { HomeHero } from '@/components/home/home-hero'
-import { HowItWorks } from '@/components/home/how-it-works'
+import { BenefitsSection } from '@/components/home/benefits-section'
+import { MarketplaceCategories } from '@/components/home/marketplace-categories'
+import { MerchantSection } from '@/components/home/merchant-section'
+import { SocialProof } from '@/components/home/social-proof'
 import { StoreRail } from '@/components/home/store-rail'
+import { TrustBar } from '@/components/home/trust-bar'
 import { type StoreCardData } from '@/components/store/store-card'
 import { StoreGridSkeleton } from '@/components/store/store-card-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getCurrentUser } from '@/lib/auth'
+import { etaOf, isFast, isPopular } from '@/lib/marketplace/highlights'
+import { summarizeVerticals } from '@/lib/marketplace/verticals'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +32,9 @@ interface HomePageProps {
 
 /** How many stores the rail shows before the full grid takes over. */
 const NEARBY_SHORTLIST = 8
+
+/** A themed rail ("Entrega rápida", "Más populares") needs this many cards. */
+const THEMED_RAIL_MIN = 3
 
 /** Stores the customer ordered from recently, most recent first. */
 async function fetchReorderStores(
@@ -87,9 +96,21 @@ async function StoreSections({ category }: { category: string | null }) {
     ? await fetchReorderStores(current.user.id, stores)
     : []
   const nearby = stores.slice(0, NEARBY_SHORTLIST)
+  // Same rule as the "Cerca de ti" rail below: a themed shortlist only earns
+  // its place when the full grid is long enough that it is not a repeat.
+  const shortlists = !category && stores.length > NEARBY_SHORTLIST
+  const fast = stores
+    .filter(isFast)
+    .sort((a, b) => etaOf(a) - etaOf(b))
+    .slice(0, NEARBY_SHORTLIST)
+  const popular = stores.filter(isPopular).slice(0, NEARBY_SHORTLIST)
 
   return (
     <>
+      {!category ? (
+        <MarketplaceCategories verticals={summarizeVerticals(stores)} />
+      ) : null}
+
       <div className="mb-8">
         <CategoryCarousel categories={categories} />
       </div>
@@ -154,12 +175,32 @@ async function StoreSections({ category }: { category: string | null }) {
         </section>
       ) : null}
 
+      {shortlists && popular.length >= THEMED_RAIL_MIN ? (
+        <ShortcutSection
+          id="populares"
+          title="Los más populares"
+          icon={
+            <FlameIcon aria-hidden="true" className="text-primary size-4" />
+          }
+          stores={popular}
+        />
+      ) : null}
+
+      {shortlists && fast.length >= THEMED_RAIL_MIN ? (
+        <ShortcutSection
+          id="rapidos"
+          title="Entrega rápida"
+          icon={<ZapIcon aria-hidden="true" className="text-primary size-4" />}
+          stores={fast}
+        />
+      ) : null}
+
       <div className="mb-5">
         <h2
           id="restaurantes-title"
           className="text-h2 font-display font-semibold"
         >
-          {category ? category : 'Todos los restaurantes'}
+          {category ? category : 'Todos los negocios'}
         </h2>
       </div>
       <StoreGrid stores={stores} category={category} />
@@ -170,6 +211,14 @@ async function StoreSections({ category }: { category: string | null }) {
 function SectionsSkeleton() {
   return (
     <>
+      <div
+        aria-hidden="true"
+        className="mb-10 grid grid-cols-4 gap-2 sm:gap-3 lg:grid-cols-8"
+      >
+        {Array.from({ length: 8 }, (_, index) => (
+          <Skeleton key={index} className="rounded-card h-28" />
+        ))}
+      </div>
       <div aria-hidden="true" className="mb-8 flex gap-2 overflow-hidden">
         {Array.from({ length: 6 }, (_, index) => (
           <Skeleton key={index} className="rounded-pill h-12 w-32 shrink-0" />
@@ -193,6 +242,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <HomeHero location={location} />
 
+      <TrustBar />
+
       <section
         id="restaurantes"
         className="container-page scroll-mt-24 py-10 lg:py-14"
@@ -203,7 +254,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </Suspense>
       </section>
 
-      <HowItWorks />
+      <BenefitsSection />
+
+      {/* Below the fold and optional by design: it renders nothing until
+          there is enough real proof, so it needs no placeholder either. */}
+      <Suspense fallback={null}>
+        <SocialProof />
+      </Suspense>
+
+      <MerchantSection />
 
       <SiteFooter />
     </>

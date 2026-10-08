@@ -12,7 +12,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 
 export const STORE_CARD_COLUMNS =
-  'id, slug, name, category, logo_url, cover_url, rating_avg, rating_count, prep_time_min, delivery_fee, is_open'
+  'id, slug, name, category, logo_url, cover_url, rating_avg, rating_count, prep_time_min, delivery_fee, min_order, is_open'
 
 const NEARBY_RADIUS_KM = 15
 
@@ -63,6 +63,7 @@ export async function fetchStores(
         rating_count: store.rating_count,
         prep_time_min: store.prep_time_min,
         delivery_fee: store.delivery_fee,
+        min_order: store.min_order,
         is_open: store.is_open,
         distance_km: Number(store.distance_km),
         eta_min: estimateEtaMinutes({
