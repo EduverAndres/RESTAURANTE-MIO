@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { usePushSubscription } from '@/hooks/use-push-subscription'
 import { Label } from '@/components/ui/label'
@@ -27,10 +27,32 @@ function useNeedsHomeScreenInstall(): boolean {
   return needsInstall
 }
 
+/**
+ * Why push is missing, read after mount. Push needs a service worker, which
+ * browsers only allow on https (or localhost): on `http://<IP>` the toggle
+ * used to vanish and the merchant never learned why no alert arrived.
+ */
+function useUnavailableReason(): string {
+  const [reason, setReason] = useState('')
+  useEffect(() => {
+    setReason(
+      window.isSecureContext === false
+        ? 'Las notificaciones push necesitan que el sitio use HTTPS. Mientras tanto, mantén esta pestaña abierta para ver los pedidos al instante.'
+        : 'Este navegador no permite notificaciones push. Prueba con Chrome, Edge o Firefox.',
+    )
+  }, [])
+  return reason
+}
+
 interface PushToggleProps {
   /** Server-computed: `pushConfigured()`. Hides the toggle when false. */
   enabled: boolean
   className?: string
+  /**
+   * Say why when the browser cannot do push (menus and /account). Off in the
+   * compact desktop header, where a sentence does not fit.
+   */
+  explainUnavailable?: boolean
 }
 
 /**
@@ -38,11 +60,18 @@ interface PushToggleProps {
  * the courier header. Renders nothing when the browser lacks push support
  * or the server has no VAPID keys configured.
  */
-export function PushToggle({ enabled, className }: PushToggleProps) {
+export function PushToggle({
+  enabled,
+  className,
+  explainUnavailable = false,
+}: PushToggleProps) {
   const { state, pending, error, subscribe, unsubscribe } =
     usePushSubscription()
+  // Unique per instance: the header and the mobile menu can both render one.
+  const switchId = useId()
 
   const needsInstall = useNeedsHomeScreenInstall()
+  const unavailableReason = useUnavailableReason()
 
   useEffect(() => {
     if (error) toast.error(error)
@@ -59,7 +88,17 @@ export function PushToggle({ enabled, className }: PushToggleProps) {
   ) : null
 
   if (state === 'unsupported') {
-    return hint ? <div className={className}>{hint}</div> : null
+    if (hint) return <div className={className}>{hint}</div>
+    if (explainUnavailable && unavailableReason) {
+      return (
+        <p
+          className={cn('text-muted-foreground max-w-prose text-xs', className)}
+        >
+          {unavailableReason}
+        </p>
+      )
+    }
+    return null
   }
 
   const checked = state === 'subscribed'
@@ -69,14 +108,14 @@ export function PushToggle({ enabled, className }: PushToggleProps) {
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
       <Label
-        htmlFor="push-toggle"
+        htmlFor={switchId}
         className="text-muted-foreground flex items-center gap-2 text-sm"
       >
         Notificaciones push
         <span className="text-foreground font-medium">{label}</span>
       </Label>
       <Switch
-        id="push-toggle"
+        id={switchId}
         checked={checked}
         disabled={pending || state === 'checking' || state === 'denied'}
         onCheckedChange={(next) => {

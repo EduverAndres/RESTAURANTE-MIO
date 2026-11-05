@@ -119,7 +119,9 @@ export default async function AccountPage() {
               Notificaciones
             </h2>
             <div className="rounded-card border-border bg-card shadow-soft space-y-3 border p-4">
-              {pushConfigured() ? <PushToggle enabled /> : null}
+              {pushConfigured() ? (
+                <PushToggle enabled explainUnavailable />
+              ) : null}
               <SoundToggle />
             </div>
           </div>
