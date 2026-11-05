@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { ACTIVE_STORE_COOKIE, isUuid } from '@/lib/dashboard/active-store'
+import { secureCookieFlag } from '@/lib/http/secure-cookie'
 import { isValidSlug } from '@/lib/slug'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -129,7 +130,7 @@ export async function createStore(
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: await secureCookieFlag(),
     maxAge: ONE_YEAR_SECONDS,
   })
   revalidateStorePages()
