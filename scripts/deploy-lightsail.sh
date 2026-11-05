@@ -81,6 +81,25 @@ npm run build
 cp -r public .next/standalone/
 cp -r .next/static .next/standalone/.next/
 
+# `next build` copies only .env and .env.production into the standalone
+# folder, and server.js loads its environment from there. Without the local
+# files the store renders (NEXT_PUBLIC_* are baked in at build time) but
+# every order fails: the server secrets are missing at runtime.
+for file in .env.local .env.production.local; do
+  if [ -f "$file" ]; then
+    cp "$file" .next/standalone/
+    chmod 600 ".next/standalone/$file"
+    echo "Copiado $file a .next/standalone/"
+  fi
+done
+if ! grep -qsE '^(SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY)=.+' \
+  .next/standalone/.env .next/standalone/.env.production \
+  .next/standalone/.env.local .next/standalone/.env.production.local; then
+  echo "AVISO: ningún .env tiene SUPABASE_SECRET_KEY ni SUPABASE_SERVICE_ROLE_KEY."
+  echo "Sin una de ellas no se pueden crear pedidos. Si el servicio las recibe"
+  echo "por pm2 o systemd, ignora este aviso."
+fi
+
 step "7. Reiniciando ${SERVICE}"
 if command -v pm2 > /dev/null && pm2 describe "$SERVICE" > /dev/null 2>&1; then
   pm2 restart "$SERVICE" --update-env
