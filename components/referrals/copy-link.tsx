@@ -11,13 +11,26 @@ export function CopyLink({ value, label }: { value: string; label: string }) {
   const input = useRef<HTMLInputElement>(null)
   const [copied, setCopied] = useState(false)
 
+  function flashCopied() {
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      flashCopied()
+      return
     } catch {
-      input.current?.select()
+      // `navigator.clipboard` only exists on https (and localhost): on a
+      // site served over plain http it is undefined and this throws.
+    }
+    input.current?.select()
+    try {
+      // The legacy command still copies the selection on http.
+      if (document.execCommand('copy')) flashCopied()
+    } catch {
+      // Left selected: the visitor can copy it by hand.
     }
   }
 

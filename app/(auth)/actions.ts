@@ -63,14 +63,21 @@ export async function signInWithPassword(
   return { ok: true, redirectTo }
 }
 
+/**
+ * `next` is where the visitor was going (a cart on its way to /checkout, a
+ * table guest's store). It used to be dropped here, so a customer who signed
+ * up from "Ir a pagar" confirmed the email and landed on the home page.
+ */
 export async function signUp(
   input: RegisterInput,
+  next?: string | null,
 ): Promise<ActionResult<{ redirectTo: string | null; email: string }>> {
   const parsed = registerSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
 
   const { email, password, full_name, phone, role, marketing_opt_in } =
     parsed.data
+  const landing = safeNextPath(next) ?? getRoleHome(role)
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -84,7 +91,7 @@ export async function signUp(
         role,
         ...legalMetadata('register', marketing_opt_in),
       },
-      emailRedirectTo: authRedirectUrl(getRoleHome(role)),
+      emailRedirectTo: authRedirectUrl(landing),
     },
   })
   if (error) return { ok: false, error: mapAuthError(error) }
@@ -107,7 +114,7 @@ export async function signUp(
   return {
     ok: true,
     email,
-    redirectTo: data.session ? getRoleHome(role) : null,
+    redirectTo: data.session ? landing : null,
   }
 }
 
