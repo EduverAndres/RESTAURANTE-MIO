@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { logger } from '@/lib/log/logger'
+import { bogotaDate } from '@/lib/plans'
 import { recordRefund } from '@/lib/refunds/record'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -230,6 +231,14 @@ export async function generatePayouts(
   const parsedEnd = periodDateSchema.safeParse(periodEnd)
   if (!parsedStart.success || !parsedEnd.success || periodStart > periodEnd) {
     return { ok: false, error: 'Selecciona un periodo válido.' }
+  }
+  // A payout row closes its period for good (one per store and range), so a
+  // period that has not ended yet would leave its remaining days unsettled.
+  if (periodEnd >= bogotaDate(new Date())) {
+    return {
+      ok: false,
+      error: 'Ese periodo todavía no termina. Liquida periodos ya cerrados.',
+    }
   }
 
   await requireRole(['admin'])

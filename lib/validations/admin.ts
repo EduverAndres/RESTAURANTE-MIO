@@ -29,7 +29,7 @@ export const storePlanSchema = z.object({
   plan: z.enum(PLAN_IDS, { error: 'Elige un plan válido.' }),
   founderUntil: z
     .string()
-    .regex(/^d{4}-d{2}-d{2}$/, 'Fecha inválida.')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida.')
     .nullable(),
 })
 export type StorePlanInput = z.infer<typeof storePlanSchema>
