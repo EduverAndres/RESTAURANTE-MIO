@@ -20,6 +20,7 @@ import {
   periodBounds,
   type PlatformOrder,
 } from '@/lib/metrics/aggregate'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Métricas' }
@@ -40,11 +41,16 @@ export default async function AdminMetricsPage({
 
   const supabase = await createClient()
   const [{ data: orders }, { count: activeStoresTotal }] = await Promise.all([
-    supabase
-      .from('orders')
-      .select('store_id, status, subtotal, platform_fee, created_at')
-      .gte('created_at', bounds.start.toISOString())
-      .limit(20000),
+    // Every order of the period: one request stops at 1000 rows.
+    fetchAllRows((from, to) =>
+      supabase
+        .from('orders')
+        .select('store_id, status, subtotal, platform_fee, created_at')
+        .gte('created_at', bounds.start.toISOString())
+        .order('created_at')
+        .order('id')
+        .range(from, to),
+    ),
     supabase
       .from('stores')
       .select('id', { count: 'exact', head: true })

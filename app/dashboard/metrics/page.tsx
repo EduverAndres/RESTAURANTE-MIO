@@ -26,6 +26,7 @@ import {
   type MetricsOrder,
   type PeriodBounds,
 } from '@/lib/metrics/aggregate'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Métricas' }
@@ -42,20 +43,28 @@ async function fetchPeriodData(
   const supabase = await createClient()
   const since = bounds.start.toISOString()
   const [ordersResult, itemsResult] = await Promise.all([
-    supabase
-      .from('orders')
-      .select('id, status, total, created_at')
-      .eq('store_id', storeId)
-      .gte('created_at', since)
-      .limit(5000),
-    supabase
-      .from('order_items')
-      .select(
-        'order_id, product_id, name_snapshot, quantity, orders!inner(store_id, created_at)',
-      )
-      .eq('orders.store_id', storeId)
-      .gte('orders.created_at', since)
-      .limit(20000),
+    // Every row of the period: one request stops at 1000 rows.
+    fetchAllRows((from, to) =>
+      supabase
+        .from('orders')
+        .select('id, status, total, created_at')
+        .eq('store_id', storeId)
+        .gte('created_at', since)
+        .order('created_at')
+        .order('id')
+        .range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase
+        .from('order_items')
+        .select(
+          'order_id, product_id, name_snapshot, quantity, orders!inner(store_id, created_at)',
+        )
+        .eq('orders.store_id', storeId)
+        .gte('orders.created_at', since)
+        .order('id')
+        .range(from, to),
+    ),
   ])
   if (ordersResult.error)
     console.error('Failed to load metrics orders', ordersResult.error)

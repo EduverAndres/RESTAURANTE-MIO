@@ -5,6 +5,7 @@ import {
 } from '@/components/dashboard/loyalty/coupons-manager'
 import { LoyaltyForm } from '@/components/dashboard/loyalty/loyalty-form'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Fidelidad' }
@@ -36,13 +37,17 @@ export default async function LoyaltyPage() {
         .eq('store_id', store.id)
         .order('created_at', { ascending: false }),
       // The owner reads its store's orders under RLS; enough to count uses.
-      supabase
-        .from('orders')
-        .select('coupon_id')
-        .eq('store_id', store.id)
-        .not('coupon_id', 'is', null)
-        .neq('status', 'cancelled')
-        .limit(5000),
+      // Paged: one request stops at 1000 rows.
+      fetchAllRows((from, to) =>
+        supabase
+          .from('orders')
+          .select('coupon_id')
+          .eq('store_id', store.id)
+          .not('coupon_id', 'is', null)
+          .neq('status', 'cancelled')
+          .order('id')
+          .range(from, to),
+      ),
     ])
 
   const usesById = new Map<string, number>()
