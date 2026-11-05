@@ -18,6 +18,7 @@ import { PAYOUT_STATUS_LABELS } from '@/lib/payouts/labels'
 import { isDebtToPlatform } from '@/lib/payouts/reversal'
 import { fetchPlanFees } from '@/lib/plans-server'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Plan y liquidaciones' }
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,7 @@ export default async function DashboardPayoutsPage() {
   const { store } = await requireActiveStoreRow('/dashboard/payouts')
   const supabase = await createClient()
 
-  const [{ data: payouts }, fees] = await Promise.all([
+  const [{ data: payouts, error }, fees] = await Promise.all([
     supabase
       .from('payouts')
       .select(
@@ -37,6 +38,7 @@ export default async function DashboardPayoutsPage() {
       .limit(100),
     fetchPlanFees(supabase),
   ])
+  throwOnQueryError(error, 'merchant payouts')
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

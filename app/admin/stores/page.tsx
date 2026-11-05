@@ -18,6 +18,7 @@ import { requireRole } from '@/lib/auth'
 import { APP_NAME, storeUrl } from '@/lib/env'
 import { formatDateCO } from '@/lib/format-date'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 import { STORE_STATUSES } from '@/lib/validations/admin'
 import type { StoreStatus } from '@/types/app'
 
@@ -57,7 +58,8 @@ export default async function AdminStoresPage({
     )
     .order('created_at', { ascending: false })
   if (filter !== 'todas') query = query.eq('status', filter)
-  const { data: stores } = await query
+  const { data: stores, error } = await query
+  throwOnQueryError(error, 'admin stores')
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">

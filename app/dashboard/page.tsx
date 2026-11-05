@@ -8,6 +8,7 @@ import {
   type BoardOrder,
 } from '@/lib/orders/kanban'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Pedidos' }
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,7 @@ async function fetchBoardOrders(storeId: string): Promise<BoardOrder[]> {
   const supabase = await createClient()
   const since = startOfLocalDay(new Date()).toISOString()
   const terminal = TERMINAL_STATUSES.map((status) => `"${status}"`).join(',')
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select(
       'id, short_code, status, type, table_number, total, payment_status, payment_method, notes, created_at, customer:profiles!orders_customer_id_fkey(full_name), order_items(name_snapshot, quantity)',
@@ -25,6 +26,8 @@ async function fetchBoardOrders(storeId: string): Promise<BoardOrder[]> {
     .or(`status.not.in.(${terminal}),created_at.gte.${since}`)
     .order('created_at', { ascending: true })
     .limit(200)
+  // An empty board must mean "no orders", never "the read failed".
+  throwOnQueryError(error, 'merchant order board')
 
   return (data ?? []).map((order) => ({
     id: order.id,

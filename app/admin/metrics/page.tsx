@@ -22,6 +22,7 @@ import {
 } from '@/lib/metrics/aggregate'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Métricas' }
 export const dynamic = 'force-dynamic'
@@ -40,7 +41,10 @@ export default async function AdminMetricsPage({
   const bounds = periodBounds(period, new Date())
 
   const supabase = await createClient()
-  const [{ data: orders }, { count: activeStoresTotal }] = await Promise.all([
+  const [
+    { data: orders, error: ordersError },
+    { count: activeStoresTotal, error: storesError },
+  ] = await Promise.all([
     // Every order of the period: one request stops at 1000 rows.
     fetchAllRows((from, to) =>
       supabase
@@ -56,6 +60,8 @@ export default async function AdminMetricsPage({
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
   ])
+  throwOnQueryError(ordersError, 'admin metrics orders')
+  throwOnQueryError(storesError, 'admin metrics active stores')
 
   const platformOrders: PlatformOrder[] = (orders ?? []).map((order) => ({
     store_id: order.store_id,

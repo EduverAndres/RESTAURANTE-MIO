@@ -28,6 +28,7 @@ import {
 } from '@/lib/metrics/aggregate'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Métricas' }
 export const dynamic = 'force-dynamic'
@@ -66,10 +67,8 @@ async function fetchPeriodData(
         .range(from, to),
     ),
   ])
-  if (ordersResult.error)
-    console.error('Failed to load metrics orders', ordersResult.error)
-  if (itemsResult.error)
-    console.error('Failed to load metrics items', itemsResult.error)
+  throwOnQueryError(ordersResult.error, 'merchant metrics orders')
+  throwOnQueryError(itemsResult.error, 'merchant metrics items')
 
   return {
     orders: (ordersResult.data ?? []).map((order) => ({

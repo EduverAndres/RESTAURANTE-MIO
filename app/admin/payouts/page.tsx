@@ -17,6 +17,7 @@ import { formatDateCO } from '@/lib/format-date'
 import { PAYOUT_STATUS_LABELS } from '@/lib/payouts/labels'
 import { isDebtToPlatform } from '@/lib/payouts/reversal'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Liquidaciones' }
 export const dynamic = 'force-dynamic'
@@ -25,13 +26,14 @@ export default async function AdminPayoutsPage() {
   await requireRole(['admin'], '/admin/payouts')
   const supabase = await createClient()
 
-  const { data: payouts } = await supabase
+  const { data: payouts, error } = await supabase
     .from('payouts')
     .select(
       'id, store_id, period_start, period_end, gross, commission, cash_collected, plan_fee, net, status, paid_at, stores(name, slug)',
     )
     .order('period_start', { ascending: false })
     .limit(200)
+  throwOnQueryError(error, 'admin payouts')
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">

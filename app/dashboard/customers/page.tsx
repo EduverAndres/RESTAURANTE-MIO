@@ -17,6 +17,7 @@ import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { formatCOP } from '@/lib/format'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Clientes' }
 export const dynamic = 'force-dynamic'
@@ -41,10 +42,7 @@ async function fetchCustomers(storeId: string): Promise<CustomerRow[]> {
       .order('id')
       .range(from, to),
   )
-  if (error) {
-    console.error('Failed to load customers', error)
-    return []
-  }
+  throwOnQueryError(error, 'merchant customers')
   const orders: CustomerOrder[] = (data ?? []).map((order) => ({
     customer_id: order.customer_id,
     status: order.status,

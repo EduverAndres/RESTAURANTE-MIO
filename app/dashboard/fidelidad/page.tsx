@@ -7,6 +7,7 @@ import { LoyaltyForm } from '@/components/dashboard/loyalty/loyalty-form'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Fidelidad' }
 export const dynamic = 'force-dynamic'
@@ -20,35 +21,39 @@ export default async function LoyaltyPage() {
   const { store } = await requireActiveStoreRow('/dashboard/fidelidad')
   const supabase = await createClient()
 
-  const [{ data: program }, { data: coupons }, { data: used }] =
-    await Promise.all([
+  const [
+    { data: program, error: programError },
+    { data: coupons, error: couponsError },
+    { data: used, error: usedError },
+  ] = await Promise.all([
+    supabase
+      .from('loyalty_programs')
+      .select('enabled, stamps_required, min_order, reward_label, reward_value')
+      .eq('store_id', store.id)
+      .maybeSingle(),
+    supabase
+      .from('coupons')
+      .select(
+        'id, code, kind, value, min_order, starts_at, ends_at, max_uses, active',
+      )
+      .eq('store_id', store.id)
+      .order('created_at', { ascending: false }),
+    // The owner reads its store's orders under RLS; enough to count uses.
+    // Paged: one request stops at 1000 rows.
+    fetchAllRows((from, to) =>
       supabase
-        .from('loyalty_programs')
-        .select(
-          'enabled, stamps_required, min_order, reward_label, reward_value',
-        )
+        .from('orders')
+        .select('coupon_id')
         .eq('store_id', store.id)
-        .maybeSingle(),
-      supabase
-        .from('coupons')
-        .select(
-          'id, code, kind, value, min_order, starts_at, ends_at, max_uses, active',
-        )
-        .eq('store_id', store.id)
-        .order('created_at', { ascending: false }),
-      // The owner reads its store's orders under RLS; enough to count uses.
-      // Paged: one request stops at 1000 rows.
-      fetchAllRows((from, to) =>
-        supabase
-          .from('orders')
-          .select('coupon_id')
-          .eq('store_id', store.id)
-          .not('coupon_id', 'is', null)
-          .neq('status', 'cancelled')
-          .order('id')
-          .range(from, to),
-      ),
-    ])
+        .not('coupon_id', 'is', null)
+        .neq('status', 'cancelled')
+        .order('id')
+        .range(from, to),
+    ),
+  ])
+  throwOnQueryError(programError, 'loyalty program')
+  throwOnQueryError(couponsError, 'coupons')
+  throwOnQueryError(usedError, 'coupon uses')
 
   const usesById = new Map<string, number>()
   for (const order of used ?? []) {
