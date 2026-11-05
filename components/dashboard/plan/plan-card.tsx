@@ -96,9 +96,9 @@ export function PlanCard({
             <tr className="text-muted-foreground text-left text-xs">
               <th className="py-1 pr-4 font-medium">Pedido</th>
               <th className="py-1 pr-4 text-right font-medium">
-                Te pagan en efectivo o datáfono
+                En efectivo o datáfono
               </th>
-              <th className="py-1 text-right font-medium">Te pagan en línea</th>
+              <th className="py-1 text-right font-medium">En línea</th>
             </tr>
           </thead>
           <tbody className="tabular-nums">

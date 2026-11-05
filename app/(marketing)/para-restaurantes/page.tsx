@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { ForRestaurants } from '@/components/marketing/for-restaurants'
+import { PlansSection } from '@/components/marketing/plans-section'
 import { FadeIn } from '@/components/motion/fade-in'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/env'
@@ -10,7 +11,7 @@ import { APP_NAME } from '@/lib/env'
 export const metadata: Metadata = {
   title: `${APP_NAME} · El canal propio de tu restaurante`,
   description:
-    'Recibe pedidos a domicilio, para recoger y desde la mesa con tu propia marca, sin pagar comisión por cada venta.',
+    'Recibe pedidos a domicilio, para recoger y desde la mesa con tu propia marca. Sin mensualidad: 0 % en la mesa y 6 % en domicilio.',
 }
 
 /**
@@ -42,6 +43,8 @@ export default function OwnerLandingPage() {
   return (
     <>
       <ForRestaurants standalone />
+
+      <PlansSection />
 
       <section className="border-border/60 border-t">
         <div className="container-page py-section">

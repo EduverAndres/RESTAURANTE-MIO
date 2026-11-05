@@ -1,7 +1,11 @@
-import { ArrowRightIcon, PaletteIcon, QrCodeIcon, WalletIcon } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  PaletteIcon,
+  QrCodeIcon,
+  WalletIcon,
+} from 'lucide-react'
 import Link from 'next/link'
 import { SavingsCalculator } from '@/components/marketing/savings-calculator'
-import { FadeIn } from '@/components/motion/fade-in'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -25,8 +29,8 @@ const PROMISES = [
   },
   {
     icon: WalletIcon,
-    title: 'La plata te llega directo',
-    body: 'Cobras con tus propias credenciales de pago. Nosotros no tocamos la plata de tus ventas en ningún momento.',
+    title: 'Cuentas claras',
+    body: 'Lo que te pagan en efectivo es tuyo desde el primer momento. Lo que te pagan en línea te lo transferimos, y en tu panel ves cada venta, la comisión y cada transferencia.',
   },
 ] as const
 
@@ -41,10 +45,16 @@ export function ForRestaurants({
     <section
       id="para-restaurantes"
       aria-labelledby="para-restaurantes-title"
-      className={standalone ? 'bg-card' : 'border-border/60 bg-card scroll-mt-24 border-t'}
+      className={
+        standalone
+          ? 'bg-card'
+          : 'border-border/60 bg-card scroll-mt-24 border-t'
+      }
     >
       <div className="container-page py-section">
-        <FadeIn inView className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-14">
+        {/* No entrance animation: the headline is this page's largest paint
+            and has to be in the HTML at full opacity. */}
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-14">
           <div className="space-y-8">
             <div className="space-y-3">
               <p className="text-primary text-xs font-semibold tracking-wide uppercase">
@@ -59,8 +69,7 @@ export function ForRestaurants({
               </Heading>
               <p className="text-muted-foreground text-pretty">
                 Recibe pedidos a domicilio, para recoger y desde la mesa con tu
-                propia marca. Una mensualidad fija, no un porcentaje de cada
-                venta.
+                propia marca. Sin mensualidad: pagas solo cuando vendes.
               </p>
             </div>
 
@@ -71,8 +80,12 @@ export function ForRestaurants({
                     <Icon aria-hidden="true" className="size-5" />
                   </span>
                   <div className="space-y-1">
-                    <h3 className="font-display text-lg font-semibold">{title}</h3>
-                    <p className="text-muted-foreground text-sm text-pretty">{body}</p>
+                    <h3 className="font-display text-lg font-semibold">
+                      {title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm text-pretty">
+                      {body}
+                    </p>
                   </div>
                 </li>
               ))}
@@ -103,7 +116,7 @@ export function ForRestaurants({
             </div>
             <SavingsCalculator />
           </div>
-        </FadeIn>
+        </div>
       </div>
     </section>
   )

@@ -23,9 +23,9 @@ import { Button } from '@/components/ui/button'
  */
 const MERCHANT_BENEFITS = [
   {
-    title: 'Menores comisiones',
+    title: 'Sin mensualidad',
     description:
-      'Una mensualidad fija en lugar de un porcentaje de cada venta. Haz la cuenta con tus números.',
+      'Pagas solo cuando vendes: 0 % en la mesa y 6 % en domicilio y para recoger. Haz la cuenta con tus números.',
     icon: WalletIcon,
   },
   {

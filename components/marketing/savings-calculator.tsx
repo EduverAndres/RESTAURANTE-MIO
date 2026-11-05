@@ -1,38 +1,38 @@
 'use client'
 
 import { useId, useState } from 'react'
-import {
-  BREAK_EVEN_UNREACHABLE,
-  compareChannelCost,
-} from '@/lib/marketing/channel-cost'
 import { formatCOP } from '@/lib/format'
+import { compareChannelCost } from '@/lib/marketing/channel-cost'
+import { BASE_COMMISSION_PCT, ONLINE_PAYMENT_PCT } from '@/lib/plans'
 
 /**
  * The whole sales argument, as one number the merchant recognises.
  *
- * Both inputs are theirs: what they sell and what they are charged. Nothing
- * here asserts a competitor's rate, and the result is allowed to come out
- * negative — a small restaurant gets an honest "not yet" and the number stays
- * believable for the one it does suit.
+ * The inputs are theirs: what they sell through their current app, what that
+ * app charges, and how much of it is paid online. Nothing here asserts a
+ * competitor's rate. Our side is the Normal plan exactly as it is charged
+ * (lib/plans.ts), so the result is allowed to come out negative.
  */
-
-const SUBSCRIPTION = 149_000
-
 export function SavingsCalculator() {
   const revenueId = useId()
   const rateId = useId()
+  const onlineId = useId()
   const [revenue, setRevenue] = useState(10_000_000)
   const [rate, setRate] = useState(25)
+  const [online, setOnline] = useState(50)
 
   const result = compareChannelCost({
     monthlyRevenue: revenue,
     commissionPct: rate,
-    subscription: SUBSCRIPTION,
+    onlineSharePct: online,
+    ourCommissionPct: BASE_COMMISSION_PCT,
+    ourOnlinePct: ONLINE_PAYMENT_PCT,
+    ourMonthlyFee: 0,
   })
 
   return (
-    <div className="bg-card rounded-card border-border/60 border p-card shadow-[var(--shadow-2)]">
-      <div className="grid gap-card sm:grid-cols-2">
+    <div className="bg-card rounded-card border-border/60 p-card border shadow-[var(--shadow-2)]">
+      <div className="gap-card grid sm:grid-cols-3">
         <div className="space-y-2">
           <label htmlFor={revenueId} className="text-small font-medium">
             ¿Cuánto vendes al mes por apps de domicilio?
@@ -66,7 +66,24 @@ export function SavingsCalculator() {
             onChange={(event) => setRate(Number(event.target.value))}
             className="accent-primary w-full"
           />
-          <p className="text-h3 font-display tabular-nums">{rate}%</p>
+          <p className="text-h3 font-display tabular-nums">{rate} %</p>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor={onlineId} className="text-small font-medium">
+            ¿Cuánto te pagan en línea?
+          </label>
+          <input
+            id={onlineId}
+            type="range"
+            min={0}
+            max={100}
+            step={10}
+            value={online}
+            onChange={(event) => setOnline(Number(event.target.value))}
+            className="accent-primary w-full"
+          />
+          <p className="text-h3 font-display tabular-nums">{online} %</p>
         </div>
       </div>
 
@@ -80,7 +97,9 @@ export function SavingsCalculator() {
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-small">Tu propio canal</dt>
+          <dt className="text-muted-foreground text-small">
+            Con Cerquita ({result.ourEffectivePct.toLocaleString('es-CO')} %)
+          </dt>
           <dd className="text-h3 font-display tabular-nums">
             {formatCOP(result.ourCost)}
           </dd>
@@ -99,24 +118,21 @@ export function SavingsCalculator() {
         </div>
       </dl>
 
-      <p className="text-muted-foreground mt-5 text-small">
+      <p className="text-muted-foreground text-small mt-5">
         {result.worthIt ? (
           <>
             Son <strong>{formatCOP(result.yearlySaving)}</strong> al año que
             dejan de irse en comisiones.
           </>
-        ) : result.breakEvenRevenue === BREAK_EVEN_UNREACHABLE ? (
-          <>
-            Si no te cobran comisión, quédate donde estás. Vuelve el día que
-            empiecen a cobrarte.
-          </>
         ) : (
           <>
-            Todavía no te conviene, y preferimos decírtelo: la cuenta empieza a
-            darte a partir de{' '}
-            <strong>{formatCOP(result.breakEvenRevenue)}</strong> al mes.
+            Con estos números tu app de hoy te sale igual o más barata, y
+            preferimos decírtelo.
           </>
-        )}
+        )}{' '}
+        Calculado con el plan Normal: sin mensualidad, {BASE_COMMISSION_PCT} %
+        en domicilio y para recoger, y {ONLINE_PAYMENT_PCT} % más en lo que te
+        paguen en línea. En la mesa no cobramos comisión.
       </p>
     </div>
   )
