@@ -14,10 +14,12 @@ import { TableContextSetter } from '@/components/store/table-context-setter'
 import type { CartTable } from '@/lib/cart'
 import { haversineKm, latLngOf } from '@/lib/geo'
 import { LOCATION_COOKIE, parseLocation } from '@/lib/location'
+import { planOfStore } from '@/lib/plans'
 import { fetchIsFavorite } from '@/lib/store/data'
 import { storeHoursState } from '@/lib/store/hours'
 import { resolveSections } from '@/lib/store/sections'
 import { ensureReadable, normalizeTheme, themeToCssVars } from '@/lib/theme'
+import { themeForPlan } from '@/lib/theme/plan-gate'
 import type { Store } from '@/types/app'
 
 // Server rendering shared by /t/[slug] (regular storefront) and
@@ -69,7 +71,13 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
   // merchant saved; running it here too covers every theme stored before that
   // check existed, and any brand colour changed by other means. The merchant's
   // own colours are untouched.
-  const theme = ensureReadable(normalizeTheme(store.theme)).theme
+  //
+  // `themeForPlan` drops what the store's plan no longer includes (custom CSS
+  // and the hero video are VIP), so a store that moved down a plan stops
+  // using them without its saved theme being rewritten.
+  const theme = ensureReadable(
+    themeForPlan(normalizeTheme(store.theme), planOfStore(store)),
+  ).theme
   const hours = storeHoursState({
     schedule: store.schedule,
     isOpen: Boolean(store.is_open),

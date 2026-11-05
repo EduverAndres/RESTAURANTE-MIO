@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import type { FeaturedProductOption } from '@/components/dashboard/theme/featured-picker'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { PlanId } from '@/lib/plans'
 import type { StoreTheme } from '@/types/app'
 
 /**
@@ -50,6 +51,8 @@ export interface ThemeFormProps {
   products: FeaturedProductOption[]
   /** The preset that fits the store category, marked in the gallery. */
   suggestedPresetId: string | null
+  /** Effective plan; opens or locks the editor groups. */
+  plan: PlanId
 }
 
 export function ThemeForm(props: ThemeFormProps) {

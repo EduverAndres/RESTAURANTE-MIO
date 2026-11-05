@@ -30,6 +30,7 @@ import { ColorField, useRecentColors } from './color-field'
 import {
   EditorAccordion,
   EditorSection,
+  PlanLockNotice,
   SegmentedField,
   SliderField,
   SwitchField,
@@ -68,6 +69,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { planHas, type PlanId } from '@/lib/plans'
 import { ensureReadable } from '@/lib/theme'
 import {
   canRedo,
@@ -174,6 +176,8 @@ export interface ThemeEditorProps {
   theme: StoreTheme
   products: FeaturedProductOption[]
   suggestedPresetId: string | null
+  /** The store's plan now (a founder counts as VIP); decides what is open. */
+  plan: PlanId
 }
 
 export default function ThemeEditor({
@@ -183,7 +187,12 @@ export default function ThemeEditor({
   theme: initialTheme,
   products,
   suggestedPresetId,
+  plan,
 }: ThemeEditorProps) {
+  // The editor only opens and closes groups; the save action enforces the
+  // same rule (lib/theme/plan-gate.ts) on the server.
+  const canEdit = planHas(plan, 'theme-editor')
+  const vip = planHas(plan, 'custom-css')
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const { recent, remember } = useRecentColors()
@@ -450,7 +459,7 @@ export default function ThemeEditor({
               onColors={setLogoColors}
             />
 
-            {logoColors.length > 0 ? (
+            {canEdit && logoColors.length > 0 ? (
               <div className="space-y-1.5">
                 <p className="text-sm leading-none font-medium">
                   Colores de tu logo
@@ -481,19 +490,22 @@ export default function ThemeEditor({
               </div>
             ) : null}
 
-            <SegmentedField
-              label="Modo de color"
-              value={theme.mode}
-              options={choices(THEME_MODES, THEME_MODE_LABELS)}
-              onChange={(mode) => patch({ mode })}
-              hint="«Según el cliente» sigue la preferencia del teléfono de quien visita."
-              columns={3}
-            />
+            {canEdit ? (
+              <SegmentedField
+                label="Modo de color"
+                value={theme.mode}
+                options={choices(THEME_MODES, THEME_MODE_LABELS)}
+                onChange={(mode) => patch({ mode })}
+                hint="«Según el cliente» sigue la preferencia del teléfono de quien visita."
+                columns={3}
+              />
+            ) : null}
           </EditorSection>
 
           {/* --------------------------------------------------------- */}
           <EditorSection
             value="colores"
+            lockedFor={canEdit ? undefined : 'mediano'}
             title="Colores"
             summary="Marca, fondo, degradado y textura"
             icon={PaletteIcon}
@@ -646,6 +658,7 @@ export default function ThemeEditor({
           {/* --------------------------------------------------------- */}
           <EditorSection
             value="tipografia"
+            lockedFor={canEdit ? undefined : 'mediano'}
             title="Tipografía"
             summary="Letras, grosor y esquinas"
             icon={TypeIcon}
@@ -707,18 +720,23 @@ export default function ThemeEditor({
             summary="La primera pantalla de tu tienda"
             icon={ImageIcon}
           >
-            <SegmentedField
-              label="Diseño de la portada"
-              value={theme.banner.layout}
-              options={choices(
-                THEME_BANNER_LAYOUTS,
-                THEME_BANNER_LAYOUT_LABELS,
-              )}
-              onChange={(layout) =>
-                patch({ banner: { ...theme.banner, layout } })
-              }
-              columns={3}
-            />
+            {canEdit ? (
+              <SegmentedField
+                label="Diseño de la portada"
+                value={theme.banner.layout}
+                // The video layout is VIP: below it, the option is not shown.
+                options={choices(
+                  THEME_BANNER_LAYOUTS.filter(
+                    (layout) => vip || layout !== 'video',
+                  ),
+                  THEME_BANNER_LAYOUT_LABELS,
+                )}
+                onChange={(layout) =>
+                  patch({ banner: { ...theme.banner, layout } })
+                }
+                columns={3}
+              />
+            ) : null}
 
             <ImageField
               label="Imagen de portada"
@@ -732,23 +750,25 @@ export default function ThemeEditor({
               }
             />
 
-            <SliderField
-              label="Oscurecido de la portada"
-              value={theme.banner.overlayOpacity}
-              min={0}
-              max={1}
-              step={0.05}
-              format={(value) => `${Math.round(value * 100)}%`}
-              hint="Súbelo si el texto no se lee bien sobre la foto."
-              onChange={(overlayOpacity) =>
-                patch(
-                  { banner: { ...theme.banner, overlayOpacity } },
-                  'overlay',
-                )
-              }
-            />
+            {canEdit ? (
+              <SliderField
+                label="Oscurecido de la portada"
+                value={theme.banner.overlayOpacity}
+                min={0}
+                max={1}
+                step={0.05}
+                format={(value) => `${Math.round(value * 100)}%`}
+                hint="Súbelo si el texto no se lee bien sobre la foto."
+                onChange={(overlayOpacity) =>
+                  patch(
+                    { banner: { ...theme.banner, overlayOpacity } },
+                    'overlay',
+                  )
+                }
+              />
+            ) : null}
 
-            {theme.banner.layout === 'video' ? (
+            {vip && theme.banner.layout === 'video' ? (
               <TextField
                 label="Video de fondo (MP4)"
                 value={theme.hero.videoUrl ?? ''}
@@ -769,13 +789,15 @@ export default function ThemeEditor({
               />
             ) : null}
 
-            <SegmentedField
-              label="Alineación"
-              value={theme.hero.align}
-              options={choices(THEME_HERO_ALIGNS, THEME_HERO_ALIGN_LABELS)}
-              onChange={(align) => patch({ hero: { ...theme.hero, align } })}
-              columns={2}
-            />
+            {canEdit ? (
+              <SegmentedField
+                label="Alineación"
+                value={theme.hero.align}
+                options={choices(THEME_HERO_ALIGNS, THEME_HERO_ALIGN_LABELS)}
+                onChange={(align) => patch({ hero: { ...theme.hero, align } })}
+                columns={2}
+              />
+            ) : null}
             <TextField
               label="Frase de bienvenida"
               value={theme.hero.tagline ?? ''}
@@ -813,50 +835,57 @@ export default function ThemeEditor({
               }
             />
 
-            <SwitchField
-              label="Mostrar el logo"
-              checked={theme.hero.showLogo}
-              onChange={(showLogo) =>
-                patch({ hero: { ...theme.hero, showLogo } })
-              }
-            />
-            {theme.hero.showLogo ? (
-              <SegmentedField
-                label="Tamaño del logo"
-                value={theme.hero.logoSize}
-                options={choices(THEME_LOGO_SIZES, THEME_LOGO_SIZE_LABELS)}
-                onChange={(logoSize) =>
-                  patch({ hero: { ...theme.hero, logoSize } })
-                }
-                columns={3}
-              />
-            ) : null}
-            <SwitchField
-              label="Mostrar la calificación"
-              checked={theme.hero.showRating}
-              onChange={(showRating) =>
-                patch({ hero: { ...theme.hero, showRating } })
-              }
-            />
-            <SwitchField
-              label="Mostrar el tiempo de entrega"
-              checked={theme.hero.showEta}
-              onChange={(showEta) =>
-                patch({ hero: { ...theme.hero, showEta } })
-              }
-            />
-            <SwitchField
-              label="Mostrar el horario"
-              checked={theme.hero.showSchedule}
-              onChange={(showSchedule) =>
-                patch({ hero: { ...theme.hero, showSchedule } })
-              }
-            />
+            {canEdit ? (
+              <>
+                <SwitchField
+                  label="Mostrar el logo"
+                  checked={theme.hero.showLogo}
+                  onChange={(showLogo) =>
+                    patch({ hero: { ...theme.hero, showLogo } })
+                  }
+                />
+                {theme.hero.showLogo ? (
+                  <SegmentedField
+                    label="Tamaño del logo"
+                    value={theme.hero.logoSize}
+                    options={choices(THEME_LOGO_SIZES, THEME_LOGO_SIZE_LABELS)}
+                    onChange={(logoSize) =>
+                      patch({ hero: { ...theme.hero, logoSize } })
+                    }
+                    columns={3}
+                  />
+                ) : null}
+                <SwitchField
+                  label="Mostrar la calificación"
+                  checked={theme.hero.showRating}
+                  onChange={(showRating) =>
+                    patch({ hero: { ...theme.hero, showRating } })
+                  }
+                />
+                <SwitchField
+                  label="Mostrar el tiempo de entrega"
+                  checked={theme.hero.showEta}
+                  onChange={(showEta) =>
+                    patch({ hero: { ...theme.hero, showEta } })
+                  }
+                />
+                <SwitchField
+                  label="Mostrar el horario"
+                  checked={theme.hero.showSchedule}
+                  onChange={(showSchedule) =>
+                    patch({ hero: { ...theme.hero, showSchedule } })
+                  }
+                />
+              </>
+            ) : (
+              <PlanLockNotice plan="mediano" />
+            )}
           </EditorSection>
 
           {/* --------------------------------------------------------- */}
           <EditorSection
             value="menu"
+            lockedFor={canEdit ? undefined : 'mediano'}
             title="Menú"
             summary="Cómo se ven y se ordenan tus productos"
             icon={UtensilsIcon}
@@ -953,6 +982,7 @@ export default function ThemeEditor({
           {/* --------------------------------------------------------- */}
           <EditorSection
             value="secciones"
+            lockedFor={canEdit ? undefined : 'mediano'}
             title="Secciones"
             summary="Qué muestra tu tienda y en qué orden"
             icon={LayoutListIcon}
@@ -1137,6 +1167,7 @@ export default function ThemeEditor({
           {/* --------------------------------------------------------- */}
           <EditorSection
             value="extras"
+            lockedFor={canEdit ? undefined : 'mediano'}
             title="Extras"
             summary="Animaciones y copias del tema"
             icon={SettingsIcon}
@@ -1169,6 +1200,7 @@ export default function ThemeEditor({
           {/* --------------------------------------------------------- */}
           <EditorSection
             value="css"
+            lockedFor={vip ? undefined : 'vip'}
             title="CSS avanzado"
             summary="Solo si sabes lo que haces"
             icon={CodeIcon}

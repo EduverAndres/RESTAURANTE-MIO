@@ -1,7 +1,8 @@
 'use client'
 
 import { Accordion } from 'radix-ui'
-import { ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon, LockIcon } from 'lucide-react'
+import Link from 'next/link'
 import { useId } from 'react'
 import { FieldError } from '@/components/dashboard/store/field-error'
 import { describedBy, errorId, hintId } from '@/lib/a11y/forms'
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { PLAN_LABELS, type PlanId } from '@/lib/plans'
 import { cn } from '@/lib/utils'
 
 /**
@@ -50,12 +52,19 @@ export function EditorSection({
   title,
   summary,
   icon: Icon,
+  lockedFor,
   children,
 }: {
   value: string
   title: string
   summary?: string
   icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+  /**
+   * The plan this group belongs to, when the store's plan does not include
+   * it. The controls are not rendered at all: the save action refuses the
+   * change anyway, so showing them would only invite a failed save.
+   */
+  lockedFor?: PlanId
   children: React.ReactNode
 }) {
   return (
@@ -71,6 +80,12 @@ export function EditorSection({
               </span>
             ) : null}
           </span>
+          {lockedFor ? (
+            <span className="rounded-pill bg-muted text-muted-foreground inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-xs font-medium">
+              <LockIcon aria-hidden className="size-3" />
+              {PLAN_LABELS[lockedFor]}
+            </span>
+          ) : null}
           <ChevronDownIcon
             aria-hidden
             className="text-muted-foreground size-4 shrink-0 transition-transform duration-[--duration-fast] group-data-[state=open]:rotate-180"
@@ -78,9 +93,27 @@ export function EditorSection({
         </Accordion.Trigger>
       </Accordion.Header>
       <Accordion.Content className="overflow-hidden">
-        <div className="space-y-5 px-4 pt-1 pb-5">{children}</div>
+        <div className="space-y-5 px-4 pt-1 pb-5">
+          {lockedFor ? <PlanLockNotice plan={lockedFor} /> : children}
+        </div>
       </Accordion.Content>
     </Accordion.Item>
+  )
+}
+
+/** Why a group is closed and where to change plan. */
+export function PlanLockNotice({ plan }: { plan: PlanId }) {
+  return (
+    <p className="text-muted-foreground text-sm text-pretty">
+      Esto viene con el plan {PLAN_LABELS[plan]}
+      {plan === 'vip' ? '' : ' y el VIP'}.{' '}
+      <Link
+        href="/dashboard/payouts"
+        className="text-primary-on-tint font-medium underline-offset-4 hover:underline"
+      >
+        Ver tu plan
+      </Link>
+    </p>
   )
 }
 

@@ -94,6 +94,23 @@ export function effectivePlan(
   return isFounderActive(store.founder_until, at) ? 'vip' : store.plan
 }
 
+/**
+ * `effectivePlan` for a raw `stores` row, whose `plan` column is a string.
+ * Anything unknown (or a row read before the plans migration) is Normal.
+ */
+export function planOfStore(
+  store: { plan?: string | null; founder_until?: string | null },
+  at: Date = new Date(),
+): PlanId {
+  return effectivePlan(
+    {
+      plan: isPlanId(store.plan) ? store.plan : 'normal',
+      founder_until: store.founder_until ?? null,
+    },
+    at,
+  )
+}
+
 export interface FeeOrder {
   type: OrderType
   payment_method: PaymentMethod
