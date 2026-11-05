@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { OrderTimeline } from '@/app/(protected)/orders/[id]/order-tracker'
+import { GuestCaptureCard } from '@/components/orders/guest-capture-card'
 import { GuestOrderRefresher } from '@/components/orders/guest-order-refresher'
 import { OrderReceipt } from '@/components/orders/order-receipt'
 import {
@@ -160,6 +161,14 @@ export default async function GuestOrderPage({
           <Button asChild variant="outline" className="rounded-pill">
             <Link href={tableEntryPath(slug, token)}>Pedir algo más</Link>
           </Button>
+          {/* `live` means a signed-in customer already owns this order, so
+              only an anonymous guest is invited to keep the place. */}
+          {!live && order.status !== 'cancelled' ? (
+            <GuestCaptureCard
+              storeName={resolved.store.name}
+              storeSlug={slug}
+            />
+          ) : null}
         </div>
 
         <aside className="rounded-card border-border bg-card shadow-soft space-y-4 border p-5">
