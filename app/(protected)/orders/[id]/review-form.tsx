@@ -90,7 +90,7 @@ export function ReviewForm({
               className={cn(
                 'size-8 transition-colors',
                 value <= shown
-                  ? 'fill-accent text-accent'
+                  ? 'fill-accent text-accent-strong'
                   : 'text-muted-foreground/40',
               )}
             />

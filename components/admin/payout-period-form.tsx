@@ -16,23 +16,22 @@ import {
 } from '@/components/ui/select'
 import { monthBounds, weekBounds } from '@/lib/dates'
 
+// Only periods that are over. Settling the week in progress closed it early:
+// the payout row for that range already existed when the week ended, so the
+// orders placed after that run were never settled.
 const PERIOD_OPTIONS = [
-  { value: 'week-current', label: 'Semana actual' },
   { value: 'week-previous', label: 'Semana anterior' },
-  { value: 'month-current', label: 'Mes actual' },
   { value: 'month-previous', label: 'Mes anterior' },
 ] as const
 
 type PeriodOption = (typeof PERIOD_OPTIONS)[number]['value']
 
 function boundsFor(option: PeriodOption, now: Date) {
-  if (option === 'week-current') return weekBounds(now)
   if (option === 'week-previous') {
     const previous = new Date(now)
     previous.setDate(previous.getDate() - 7)
     return weekBounds(previous)
   }
-  if (option === 'month-current') return monthBounds(now)
   const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   return monthBounds(previous)
 }

@@ -14,6 +14,9 @@ function orderUrl(orderId: string): string {
   return `/orders/${orderId}`
 }
 
+/** Fragment of the order page that holds the review form. */
+export const REVIEW_ANCHOR = 'calificar'
+
 function orderTag(orderId: string): string {
   return `order-${orderId}`
 }
@@ -39,7 +42,7 @@ const STATUS_MESSAGES: Partial<
   }),
   delivered: (shortCode) => ({
     title: 'Pedido entregado',
-    body: `Tu pedido #${shortCode} fue entregado. ¡Buen provecho!`,
+    body: `Tu pedido #${shortCode} fue entregado. ¡Buen provecho! Cuéntanos cómo estuvo.`,
   }),
   cancelled: (shortCode) => ({
     title: 'Pedido cancelado',
@@ -52,6 +55,10 @@ const STATUS_MESSAGES: Partial<
  * has no push (order creation/`pending` is announced to the merchant, not
  * echoed back to the customer). Tagged by order so a later status replaces
  * the previous notification instead of stacking.
+ *
+ * "Delivered" is the moment a review is most likely, and there is no job
+ * runner to send a reminder later, so that push asks for it and opens the
+ * order on the review form.
  */
 export function orderStatusMessage(
   status: OrderStatus,
@@ -60,7 +67,11 @@ export function orderStatusMessage(
 ): PushPayload | null {
   const builder = STATUS_MESSAGES[status]
   if (!builder) return null
-  return { ...builder(shortCode), url: orderUrl(orderId), tag: orderTag(orderId) }
+  const url =
+    status === 'delivered'
+      ? `${orderUrl(orderId)}#${REVIEW_ANCHOR}`
+      : orderUrl(orderId)
+  return { ...builder(shortCode), url, tag: orderTag(orderId) }
 }
 
 /** Merchant-facing push for a freshly placed order, linking to the dashboard. */

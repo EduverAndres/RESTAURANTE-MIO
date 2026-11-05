@@ -39,7 +39,18 @@ export function ProductImageUploader({
     formData.set('productId', productId)
     formData.set('file', file)
     startTransition(async () => {
-      const result = await uploadProductImage(formData)
+      let result: Awaited<ReturnType<typeof uploadProductImage>>
+      try {
+        result = await uploadProductImage(formData)
+      } catch {
+        // A thrown action (connection lost, or a proxy rejecting the body as
+        // too large before it reaches Next) would otherwise take the whole
+        // page down to the error screen.
+        toast.error(
+          'No pudimos subir la imagen. Revisa tu conexión o prueba con un archivo más liviano.',
+        )
+        return
+      }
       if (!result.ok) {
         toast.error(result.error)
         return

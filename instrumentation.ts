@@ -27,6 +27,13 @@ export async function register(): Promise<void> {
   // fixed — the fastest way to teach everyone to ignore these lines.
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
+  // Every store is in Barranquilla, and a stock Lightsail/Ubuntu process runs
+  // in UTC: "today" on the order board and in the metrics restarted at 19:00
+  // local, the hourly chart sat five hours off and server-rendered times did
+  // not match the browser's. Node re-reads TZ when it is assigned, so this
+  // fixes it before the first request. An explicit TZ is left alone.
+  if (!process.env.TZ?.trim()) process.env.TZ = 'America/Bogota'
+
   const [{ logger }, { startupWarnings }] = await Promise.all([
     import('@/lib/log/logger'),
     import('@/lib/config/startup-warnings'),

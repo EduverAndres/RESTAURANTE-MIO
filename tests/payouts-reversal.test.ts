@@ -21,6 +21,11 @@ function refunded(
     store_id: 'store-1',
     subtotal: 10000,
     platform_fee: 600,
+    merchant_discount: 0,
+    platform_discount: 0,
+    payment_method: 'wompi',
+    type: 'delivery',
+    courier_id: 'courier-1',
     delivered_at: '2026-09-08T12:00:00.000Z',
     refunded_at: '2026-09-16T10:00:00.000Z',
     ...overrides,
@@ -42,8 +47,12 @@ function order(overrides: Partial<PayoutOrderInput> = {}): PayoutOrderInput {
   return {
     store_id: 'store-1',
     status: 'delivered',
+    type: 'delivery',
+    courier_id: 'courier-1',
     subtotal: 10000,
     platform_fee: 600,
+    merchant_discount: 0,
+    platform_discount: 0,
     delivered_at: '2026-09-15T12:00:00.000Z',
     payment_method: 'wompi',
     payment_status: 'paid',
@@ -62,6 +71,7 @@ describe('reverseRefundedOrder', () => {
       store_id: 'store-1',
       gross: -10000,
       commission: -600,
+      cash_collected: 0,
       net: -9400,
     })
   })
@@ -99,9 +109,10 @@ describe('needsReversal', () => {
     // Refunded after generation but before payment is the same money as
     // refunded after payment: the settled row is never mutated either way.
     const before = needsReversal(refunded(), [settled()])
-    const after = needsReversal(refunded({ refunded_at: '2026-10-01T10:00:00.000Z' }), [
-      settled(),
-    ])
+    const after = needsReversal(
+      refunded({ refunded_at: '2026-10-01T10:00:00.000Z' }),
+      [settled()],
+    )
     expect(before).toBe(true)
     expect(after).toBe(true)
   })
@@ -125,13 +136,22 @@ describe('needsReversal', () => {
   it('includes both ends of the payout period', () => {
     const payouts = [settled()]
     expect(
-      needsReversal(refunded({ delivered_at: '2026-09-07T00:00:00.000Z' }), payouts),
+      needsReversal(
+        refunded({ delivered_at: '2026-09-07T00:00:00.000Z' }),
+        payouts,
+      ),
     ).toBe(true)
     expect(
-      needsReversal(refunded({ delivered_at: '2026-09-13T23:59:59.000Z' }), payouts),
+      needsReversal(
+        refunded({ delivered_at: '2026-09-13T23:59:59.000Z' }),
+        payouts,
+      ),
     ).toBe(true)
     expect(
-      needsReversal(refunded({ delivered_at: '2026-09-14T00:00:00.000Z' }), payouts),
+      needsReversal(
+        refunded({ delivered_at: '2026-09-14T00:00:00.000Z' }),
+        payouts,
+      ),
     ).toBe(false)
   })
 })
@@ -140,7 +160,10 @@ describe('planReversals', () => {
   it('carries an adjustment only for refunds that were already settled', () => {
     const plan = planReversals(
       [
-        refunded({ refund_id: 'settled', refunded_at: '2026-09-16T10:00:00.000Z' }),
+        refunded({
+          refund_id: 'settled',
+          refunded_at: '2026-09-16T10:00:00.000Z',
+        }),
         refunded({
           refund_id: 'never-settled',
           order_id: 'order-2',
@@ -181,8 +204,20 @@ describe('planReversals', () => {
   it('sums two refunds from the same period for the same store', () => {
     const plan = planReversals(
       [
-        refunded({ refund_id: 'r1', order_id: 'o1', subtotal: 10000, platform_fee: 600 }),
-        refunded({ refund_id: 'r2', order_id: 'o2', subtotal: 25000, platform_fee: 1500 }),
+        refunded({
+          refund_id: 'r1',
+          order_id: 'o1',
+          subtotal: 10000,
+          platform_fee: 600,
+          merchant_discount: 0,
+          platform_discount: 0,
+        }),
+        refunded({
+          refund_id: 'r2',
+          order_id: 'o2',
+          subtotal: 25000,
+          platform_fee: 1500,
+        }),
       ],
       [settled()],
     )
@@ -216,6 +251,8 @@ describe('summarizePayouts with adjustments', () => {
         period_end: '2026-09-20',
         gross: 10000 - 4000,
         commission: 600 - 240,
+        cash_collected: 0,
+        plan_fee: 0,
         net: 10000 - 4000 - (600 - 240),
       },
     ])
@@ -232,6 +269,8 @@ describe('summarizePayouts with adjustments', () => {
         period_end: '2026-09-20',
         gross: -10000,
         commission: -600,
+        cash_collected: 0,
+        plan_fee: 0,
         net: -9400,
       },
     ])
@@ -241,9 +280,11 @@ describe('summarizePayouts with adjustments', () => {
     // The merchant owes the platform. Hiding that at zero would quietly
     // forgive the difference; the debt is carried as a negative payout and
     // `isDebtToPlatform` is what the UI reads to say so out loud.
-    const rows = summarizePayouts([order({ subtotal: 1000, platform_fee: 60 })], PERIOD, [
-      reverseRefundedOrder(refunded({ subtotal: 50000, platform_fee: 3000 })),
-    ])
+    const rows = summarizePayouts(
+      [order({ subtotal: 1000, platform_fee: 60 })],
+      PERIOD,
+      [reverseRefundedOrder(refunded({ subtotal: 50000, platform_fee: 3000 }))],
+    )
     expect(rows[0].gross).toBe(1000 - 50000)
     expect(rows[0].net).toBe(-(50000 - 3000) + (1000 - 60))
     expect(isDebtToPlatform(rows[0])).toBe(true)
@@ -264,5 +305,19 @@ describe('summarizePayouts with adjustments', () => {
       ['store-1', 9400],
       ['store-2', 9400 - 9400],
     ])
+  })
+})
+
+describe('reversing a cash sale the merchant held', () => {
+  it('gives back only the commission, since the cash never moved', () => {
+    const adjustment = reverseRefundedOrder(
+      refunded({ payment_method: 'cash', type: 'pickup', courier_id: null }),
+    )
+    expect(adjustment).toMatchObject({
+      gross: -10000,
+      commission: -600,
+      cash_collected: -10000,
+      net: 600,
+    })
   })
 })

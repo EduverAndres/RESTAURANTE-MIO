@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ReferralCard } from '@/components/referrals/referral-card'
 import { requireUser } from '@/lib/auth'
 import { pushConfigured } from '@/lib/env.server'
 import { formatCOP } from '@/lib/format'
@@ -118,7 +119,9 @@ export default async function AccountPage() {
               Notificaciones
             </h2>
             <div className="rounded-card border-border bg-card shadow-soft space-y-3 border p-4">
-              {pushConfigured() ? <PushToggle enabled /> : null}
+              {pushConfigured() ? (
+                <PushToggle enabled explainUnavailable />
+              ) : null}
               <SoundToggle />
             </div>
           </div>
@@ -181,6 +184,7 @@ export default async function AccountPage() {
               </ul>
             ) : (
               <EmptyState
+                illustration="bag"
                 title="Todavía no has pedido nada"
                 description="Cuando hagas tu primer pedido aparecerá aquí con su estado en tiempo real."
                 action={
@@ -219,6 +223,10 @@ export default async function AccountPage() {
               />
             )}
           </section>
+
+          {role === 'customer' ? (
+            <ReferralCard supabase={supabase} userId={user.id} />
+          ) : null}
         </div>
       </div>
     </div>

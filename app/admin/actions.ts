@@ -3,13 +3,16 @@
 import { revalidatePath } from 'next/cache'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { logger } from '@/lib/log/logger'
+import { bogotaDate } from '@/lib/plans'
 import { recordRefund } from '@/lib/refunds/record'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   commissionPctSchema,
   periodDateSchema,
+  storePlanSchema,
   storeStatusSchema,
   userRoleSchema,
+  type StorePlanInput,
 } from '@/lib/validations/admin'
 import {
   refundInputSchema,
@@ -47,6 +50,43 @@ export async function setStoreStatus(
 
   revalidatePath('/admin/stores')
   revalidatePath('/admin')
+  return { ok: true }
+}
+
+/**
+ * Plan and founder date of a store. Admin-only, like the commission: the
+ * protect_store_admin_columns trigger refuses both from anyone else.
+ */
+export async function setStorePlan(
+  storeId: string,
+  input: StorePlanInput,
+): Promise<AdminActionResult> {
+  if (!isUuid(storeId)) return { ok: false, error: 'Tienda inválida.' }
+  const parsed = storePlanSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Plan inválido.',
+    }
+  }
+
+  await requireRole(['admin'])
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('stores')
+    .update({
+      plan: parsed.data.plan,
+      founder_until: parsed.data.founderUntil,
+    })
+    .eq('id', storeId)
+  if (error) {
+    console.error('Failed to update store plan', error)
+    return { ok: false, error: 'No pudimos actualizar el plan.' }
+  }
+
+  revalidatePath('/admin/stores')
+  revalidatePath('/dashboard/payouts')
+  revalidatePath('/')
   return { ok: true }
 }
 
@@ -148,8 +188,7 @@ export async function setUserRole(
 // ---------------------------------------------------------------------------
 
 export type GeneratePayoutsResult =
-  | { ok: true; created: number; skipped: number }
-  | { ok: false; error: string }
+  { ok: true; created: number; skipped: number } | { ok: false; error: string }
 
 /**
  * Generates one period of payouts.
@@ -192,6 +231,14 @@ export async function generatePayouts(
   const parsedEnd = periodDateSchema.safeParse(periodEnd)
   if (!parsedStart.success || !parsedEnd.success || periodStart > periodEnd) {
     return { ok: false, error: 'Selecciona un periodo válido.' }
+  }
+  // A payout row closes its period for good (one per store and range), so a
+  // period that has not ended yet would leave its remaining days unsettled.
+  if (periodEnd >= bogotaDate(new Date())) {
+    return {
+      ok: false,
+      error: 'Ese periodo todavía no termina. Liquida periodos ya cerrados.',
+    }
   }
 
   await requireRole(['admin'])
@@ -277,7 +324,8 @@ export async function recordRefundAsAdmin(
   if (!parsed.success) {
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? 'Datos del reembolso inválidos.',
+      error:
+        parsed.error.issues[0]?.message ?? 'Datos del reembolso inválidos.',
     }
   }
 
@@ -289,7 +337,11 @@ export async function recordRefundAsAdmin(
     .eq('id', parsed.data.orderId)
     .maybeSingle()
   if (error) {
-    logger.error('admin.refund.order_read_failed', { orderId: parsed.data.orderId }, error)
+    logger.error(
+      'admin.refund.order_read_failed',
+      { orderId: parsed.data.orderId },
+      error,
+    )
     return { ok: false, error: GENERIC_ERROR }
   }
   if (!order) return { ok: false, error: 'No encontramos el pedido.' }

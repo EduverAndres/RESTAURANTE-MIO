@@ -7,6 +7,7 @@ import { after } from 'next/server'
 import { env } from '@/lib/env'
 import { estimateEtaMinutes } from '@/lib/geo'
 import { clientIp } from '@/lib/http/client-ip'
+import { secureCookieFlag } from '@/lib/http/secure-cookie'
 import { logger } from '@/lib/log/logger'
 import {
   buildOrderTotals,
@@ -51,7 +52,7 @@ async function rememberGuestOrder(orderId: string) {
   cookieStore.set(GUEST_ORDERS_COOKIE, serializeGuestOrders(addGuestOrder(current, orderId)), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: await secureCookieFlag(),
     path: '/',
     maxAge: GUEST_ORDERS_MAX_AGE_SECONDS,
   })

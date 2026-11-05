@@ -120,6 +120,11 @@ export function StoreBasicsFields({
   const [slugTouched, setSlugTouched] = useState(!autoSlug)
   const { errors } = form.formState
   const category = form.watch('category')
+  // Editing a live store: changing its link breaks the links already shared.
+  const savedSlug = form.formState.defaultValues?.slug ?? ''
+  const typedSlug = (form.watch('slug') ?? '').trim()
+  const renamingLink =
+    Boolean(excludeStoreId) && savedSlug !== '' && typedSlug !== savedSlug
 
   return (
     <div className="space-y-4">
@@ -179,6 +184,16 @@ export function StoreBasicsFields({
           Solo minúsculas, números y guiones. Tus clientes entrarán por esta
           dirección.
         </p>
+        {renamingLink ? (
+          <p
+            role="status"
+            className="rounded-control border-accent/40 bg-accent/10 text-foreground border px-3 py-2 text-xs"
+          >
+            Los enlaces que ya compartiste con{' '}
+            <span className="font-mono">/t/{savedSlug}</span> dejarán de abrir.
+            Los QR de tus mesas siguen funcionando: llevan a la dirección nueva.
+          </p>
+        ) : null}
         <FieldError
           id={`${idPrefix}-slug-error`}
           message={errors.slug?.message}

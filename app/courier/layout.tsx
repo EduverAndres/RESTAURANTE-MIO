@@ -50,6 +50,12 @@ export default async function CourierLayout({
             </form>
           </div>
         </div>
+        {/* The header hides these on phones, where couriers work: alerts
+            for new deliveries must be reachable there too. */}
+        <div className="container-page border-border/60 flex flex-wrap items-center gap-x-6 gap-y-2 border-t py-2 sm:hidden">
+          <PushToggle enabled={pushConfigured()} explainUnavailable />
+          <SoundToggle compact />
+        </div>
       </header>
       <main className="container-page flex-1 py-8">{children}</main>
     </div>

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { OrderTimeline } from '@/app/(protected)/orders/[id]/order-tracker'
+import { GuestCaptureCard } from '@/components/orders/guest-capture-card'
 import { GuestOrderRefresher } from '@/components/orders/guest-order-refresher'
 import { OrderReceipt } from '@/components/orders/order-receipt'
 import {
@@ -17,7 +18,7 @@ import { reconcileWompiTransaction } from '@/lib/payments/wompi/reconcile'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { tableEntryPath } from '@/lib/tables/qr'
-import { fetchTableByToken } from '@/lib/tables/server'
+import { requireTableOrRedirect } from '@/lib/tables/server'
 import { TABLE_PAYMENT_LABELS } from '@/lib/validations/table-order'
 import type { OrderStatus } from '@/types/app'
 
@@ -88,14 +89,17 @@ export default async function GuestOrderPage({
   searchParams,
 }: GuestOrderPageProps) {
   const { slug, token, orderId } = await params
-  const resolved = await fetchTableByToken(slug, token)
-  if (!resolved) notFound()
+  const { id: transactionId } = await searchParams
+  const resolved = await requireTableOrRedirect(
+    slug,
+    token,
+    `/pedido/${orderId}${transactionId ? `?id=${encodeURIComponent(transactionId)}` : ''}`,
+  )
   let loaded = await loadGuestOrder(orderId, resolved.store.id)
   if (!loaded) notFound()
 
   // Wompi redirects back with `?id=<transaction_id>`; reconcile it here in
   // case the webhook has not arrived yet (e.g. local dev with no public URL).
-  const { id: transactionId } = await searchParams
   if (
     transactionId &&
     loaded.order.payment_method === 'wompi' &&
@@ -160,6 +164,14 @@ export default async function GuestOrderPage({
           <Button asChild variant="outline" className="rounded-pill">
             <Link href={tableEntryPath(slug, token)}>Pedir algo más</Link>
           </Button>
+          {/* `live` means a signed-in customer already owns this order, so
+              only an anonymous guest is invited to keep the place. */}
+          {!live && order.status !== 'cancelled' ? (
+            <GuestCaptureCard
+              storeName={resolved.store.name}
+              storeSlug={slug}
+            />
+          ) : null}
         </div>
 
         <aside className="rounded-card border-border bg-card shadow-soft space-y-4 border p-5">

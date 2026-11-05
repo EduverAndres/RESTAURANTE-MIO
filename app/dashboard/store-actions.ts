@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { ACTIVE_STORE_COOKIE, isUuid } from '@/lib/dashboard/active-store'
+import { secureCookieFlag } from '@/lib/http/secure-cookie'
 import { createClient } from '@/lib/supabase/server'
 
 export type SetActiveStoreResult = { ok: true } | { ok: false; error: string }
@@ -37,7 +38,7 @@ export async function setActiveStore(
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: await secureCookieFlag(),
     maxAge: ONE_YEAR_SECONDS,
   })
   return { ok: true }

@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 import { Storefront } from '@/app/(public)/t/[slug]/storefront'
-import { fetchTableByToken } from '@/lib/tables/server'
+import {
+  fetchOpenGuestOrders,
+  fetchTableByToken,
+  requireTableOrRedirect,
+} from '@/lib/tables/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,13 +27,14 @@ export async function generateMetadata({
 /** Public entry point of a table QR code: the storefront tagged with the table. */
 export default async function TablePage({ params }: TablePageProps) {
   const { slug, token } = await params
-  const resolved = await fetchTableByToken(slug, token)
-  if (!resolved) notFound()
+  const resolved = await requireTableOrRedirect(slug, token)
+  const openOrders = await fetchOpenGuestOrders(resolved.store.id)
 
   return (
     <Storefront
       store={resolved.store}
       table={{ number: resolved.table.number, token: resolved.table.token }}
+      openOrders={openOrders}
     />
   )
 }

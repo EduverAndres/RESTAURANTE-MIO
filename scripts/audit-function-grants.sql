@@ -42,6 +42,8 @@
 with intentional(name, reason) as (
   values
     ('can_edit_order_items', 'RLS predicate on order_items'),
+    ('claim_referral',       'signed-in customer redeems a referral code; checks it is not their own (20261105000300)'),
+    ('ensure_referral_code', 'signed-in customer gets their own referral code (20261105000300)'),
     ('is_admin',             'RLS predicate, reads the caller own role claim'),
     ('next_short_code',      'column default on orders.short_code: a DEFAULT runs as the inserting role, so anon/authenticated must execute it or no order can be placed (20260919000900)'),
     ('option_store_id',      'RLS predicate, resolves an option to its store'),
@@ -50,6 +52,7 @@ with intentional(name, reason) as (
     ('product_store_id',     'RLS predicate, resolves a product to its store'),
     ('resolve_store_table',  'public QR table flow: slug + token is the credential'),
     ('store_is_visible',     'RLS predicate for anonymous storefront reads'),
+    ('table_token_store_slug', 'public QR table flow: the token alone finds a renamed store (20261105000500)'),
     ('user_role_of',         'RLS predicate, resolves a uid to its role')
 )
 select

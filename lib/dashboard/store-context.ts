@@ -9,6 +9,7 @@ import {
   parseActiveStoreId,
   pickActiveStore,
 } from '@/lib/dashboard/active-store'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 import { createClient } from '@/lib/supabase/server'
 import type { Store } from '@/types/app'
 
@@ -18,18 +19,32 @@ export type MerchantStoreSummary = Pick<
   'id' | 'name' | 'slug' | 'status' | 'is_open'
 >
 
-/** Stores owned by the user, oldest first. Memoised per request. */
+/**
+ * Stores owned by the user, oldest first. Memoised per request.
+ *
+ * A failed read throws: as an empty list it sent a merchant who has stores
+ * to the onboarding wizard, one click away from creating a duplicate.
+ */
 export const getMerchantStores = cache(
   async (userId: string): Promise<MerchantStoreSummary[]> => {
     const supabase = await createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('stores')
       .select('id, name, slug, status, is_open')
       .eq('owner_id', userId)
       .order('created_at', { ascending: true })
+    throwOnQueryError(error, 'merchant stores')
     return data ?? []
   },
 )
+
+/**
+ * Where a user without a store of their own goes. An admin oversees stores
+ * from /admin; the wizard would have created one under the admin's name.
+ */
+export function noStoreDestination(role: string): string {
+  return role === 'admin' ? '/admin' : '/dashboard/onboarding'
+}
 
 export interface ActiveStoreContext {
   userId: string
@@ -44,16 +59,16 @@ export interface ActiveStoreContext {
 export async function requireActiveStore(
   next = '/dashboard',
 ): Promise<ActiveStoreContext> {
-  const { user } = await requireRole(['merchant', 'admin'], next)
+  const { user, role } = await requireRole(['merchant', 'admin'], next)
   const stores = await getMerchantStores(user.id)
-  if (stores.length === 0) redirect('/dashboard/onboarding')
+  if (stores.length === 0) redirect(noStoreDestination(role))
 
   const cookieStore = await cookies()
   const requested = parseActiveStoreId(
     cookieStore.get(ACTIVE_STORE_COOKIE)?.value,
   )
   const active = pickActiveStore(stores, requested)
-  if (!active) redirect('/dashboard/onboarding')
+  if (!active) redirect(noStoreDestination(role))
 
   return { userId: user.id, stores, active }
 }

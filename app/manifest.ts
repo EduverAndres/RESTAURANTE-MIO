@@ -3,10 +3,10 @@ import { APP_NAME } from '@/lib/env'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${APP_NAME} · Pide a tu restaurante favorito`,
+    name: `${APP_NAME} · Pide a los negocios de tu barrio`,
     short_name: APP_NAME,
     description:
-      'Pide a domicilio, recoge en el local o desde la mesa, en un solo lugar.',
+      'Pide a los restaurantes y negocios de Barranquilla: a domicilio, para recoger o desde la mesa.',
     start_url: '/',
     display: 'standalone',
     background_color: '#FBF8F3',

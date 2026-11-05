@@ -139,8 +139,10 @@ const scheduleDaySchema = z
     open: z.string().regex(TIME_PATTERN, 'Usa el formato HH:MM.'),
     close: z.string().regex(TIME_PATTERN, 'Usa el formato HH:MM.'),
   })
-  .refine((day) => day.open < day.close, {
-    message: 'La hora de cierre debe ser posterior a la de apertura.',
+  // A closing time before the opening one runs past midnight (18:00 → 02:00),
+  // which is how lib/store/hours.ts reads it; only equal times are ambiguous.
+  .refine((day) => day.open !== day.close, {
+    message: 'La hora de cierre debe ser distinta a la de apertura.',
     path: ['close'],
   })
 

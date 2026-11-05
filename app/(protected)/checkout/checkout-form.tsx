@@ -43,6 +43,7 @@ export function CheckoutForm({ addresses, paymentOptions }: CheckoutFormProps) {
   if (checkout.cart.items.length === 0 || !checkout.store) {
     return (
       <EmptyState
+        illustration="bag"
         title="Tu carrito está vacío"
         description="Agrega productos de un restaurante para continuar con el pago."
         action={

@@ -1,4 +1,5 @@
 import { ExternalLinkIcon } from 'lucide-react'
+import { QrWithMark } from '@/components/dashboard/tables/qr-with-mark'
 
 interface TableQrCardProps {
   number: number
@@ -16,11 +17,12 @@ export function TableQrCard({ number, url, svg, actions }: TableQrCardProps) {
       aria-label={`Mesa ${number}`}
       className="rounded-card border-border bg-card shadow-soft flex flex-col items-center gap-3 border p-4 text-center"
     >
-      <div
-        role="img"
-        aria-label={`Código QR de la mesa ${number}`}
-        className="size-36 [&_svg]:size-full"
-        dangerouslySetInnerHTML={{ __html: svg }}
+      {/* The same code the print sheet shows, mark included, so what the
+          merchant checks here is what ends up on the table. */}
+      <QrWithMark
+        svg={svg}
+        label={`Código QR de la mesa ${number}`}
+        className="size-36"
       />
       <p className="font-display text-2xl font-semibold">Mesa {number}</p>
       {/* Opens exactly what the printed code opens, so the merchant can check

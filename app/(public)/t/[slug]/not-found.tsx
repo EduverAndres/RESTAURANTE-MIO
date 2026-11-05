@@ -6,6 +6,7 @@ export default function StoreNotFound() {
   return (
     <div className="container-page py-20">
       <EmptyState
+        illustration="awning"
         title="No encontramos esta tienda"
         description="Puede que el enlace esté mal escrito o que el restaurante aún no esté activo en la plataforma."
         action={

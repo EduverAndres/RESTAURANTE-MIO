@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { resolveTableWithClient } from '@/lib/tables/resolve'
+import {
+  currentSlugForTableWithClient,
+  resolveTableWithClient,
+} from '@/lib/tables/resolve'
 import type { Database } from '@/types/database'
 
 const TOKEN = 'a'.repeat(24)
@@ -8,7 +11,7 @@ const STORE = { id: 'store-1', slug: 'la-esquina', status: 'active' }
 const MATCH = { id: 'table-1', store_id: 'store-1', number: 7 }
 
 interface FakeOptions {
-  rpc?: { data: unknown[] | null; error: { message: string } | null }
+  rpc?: { data: unknown; error: { message: string } | null }
   store?: Record<string, unknown> | null
 }
 
@@ -98,5 +101,46 @@ describe('resolveTableWithClient', () => {
     const { client } = fakeClient({ store: null })
     const result = await resolveTableWithClient(client, 'la-esquina', TOKEN)
     expect(result).toBeNull()
+  })
+})
+
+// A store that renamed its link kept its tables, but every printed QR still
+// carries the old slug: the token alone must find the store again.
+describe('currentSlugForTableWithClient', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('returns the current slug of the store that owns the token', async () => {
+    const { client, calls } = fakeClient({
+      rpc: { data: 'la-esquina-de-siempre', error: null },
+    })
+    expect(await currentSlugForTableWithClient(client, TOKEN)).toBe(
+      'la-esquina-de-siempre',
+    )
+    expect(calls).toEqual([
+      { fn: 'table_token_store_slug', args: { token: TOKEN } },
+    ])
+  })
+
+  it('returns null for an unknown token or an inactive store', async () => {
+    const { client } = fakeClient({ rpc: { data: null, error: null } })
+    expect(await currentSlugForTableWithClient(client, TOKEN)).toBeNull()
+  })
+
+  it('never queries for a malformed token', async () => {
+    const { client, calls } = fakeClient()
+    expect(await currentSlugForTableWithClient(client, 'nope')).toBeNull()
+    expect(calls).toEqual([])
+  })
+
+  // A database without the migration answers with an error: the page must
+  // then fall back to its 404, not crash.
+  it('returns null when the function is missing or fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client } = fakeClient({
+      rpc: { data: null, error: { message: 'function does not exist' } },
+    })
+    expect(await currentSlugForTableWithClient(client, TOKEN)).toBeNull()
   })
 })

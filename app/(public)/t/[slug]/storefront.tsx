@@ -1,5 +1,6 @@
-import { UtensilsIcon } from 'lucide-react'
+import { ChevronRightIcon, UtensilsIcon } from 'lucide-react'
 import { cookies } from 'next/headers'
+import Link from 'next/link'
 import { Suspense, type CSSProperties } from 'react'
 import {
   SectionFallback,
@@ -7,6 +8,7 @@ import {
 } from '@/components/store/section-registry'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { StoreCart } from '@/components/store/store-cart'
+import { LoyaltyStrip } from '@/components/store/loyalty-strip'
 import { StoreHeader } from '@/components/store/store-header'
 import { StoreLive } from '@/components/store/store-live'
 import type { StorefrontContext } from '@/components/store/storefront-context'
@@ -14,10 +16,14 @@ import { TableContextSetter } from '@/components/store/table-context-setter'
 import type { CartTable } from '@/lib/cart'
 import { haversineKm, latLngOf } from '@/lib/geo'
 import { LOCATION_COOKIE, parseLocation } from '@/lib/location'
+import { planOfStore } from '@/lib/plans'
 import { fetchIsFavorite } from '@/lib/store/data'
 import { storeHoursState } from '@/lib/store/hours'
 import { resolveSections } from '@/lib/store/sections'
 import { ensureReadable, normalizeTheme, themeToCssVars } from '@/lib/theme'
+import { tableOrderPath } from '@/lib/tables/qr'
+import type { OpenGuestOrder } from '@/lib/tables/server'
+import { themeForPlan } from '@/lib/theme/plan-gate'
 import type { Store } from '@/types/app'
 
 // Server rendering shared by /t/[slug] (regular storefront) and
@@ -25,14 +31,34 @@ import type { Store } from '@/types/app'
 
 export { fetchStore } from '@/lib/store/data'
 
-function TableBanner({ number }: { number: number }) {
+function TableBanner({
+  number,
+  orderHref,
+  orderCode,
+}: {
+  number: number
+  /** The guest's latest open order here, so a closed tab is not a lost order. */
+  orderHref: string | null
+  orderCode: string | null
+}) {
   return (
     <div
       role="status"
-      className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-[var(--store-primary)] px-4 py-3 text-base font-medium text-[var(--store-on-primary)]"
+      className="sticky top-0 z-40 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 bg-[var(--store-primary)] px-4 py-3 text-base font-medium text-[var(--store-on-primary)]"
     >
-      <UtensilsIcon aria-hidden="true" className="size-4" />
-      Estás pidiendo desde la mesa {number}
+      <span className="inline-flex items-center gap-2">
+        <UtensilsIcon aria-hidden="true" className="size-4" />
+        Estás pidiendo desde la mesa {number}
+      </span>
+      {orderHref ? (
+        <Link
+          href={orderHref}
+          className="inline-flex min-h-11 items-center gap-1 underline underline-offset-4"
+        >
+          Ver mi pedido{orderCode ? ` #${orderCode}` : ''}
+          <ChevronRightIcon aria-hidden="true" className="size-4" />
+        </Link>
+      ) : null}
     </div>
   )
 }
@@ -51,6 +77,8 @@ interface StorefrontProps {
   store: Store
   /** Present when the visitor arrived through a table QR code. */
   table?: CartTable | null
+  /** Open orders this browser placed here from a table, newest first. */
+  openOrders?: readonly OpenGuestOrder[]
 }
 
 /**
@@ -62,14 +90,24 @@ interface StorefrontProps {
  * registry, so what renders is a data decision (`theme.sectionOrder`) rather
  * than a branch in here.
  */
-export async function Storefront({ store, table = null }: StorefrontProps) {
+export async function Storefront({
+  store,
+  table = null,
+  openOrders = [],
+}: StorefrontProps) {
   // `ensureReadable` recomputes only `onPrimary` — the ink on the merchant's
   // brand colour, which the merchant never picks — so a pale brand gets dark
   // text instead of white at 3:1. The theme editor already ran this when the
   // merchant saved; running it here too covers every theme stored before that
   // check existed, and any brand colour changed by other means. The merchant's
   // own colours are untouched.
-  const theme = ensureReadable(normalizeTheme(store.theme)).theme
+  //
+  // `themeForPlan` drops what the store's plan no longer includes (custom CSS
+  // and the hero video are VIP), so a store that moved down a plan stops
+  // using them without its saved theme being rewritten.
+  const theme = ensureReadable(
+    themeForPlan(normalizeTheme(store.theme), planOfStore(store)),
+  ).theme
   const hours = storeHoursState({
     schedule: store.schedule,
     isOpen: Boolean(store.is_open),
@@ -129,7 +167,15 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
 
       {table ? (
         <>
-          <TableBanner number={table.number} />
+          <TableBanner
+            number={table.number}
+            orderHref={
+              openOrders[0]
+                ? tableOrderPath(store.slug, table.token, openOrders[0].id)
+                : null
+            }
+            orderCode={openOrders[0]?.shortCode ?? null}
+          />
           <TableContextSetter
             storeId={store.id}
             storeSlug={store.slug}
@@ -147,6 +193,13 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
         isFavorite={isFavorite}
         offerSchemeToggle={theme.mode === 'auto'}
       />
+
+      {/* The stamp card; not at a table, where guests have no account. */}
+      {!table ? (
+        <Suspense fallback={null}>
+          <LoyaltyStrip storeId={store.id} storeSlug={store.slug} />
+        </Suspense>
+      ) : null}
 
       {sections.map((name) => (
         <Suspense

@@ -7,6 +7,7 @@ import {
 } from '@/lib/courier/orders'
 import { fetchAddressesById } from '@/lib/courier/server'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,26 +16,29 @@ const ORDER_COLUMNS =
 const HISTORY_LIMIT = 20
 
 export default async function CourierPage() {
-  const { user } = await requireRole(['courier', 'admin'], '/courier')
+  const { user, role } = await requireRole(['courier', 'admin'], '/courier')
   const supabase = await createClient()
 
   // RLS already limits the pool to unclaimed, ready deliveries; the filters
   // are repeated so admins (who see everything) get the same list.
-  const [{ data: pool }, { data: mine }] = await Promise.all([
-    supabase
-      .from('orders')
-      .select(ORDER_COLUMNS)
-      .is('courier_id', null)
-      .eq('status', 'ready')
-      .eq('type', 'delivery')
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('orders')
-      .select(ORDER_COLUMNS)
-      .eq('courier_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(60),
-  ])
+  const [{ data: pool, error: poolError }, { data: mine, error: mineError }] =
+    await Promise.all([
+      supabase
+        .from('orders')
+        .select(ORDER_COLUMNS)
+        .is('courier_id', null)
+        .eq('status', 'ready')
+        .eq('type', 'delivery')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('orders')
+        .select(ORDER_COLUMNS)
+        .eq('courier_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(60),
+    ])
+  throwOnQueryError(poolError, 'courier pool')
+  throwOnQueryError(mineError, 'courier deliveries')
 
   const poolRows: CourierOrderRow[] = pool ?? []
   const mineRows: CourierOrderRow[] = mine ?? []
@@ -62,6 +66,7 @@ export default async function CourierPage() {
         </p>
       </header>
       <CourierBoard
+        canClaim={role === 'courier'}
         available={available}
         active={active}
         history={history.slice(0, HISTORY_LIMIT)}

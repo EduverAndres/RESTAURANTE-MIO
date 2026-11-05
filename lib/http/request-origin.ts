@@ -59,6 +59,22 @@ function siteHost(fallback: string): string | null {
 }
 
 /**
+ * Whether the browser reached us over HTTPS, so a cookie may carry `Secure`.
+ *
+ * A `Secure` cookie sent over plain http is dropped by the browser without a
+ * word: on a deployment served at `http://<IP>` the action "succeeded" and
+ * nothing changed (the store switcher, the active store after creating one,
+ * the guest's table orders). `x-forwarded-proto` is set by the proxy, or by
+ * Next itself when there is none; without it the site URL decides.
+ */
+export function isSecureRequest(headers: Headers, siteUrl: string): boolean {
+  const proto = firstValue(headers.get('x-forwarded-proto'))?.toLowerCase()
+  if (proto === 'https') return true
+  if (proto === 'http') return false
+  return siteUrl.toLowerCase().startsWith('https:')
+}
+
+/**
  * Origin (scheme + host[:port], no trailing slash) to build absolute
  * redirects from. Trusts `x-forwarded-*` over `host`, but only when the
  * resulting host is allow-listed; otherwise returns `fallback`.

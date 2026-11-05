@@ -114,9 +114,16 @@ describe('schedule', () => {
     ).toBe(true)
   })
 
-  it('rejects closing before opening and malformed times', () => {
+  it('accepts a day that runs past midnight', () => {
     expect(
-      scheduleSchema.safeParse({ mon: { open: '22:00', close: '08:00' } })
+      scheduleSchema.safeParse({ fri: { open: '18:00', close: '02:00' } })
+        .success,
+    ).toBe(true)
+  })
+
+  it('rejects equal opening and closing times and malformed times', () => {
+    expect(
+      scheduleSchema.safeParse({ mon: { open: '08:00', close: '08:00' } })
         .success,
     ).toBe(false)
     expect(

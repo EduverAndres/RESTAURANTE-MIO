@@ -15,7 +15,9 @@ import {
 } from '@/lib/customers/aggregate'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { formatCOP } from '@/lib/format'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Clientes' }
 export const dynamic = 'force-dynamic'
@@ -28,18 +30,19 @@ const dateFormatter = new Intl.DateTimeFormat('es-CO', {
 
 async function fetchCustomers(storeId: string): Promise<CustomerRow[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('orders')
-    .select(
-      'customer_id, status, total, created_at, customer:profiles!orders_customer_id_fkey(full_name)',
-    )
-    .eq('store_id', storeId)
-    .order('created_at', { ascending: false })
-    .limit(5000)
-  if (error) {
-    console.error('Failed to load customers', error)
-    return []
-  }
+  // Every order of the store: one request stops at 1000 rows.
+  const { data, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from('orders')
+      .select(
+        'customer_id, status, total, created_at, customer:profiles!orders_customer_id_fkey(full_name)',
+      )
+      .eq('store_id', storeId)
+      .order('created_at', { ascending: false })
+      .order('id')
+      .range(from, to),
+  )
+  throwOnQueryError(error, 'merchant customers')
   const orders: CustomerOrder[] = (data ?? []).map((order) => ({
     customer_id: order.customer_id,
     status: order.status,

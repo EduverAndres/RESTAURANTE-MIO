@@ -112,14 +112,51 @@ describe('rewriteForStore', () => {
 })
 
 describe('storePublicUrl', () => {
-  it('builds a subdomain URL when the root domain is a real domain', () => {
+  it('links the path form by default, even on a real domain', () => {
     expect(
       storePublicUrl({
         slug: 'la-parrilla',
         siteUrl: 'https://tienda.app',
         rootDomain: 'tienda.app',
       }),
+    ).toBe('https://tienda.app/t/la-parrilla')
+  })
+
+  it('builds a subdomain URL only when subdomains are switched on', () => {
+    expect(
+      storePublicUrl({
+        slug: 'la-parrilla',
+        siteUrl: 'https://tienda.app',
+        rootDomain: 'tienda.app',
+        subdomains: true,
+      }),
     ).toBe('https://la-parrilla.tienda.app')
+  })
+
+  // An IP root used to give `https://la-parrilla.3.85.1.2`, which is not a
+  // valid URL: the browser opened `about:blank#blocked` instead of the store.
+  it('never builds a subdomain on an IP address, port or not', () => {
+    for (const rootDomain of ['3.85.1.2', '3.85.1.2:3000']) {
+      const url = storePublicUrl({
+        slug: 'la-parrilla',
+        siteUrl: 'http://3.85.1.2',
+        rootDomain,
+        subdomains: true,
+      })
+      expect(url).toBe('http://3.85.1.2/t/la-parrilla')
+      expect(() => new URL(url)).not.toThrow()
+    }
+  })
+
+  it('never builds a subdomain on localhost, even when switched on', () => {
+    expect(
+      storePublicUrl({
+        slug: 'la-parrilla',
+        siteUrl: 'http://app.localhost:3000',
+        rootDomain: 'app.localhost:3000',
+        subdomains: true,
+      }),
+    ).toBe('http://app.localhost:3000/t/la-parrilla')
   })
 
   it('falls back to a path under the site URL for local development', () => {

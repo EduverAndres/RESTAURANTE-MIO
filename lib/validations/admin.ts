@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { USER_ROLES } from '@/lib/auth/roles'
+import { PLAN_IDS } from '@/lib/plans'
 import type { StoreStatus, UserRole } from '@/types/app'
 
 export const STORE_STATUSES: readonly StoreStatus[] = [
@@ -22,6 +23,16 @@ export const commissionPctSchema = z
   .refine((value) => Math.round(value * 10) / 10 === value, {
     message: 'Usa como máximo un decimal.',
   })
+
+/** A merchant plan and, optionally, the last day of its founder offer. */
+export const storePlanSchema = z.object({
+  plan: z.enum(PLAN_IDS, { error: 'Elige un plan válido.' }),
+  founderUntil: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida.')
+    .nullable(),
+})
+export type StorePlanInput = z.infer<typeof storePlanSchema>
 
 /** Date-only string (`YYYY-MM-DD`) used for payout periods. */
 export const periodDateSchema = z

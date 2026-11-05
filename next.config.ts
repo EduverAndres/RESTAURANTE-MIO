@@ -1,5 +1,6 @@
 import { networkInterfaces } from 'node:os'
 import type { NextConfig } from 'next'
+import { hstsHeaderValue } from './lib/http/hsts'
 
 function supabaseHostname(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -114,7 +115,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
+            value: hstsHeaderValue(process.env),
           },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           {

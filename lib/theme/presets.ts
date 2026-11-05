@@ -11,6 +11,7 @@
  * adding a preset never means adding an image asset.
  */
 
+import { verticalOf, type VerticalKey } from '@/lib/marketplace/verticals'
 import { DEFAULT_STORE_THEME, type StoreTheme } from '@/types/app'
 
 export interface ThemePreset {
@@ -350,10 +351,132 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
       motion: 'full',
     },
   ),
+  preset(
+    'asadero',
+    'Asadero',
+    'Parrilla, pollo y comida colombiana: brasa, crema y una carta fácil de recorrer.',
+    {
+      mode: 'light',
+      primary: '#9a3412',
+      onPrimary: '#ffffff',
+      secondary: '#44403c',
+      accent: '#d97706',
+      background: '#f7f4ef',
+      surface: '#ffffff',
+      text: '#1c1917',
+      gradient: { enabled: false, from: '#9a3412', to: '#d97706', angle: 135 },
+      pattern: 'none',
+      patternOpacity: 0,
+      fontDisplay: 'Fraunces',
+      fontBody: 'Inter',
+      headingWeight: 700,
+      headingCase: 'normal',
+      letterSpacing: 'normal',
+      radius: 12,
+      buttonStyle: 'rounded',
+      density: 'comfortable',
+      cardStyle: 'flat',
+      imageRatio: '4:3',
+      imageShape: 'rounded',
+      banner: { imageUrl: null, overlayOpacity: 0.45, layout: 'full' },
+      menuLayout: 'list',
+      categoryNav: 'sticky-bar',
+      productHover: 'none',
+      showPrices: 'always',
+      badges: { newDays: 14, popularEnabled: true, style: 'soft' },
+      motion: 'subtle',
+    },
+  ),
+  preset(
+    'barrio',
+    'Barrio',
+    'Minimercados, tiendas de barrio, farmacias y mascotas: productos claros, en cuadrícula.',
+    {
+      mode: 'light',
+      primary: '#0f766e',
+      onPrimary: '#ffffff',
+      secondary: '#134e4a',
+      accent: '#f59e0b',
+      background: '#fafaf9',
+      surface: '#ffffff',
+      text: '#1c1917',
+      gradient: { enabled: false, from: '#0f766e', to: '#134e4a', angle: 135 },
+      pattern: 'none',
+      patternOpacity: 0,
+      fontDisplay: 'Inter',
+      fontBody: 'Inter',
+      headingWeight: 700,
+      headingCase: 'normal',
+      letterSpacing: 'normal',
+      radius: 8,
+      buttonStyle: 'rounded',
+      // Not compact: compact padding drops buttons under the 44px touch
+      // target, and a grocery list is tapped more than any other menu.
+      density: 'comfortable',
+      cardStyle: 'outlined',
+      imageRatio: '1:1',
+      imageShape: 'rounded',
+      banner: { imageUrl: null, overlayOpacity: 0.3, layout: 'compact' },
+      menuLayout: 'grid',
+      categoryNav: 'chips',
+      productHover: 'none',
+      showPrices: 'always',
+      badges: { newDays: 0, popularEnabled: false, style: 'outline' },
+      motion: 'subtle',
+    },
+  ),
 ]
 
 export function findPreset(id: string): ThemePreset | null {
   return THEME_PRESETS.find((preset) => preset.id === id) ?? null
+}
+
+/**
+ * The look a new business starts from, picked by its category, so a merchant
+ * gets a storefront that fits without designing anything. Food categories map
+ * by name; the rest go through the home's verticals, which already know that
+ * a "droguería" is a pharmacy. A category that says nothing ("Otra", empty or
+ * unknown) suggests nothing and the store keeps the default theme.
+ */
+const SUGGESTED_BY_CATEGORY: Record<string, string> = {
+  parrilla: 'asadero',
+  pollo: 'asadero',
+  colombiana: 'asadero',
+  'comida rápida': 'callejero',
+  'comida rapida': 'callejero',
+  hamburguesas: 'callejero',
+  mexicana: 'callejero',
+  saludable: 'fresco',
+  japonesa: 'mar',
+  asiática: 'mar',
+  asiatica: 'mar',
+  mariscos: 'mar',
+  italiana: 'elegante',
+}
+
+const SUGGESTED_BY_VERTICAL: Partial<Record<VerticalKey, string>> = {
+  panaderia: 'cafeteria',
+  reposteria: 'fiesta',
+  regalos: 'fiesta',
+  mercado: 'barrio',
+  farmacia: 'barrio',
+  mascotas: 'barrio',
+  tecnologia: 'minimal',
+}
+
+export function suggestPresetFor(
+  category: string | null | undefined,
+): ThemePreset | null {
+  const key = category?.trim().toLowerCase() ?? ''
+  if (!key) return null
+  const byName = SUGGESTED_BY_CATEGORY[key]
+  if (byName) return findPreset(byName)
+  // verticalOf() files every unknown category under restaurants, which is
+  // right for the home's shelves but would hide the "suggest nothing" case.
+  const vertical = verticalOf(key)
+  if (vertical === 'restaurantes') return null
+  const byVertical = SUGGESTED_BY_VERTICAL[vertical]
+  return byVertical ? findPreset(byVertical) : null
 }
 
 /**

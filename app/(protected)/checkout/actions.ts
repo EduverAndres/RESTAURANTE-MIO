@@ -9,6 +9,16 @@ import {
   priceCartItems,
   recordPaymentResult,
 } from '@/lib/orders/build-order'
+import {
+  couponUsage,
+  loadCoupon,
+  loyaltyCard,
+  openCredits,
+  resolveDiscounts,
+  type AvailableCredit,
+  type LoyaltyCard,
+} from '@/lib/orders/discounts-server'
+import type { CouponRule, CouponUsage } from '@/lib/discounts'
 import { getPaymentProvider } from '@/lib/payments'
 import { newOrderMessage } from '@/lib/push/messages'
 import { sendPushToStoreOwner } from '@/lib/push/send'
@@ -60,6 +70,76 @@ export async function getCheckoutStore(
   }
 }
 
+export interface CheckoutPerks {
+  loyalty: LoyaltyCard | null
+  credits: AvailableCredit[]
+}
+
+/**
+ * What the signed-in customer can spend at this store: a completed stamp
+ * card, and referral credits. Read under their own RLS.
+ */
+export async function getCheckoutPerks(
+  storeId: string,
+): Promise<CheckoutPerks> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { loyalty: null, credits: [] }
+  try {
+    const [loyalty, credits] = await Promise.all([
+      loyaltyCard(supabase, storeId, user.id),
+      openCredits(supabase, user.id),
+    ])
+    return { loyalty, credits }
+  } catch {
+    return { loyalty: null, credits: [] }
+  }
+}
+
+export type CouponCheckResult =
+  | { ok: true; code: string; rule: CouponRule; usage: CouponUsage }
+  | { ok: false; error: string }
+
+/**
+ * Looks a coupon up so the summary can show its discount. The checkout
+ * applies the same rule again on submit: this is a preview, not a promise.
+ */
+export async function checkCoupon(
+  storeId: string,
+  code: string,
+): Promise<CouponCheckResult> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user)
+    return { ok: false, error: 'Tu sesión expiró. Inicia sesión de nuevo.' }
+  try {
+    const admin = createAdminClient()
+    const coupon = await loadCoupon(admin, storeId, code)
+    if (!coupon)
+      return { ok: false, error: 'Ese cupón no existe en este negocio.' }
+    const usage = await couponUsage(admin, coupon.id, user.id)
+    const rule: CouponRule = {
+      kind: coupon.kind,
+      value: coupon.value,
+      min_order: coupon.min_order,
+      starts_at: coupon.starts_at,
+      ends_at: coupon.ends_at,
+      max_uses: coupon.max_uses,
+      active: coupon.active,
+    }
+    return { ok: true, code: coupon.code, rule, usage }
+  } catch {
+    return {
+      ok: false,
+      error: 'No pudimos revisar el cupón. Inténtalo de nuevo.',
+    }
+  }
+}
+
 export type PlaceOrderResult =
   | { ok: true; orderId: string; redirectUrl?: string }
   | { ok: false; error: string; field?: string }
@@ -91,7 +171,8 @@ export async function placeOrder(
     console.error('Admin client unavailable for checkout', error)
     return {
       ok: false,
-      error: 'No pudimos procesar el pedido en este momento. Inténtalo de nuevo.',
+      error:
+        'No pudimos procesar el pedido en este momento. Inténtalo de nuevo.',
     }
   }
 
@@ -170,6 +251,17 @@ export async function placeOrder(
   if (!built.ok) return built
   const { totals } = built
 
+  // Coupon, loyalty reward and referral credit, re-derived here; the client
+  // only sent a code and a checkbox.
+  const discounts = await resolveDiscounts(supabase, admin, {
+    storeId: store.id,
+    userId: user.id,
+    subtotal: totals.subtotal,
+    couponCode: values.couponCode,
+    useReward: values.useReward,
+  })
+  if (!discounts.ok) return discounts
+
   const provider = getPaymentProvider(values.paymentMethod as PaymentMethod)
   if (!provider)
     return {
@@ -232,12 +324,63 @@ export async function placeOrder(
     return { ok: false, error: 'No pudimos guardar los productos del pedido.' }
   }
 
+  // Discounts are written with the service role: the customer's own session
+  // cannot set them (protect_order_discounts). The credit is claimed first
+  // so two orders cannot spend it; if another order got there, this one
+  // simply goes without it. The amount charged is the total the database
+  // computed, never a second calculation.
+  let chargeTotal = totals.total
+  if (discounts.merchantDiscount > 0 || discounts.platformDiscount > 0) {
+    let creditId = discounts.creditId
+    let platformDiscount = discounts.platformDiscount
+    if (creditId) {
+      const { data: claimed } = await admin
+        .from('customer_credits')
+        .update({ used_order_id: order.id })
+        .eq('id', creditId)
+        .is('used_order_id', null)
+        .select('id')
+      if (!claimed || claimed.length === 0) {
+        creditId = null
+        platformDiscount = 0
+      }
+    }
+    const { data: discounted, error: discountError } = await admin
+      .from('orders')
+      .update({
+        merchant_discount: discounts.merchantDiscount,
+        platform_discount: platformDiscount,
+        coupon_id: discounts.couponId,
+        loyalty_redeemed: discounts.loyaltyRedeemed,
+        credit_id: creditId,
+      })
+      .eq('id', order.id)
+      .select('total')
+      .single()
+    if (discountError || !discounted) {
+      console.error('Failed to apply discounts', discountError)
+      if (creditId) {
+        await admin
+          .from('customer_credits')
+          .update({ used_order_id: null })
+          .eq('id', creditId)
+          .eq('used_order_id', order.id)
+      }
+      await admin.from('orders').delete().eq('id', order.id)
+      return {
+        ok: false,
+        error: 'No pudimos aplicar el descuento. Inténtalo de nuevo.',
+      }
+    }
+    chargeTotal = Number(discounted.total)
+  }
+
   // Charge. Payment status is written with the service role because RLS
   // only lets customers cancel their orders.
   const payment = await provider.createPayment({
     orderId: order.id,
     shortCode: order.short_code,
-    amount: totals.total,
+    amount: chargeTotal,
     currency: 'COP',
     customer: {
       id: user.id,
@@ -253,7 +396,10 @@ export async function placeOrder(
   }
 
   after(() =>
-    sendPushToStoreOwner(store.id, newOrderMessage(order.short_code, store.name)),
+    sendPushToStoreOwner(
+      store.id,
+      newOrderMessage(order.short_code, store.name),
+    ),
   )
 
   return { ok: true, orderId: order.id, redirectUrl: payment.redirectUrl }

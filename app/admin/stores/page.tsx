@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ExternalLinkIcon } from 'lucide-react'
 import { StoreCommissionForm } from '@/components/admin/store-commission-form'
+import { StorePlanForm } from '@/components/admin/store-plan-form'
 import { StoreStatusSelect } from '@/components/admin/store-status-select'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
@@ -14,10 +15,10 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { requireRole } from '@/lib/auth'
-import { APP_NAME, env } from '@/lib/env'
+import { APP_NAME, storeUrl } from '@/lib/env'
 import { formatDateCO } from '@/lib/format-date'
-import { storePublicUrl } from '@/lib/subdomain'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 import { STORE_STATUSES } from '@/lib/validations/admin'
 import type { StoreStatus } from '@/types/app'
 
@@ -44,18 +45,21 @@ export default async function AdminStoresPage({
 }: StoresPageProps) {
   await requireRole(['admin'], '/admin/stores')
   const params = await searchParams
-  const rawFilter = Array.isArray(params.estado) ? params.estado[0] : params.estado
+  const rawFilter = Array.isArray(params.estado)
+    ? params.estado[0]
+    : params.estado
   const filter = isStoreStatus(rawFilter) ? rawFilter : 'todas'
 
   const supabase = await createClient()
   let query = supabase
     .from('stores')
     .select(
-      'id, name, slug, status, commission_pct, rating_avg, rating_count, created_at, profiles!stores_owner_id_fkey(full_name)',
+      'id, name, slug, status, commission_pct, plan, founder_until, rating_avg, rating_count, created_at, profiles!stores_owner_id_fkey(full_name)',
     )
     .order('created_at', { ascending: false })
   if (filter !== 'todas') query = query.eq('status', filter)
-  const { data: stores } = await query
+  const { data: stores, error } = await query
+  throwOnQueryError(error, 'admin stores')
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -68,7 +72,10 @@ export default async function AdminStoresPage({
         </p>
       </header>
 
-      <nav aria-label="Filtrar por estado" className="bg-muted rounded-pill inline-flex flex-wrap p-1">
+      <nav
+        aria-label="Filtrar por estado"
+        className="bg-muted rounded-pill inline-flex flex-wrap p-1"
+      >
         {STATUS_FILTERS.map((item) => {
           const active = item.value === filter
           const href =
@@ -102,6 +109,7 @@ export default async function AdminStoresPage({
                 <TableHead>Propietario</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Comisión</TableHead>
+                <TableHead className="text-right">Plan y fundador</TableHead>
                 <TableHead className="text-right">Valoración</TableHead>
                 <TableHead className="text-right">Creada</TableHead>
               </TableRow>
@@ -111,11 +119,7 @@ export default async function AdminStoresPage({
                 <TableRow key={store.id}>
                   <TableCell className="font-medium">
                     <Link
-                      href={storePublicUrl({
-                        slug: store.slug,
-                        siteUrl: env.NEXT_PUBLIC_SITE_URL,
-                        rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-                      })}
+                      href={storeUrl(store.slug)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
@@ -140,6 +144,14 @@ export default async function AdminStoresPage({
                       storeId={store.id}
                       commissionPct={Number(store.commission_pct)}
                       storeName={store.name}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <StorePlanForm
+                      storeId={store.id}
+                      storeName={store.name}
+                      plan={store.plan}
+                      founderUntil={store.founder_until}
                     />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

@@ -7,6 +7,7 @@ import {
   ShoppingBagIcon,
 } from 'lucide-react'
 import Link from 'next/link'
+import { DiscountControls } from './discount-controls'
 import type { CheckoutController } from './use-checkout'
 import { Button } from '@/components/ui/button'
 import { formatCOP } from '@/lib/format'
@@ -49,7 +50,7 @@ export function OrderSummary({
   checkout: CheckoutController
   className?: string
 }) {
-  const { store, totals } = checkout
+  const { store, totals, discounts } = checkout
   if (!store) return null
 
   return (
@@ -100,6 +101,8 @@ export function OrderSummary({
         ))}
       </ul>
 
+      <DiscountControls checkout={checkout} />
+
       <dl className="space-y-1.5 text-sm">
         <Row label="Subtotal" value={formatCOP(totals.subtotal)} />
         <Row
@@ -111,7 +114,23 @@ export function OrderSummary({
           }
         />
         <Row label="Propina" value={formatCOP(totals.tip)} />
-        <Row label="Total" value={formatCOP(totals.total)} emphasis />
+        {discounts.merchantDiscount > 0 ? (
+          <Row
+            label={
+              checkout.useReward
+                ? 'Premio de sellos'
+                : `Cupón ${checkout.coupon?.code ?? ''}`
+            }
+            value={`−${formatCOP(discounts.merchantDiscount)}`}
+          />
+        ) : null}
+        {discounts.platformDiscount > 0 ? (
+          <Row
+            label="Crédito por invitación"
+            value={`−${formatCOP(discounts.platformDiscount)}`}
+          />
+        ) : null}
+        <Row label="Total" value={formatCOP(checkout.payable)} emphasis />
       </dl>
 
       {checkout.eta ? (
@@ -140,7 +159,7 @@ export function OrderSummary({
         ) : null}
         {checkout.paymentMethod === 'cash'
           ? 'Confirmar pedido'
-          : `Pagar ${formatCOP(totals.total)}`}
+          : `Pagar ${formatCOP(checkout.payable)}`}
       </Button>
       <p className="text-muted-foreground text-center text-xs">
         Podrás cancelar mientras el restaurante no lo acepte.

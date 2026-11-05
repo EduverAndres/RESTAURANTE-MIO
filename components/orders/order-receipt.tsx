@@ -23,6 +23,10 @@ interface OrderReceiptProps {
   deliveryFee: number
   tip: number
   total: number
+  /** Coupon or loyalty reward, paid by the store. */
+  merchantDiscount?: number
+  /** Referral credit, paid by the platform. */
+  platformDiscount?: number
   notes: string | null
   /** Extra lines under the totals (payment method, table, ...). */
   footer?: React.ReactNode
@@ -35,6 +39,8 @@ export function OrderReceipt({
   deliveryFee,
   tip,
   total,
+  merchantDiscount = 0,
+  platformDiscount = 0,
   notes,
   footer,
 }: OrderReceiptProps) {
@@ -78,6 +84,18 @@ export function OrderReceipt({
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Propina</dt>
             <dd className="tabular-nums">{formatCOP(tip)}</dd>
+          </div>
+        ) : null}
+        {merchantDiscount > 0 ? (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">Descuento del negocio</dt>
+            <dd className="tabular-nums">−{formatCOP(merchantDiscount)}</dd>
+          </div>
+        ) : null}
+        {platformDiscount > 0 ? (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">Crédito por invitación</dt>
+            <dd className="tabular-nums">−{formatCOP(platformDiscount)}</dd>
           </div>
         ) : null}
         <div className="border-border flex justify-between border-t pt-2 text-base font-semibold">

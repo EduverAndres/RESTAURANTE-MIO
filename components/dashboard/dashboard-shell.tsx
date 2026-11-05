@@ -3,6 +3,7 @@
 import {
   BarChart3Icon,
   ClipboardListIcon,
+  GiftIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -51,6 +52,7 @@ const MERCHANT_ITEMS: DashboardNavItem[] = [
   { label: 'Menú', href: '/dashboard/menu', icon: UtensilsIcon },
   { label: 'Tienda', href: '/dashboard/store', icon: PaletteIcon },
   { label: 'Clientes', href: '/dashboard/customers', icon: UsersIcon },
+  { label: 'Fidelidad', href: '/dashboard/fidelidad', icon: GiftIcon },
   { label: 'Métricas', href: '/dashboard/metrics', icon: BarChart3Icon },
   { label: 'Mesas', href: '/dashboard/tables', icon: QrCodeIcon },
   { label: 'Liquidaciones', href: '/dashboard/payouts', icon: LandmarkIcon },
@@ -296,6 +298,12 @@ export function DashboardShell({
                   className="px-3 py-3"
                   onNavigate={() => setOpen(false)}
                 />
+                {/* The header hides these below lg: a merchant on a phone
+                    had no way to turn on new-order alerts. */}
+                <div className="border-border/60 space-y-3 border-t px-5 py-4">
+                  <PushToggle enabled={pushEnabled} explainUnavailable />
+                  <SoundToggle compact />
+                </div>
                 <div className="mt-auto space-y-2 p-3">
                   {identity()}
                   <SignOutButton />

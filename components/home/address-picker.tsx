@@ -171,7 +171,7 @@ export function AddressPicker({ initial, className }: AddressPickerProps) {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Calle 93 # 12-20, Bogotá"
+              placeholder="Ej.: Calle 84 # 51B-20, Barranquilla"
               aria-label="Buscar dirección"
               autoComplete="street-address"
               className="rounded-control h-11 pl-9"
