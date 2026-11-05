@@ -52,3 +52,51 @@ export function QrReachNotice({
     </div>
   )
 }
+
+const INACTIVE_COPY: Record<
+  'pending' | 'suspended',
+  { title: string; body: string }
+> = {
+  pending: {
+    title: 'Tu tienda todavía está en revisión',
+    body: 'Puedes preparar e imprimir los QR, pero hasta que activemos tu tienda quien los escanee verá «Este código QR ya no es válido».',
+  },
+  suspended: {
+    title: 'Tu tienda está suspendida',
+    body: 'Mientras siga suspendida, quien escanee un QR verá «Este código QR ya no es válido». Escríbenos para reactivarla.',
+  },
+}
+
+/**
+ * Table codes only resolve for an active store (`resolve_store_table`), so
+ * before activation every printed code reads as broken. Say so up front.
+ */
+export function StoreInactiveNotice({
+  status,
+  className,
+}: {
+  status: string
+  className?: string
+}) {
+  if (status !== 'pending' && status !== 'suspended') return null
+  const copy = INACTIVE_COPY[status]
+
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'rounded-card border-destructive/30 bg-destructive/8 text-foreground flex gap-3 border p-4 text-sm',
+        className,
+      )}
+    >
+      <TriangleAlertIcon
+        aria-hidden="true"
+        className="text-destructive-on-tint mt-0.5 size-5 shrink-0"
+      />
+      <div className="space-y-1">
+        <p className="font-medium">{copy.title}</p>
+        <p className="text-muted-foreground">{copy.body}</p>
+      </div>
+    </div>
+  )
+}

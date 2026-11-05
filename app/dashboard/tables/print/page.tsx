@@ -4,7 +4,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { fetchTablesWithQr } from '../page'
 import { PrintButton } from '@/components/dashboard/tables/print-button'
-import { QrReachNotice } from '@/components/dashboard/tables/qr-reach-notice'
+import {
+  QrReachNotice,
+  StoreInactiveNotice,
+} from '@/components/dashboard/tables/qr-reach-notice'
 import { QrWithMark } from '@/components/dashboard/tables/qr-with-mark'
 import { EmptyState } from '@/components/ui/empty-state'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
@@ -51,6 +54,7 @@ export default async function PrintTablesPage() {
         {tables.length > 0 && qrBase.reachable ? <PrintButton /> : null}
       </header>
 
+      <StoreInactiveNotice status={store.status} className="print:hidden" />
       <QrReachNotice base={qrBase} className="print:hidden" />
 
       {tables.length === 0 ? (

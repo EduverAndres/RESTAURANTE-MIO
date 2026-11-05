@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import { TableCardActions } from '@/components/dashboard/tables/table-card-actions'
 import { TableQrCard } from '@/components/dashboard/tables/table-qr-card'
-import { QrReachNotice } from '@/components/dashboard/tables/qr-reach-notice'
+import {
+  QrReachNotice,
+  StoreInactiveNotice,
+} from '@/components/dashboard/tables/qr-reach-notice'
 import { TablesToolbar } from '@/components/dashboard/tables/tables-toolbar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
@@ -71,6 +74,7 @@ export default async function TablesPage() {
         <TablesToolbar nextNumber={nextNumber} hasTables={tables.length > 0} />
       </header>
 
+      <StoreInactiveNotice status={store.status} />
       <QrReachNotice base={qrBase} />
 
       {tables.length === 0 ? (
