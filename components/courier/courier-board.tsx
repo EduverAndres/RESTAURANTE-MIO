@@ -68,6 +68,7 @@ export function CourierBoard({
             </ul>
           ) : (
             <EmptyState
+              illustration="rider"
               title="No hay pedidos disponibles"
               description="Cuando un restaurante marque un domicilio como listo aparecerá aquí al instante."
               className="py-10"
@@ -86,6 +87,7 @@ export function CourierBoard({
             </ul>
           ) : (
             <EmptyState
+              illustration="rider"
               title="No tienes entregas en curso"
               description="Toma un pedido disponible para empezar."
               className="py-10"
@@ -104,6 +106,7 @@ export function CourierBoard({
             </ul>
           ) : (
             <EmptyState
+              illustration="rider"
               title="Aún no hay entregas finalizadas"
               description="Tus entregas completadas y sus ganancias se listarán aquí."
               className="py-10"

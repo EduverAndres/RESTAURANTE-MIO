@@ -55,6 +55,7 @@ export default async function PrintTablesPage() {
 
       {tables.length === 0 ? (
         <EmptyState
+          illustration="table"
           title="No hay mesas para imprimir"
           description="Crea mesas primero desde la sección Mesas."
         />

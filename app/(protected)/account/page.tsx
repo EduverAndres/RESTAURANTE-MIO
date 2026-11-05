@@ -182,6 +182,7 @@ export default async function AccountPage() {
               </ul>
             ) : (
               <EmptyState
+                illustration="bag"
                 title="Todavía no has pedido nada"
                 description="Cuando hagas tu primer pedido aparecerá aquí con su estado en tiempo real."
                 action={

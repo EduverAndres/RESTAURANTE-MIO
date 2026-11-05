@@ -169,6 +169,7 @@ export function TableCheckoutForm({
   if (!sameStore || cart.items.length === 0) {
     return (
       <EmptyState
+        illustration="bag"
         title="Tu carrito está vacío"
         description={`Agrega platos del menú de ${store.name} para pedir desde la mesa ${table.number}.`}
         action={
@@ -246,7 +247,7 @@ export function TableCheckoutForm({
                     className={cn(
                       'rounded-control flex size-10 items-center justify-center',
                       option.method === 'wompi'
-                        ? 'bg-white shadow-1'
+                        ? 'shadow-1 bg-white'
                         : 'bg-muted text-primary',
                     )}
                   >

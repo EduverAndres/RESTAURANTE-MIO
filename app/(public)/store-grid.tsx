@@ -143,6 +143,7 @@ export function StoreGrid({ stores, category }: StoreGridProps) {
   if (visible.length === 0) {
     return (
       <EmptyState
+        illustration="awning"
         title={
           category
             ? `Nada de ${category} por aquí todavía`

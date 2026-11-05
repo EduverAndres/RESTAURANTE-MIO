@@ -40,7 +40,12 @@ export async function fetchTablesWithQr(
   return Promise.all(
     (data ?? []).map(async (table) => {
       const url = tableQrTargetUrl(origin, slug, table.qr_token)
-      return { id: table.id, number: table.number, url, svg: await renderQrSvg(url) }
+      return {
+        id: table.id,
+        number: table.number,
+        url,
+        svg: await renderQrSvg(url),
+      }
     }),
   )
 }
@@ -70,6 +75,7 @@ export default async function TablesPage() {
 
       {tables.length === 0 ? (
         <EmptyState
+          illustration="table"
           title="Todavía no tienes mesas"
           description="Crea tu primera mesa o agrega varias de una vez con un rango como 1-12."
         />
