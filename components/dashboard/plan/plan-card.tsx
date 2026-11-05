@@ -6,6 +6,7 @@ import {
   isFounderActive,
   isPlanId,
   PLAN_LABELS,
+  planHas,
   type PlanId,
 } from '@/lib/plans'
 import {
@@ -54,6 +55,11 @@ export function PlanCard({
     ? supportWhatsAppUrl(
         `Hola, quiero pasar ${store.name} al plan ${PLAN_LABELS[upgrade]}.`,
       )
+    : null
+  // Priority support is a line, not a separate system: the "[VIP]" tag is
+  // what tells whoever answers the WhatsApp to take this one first.
+  const prioritySupportUrl = planHas(plan, 'priority-support')
+    ? supportWhatsAppUrl(`[VIP] Hola, soy de ${store.name} y necesito ayuda.`)
     : null
 
   return (
@@ -147,6 +153,21 @@ export function PlanCard({
           )
         })}
       </ul>
+
+      {prioritySupportUrl ? (
+        <p className="text-sm">
+          Soporte prioritario:{' '}
+          <a
+            href={prioritySupportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary-on-tint font-medium underline-offset-4 hover:underline"
+          >
+            escríbenos por WhatsApp
+          </a>
+          , te respondemos primero.
+        </p>
+      ) : null}
 
       {upgrade ? (
         <p className="text-sm">

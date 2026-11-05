@@ -1,10 +1,17 @@
-import { FlameIcon, HeartIcon, RotateCcwIcon, ZapIcon } from 'lucide-react'
+import {
+  FlameIcon,
+  HeartIcon,
+  RotateCcwIcon,
+  SparklesIcon,
+  ZapIcon,
+} from 'lucide-react'
 import { Suspense } from 'react'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { ForbiddenToast } from './forbidden-toast'
 import {
   StoreGrid,
   categoriesOf,
+  fetchFeaturedStoreIds,
   fetchStores,
   readVisitorLocation,
 } from './store-grid'
@@ -90,7 +97,11 @@ async function StoreSections({ category }: { category: string | null }) {
     readVisitorLocation(),
     getCurrentUser(),
   ])
-  const stores = await fetchStores(location)
+  const [stores, featuredIds] = await Promise.all([
+    fetchStores(location),
+    fetchFeaturedStoreIds(),
+  ])
+  const featured = stores.filter((store) => featuredIds.has(store.id))
   const categories = categoriesOf(stores)
   const favorites = stores.filter((store) => store.is_favorite)
   const reorder = current
@@ -115,6 +126,31 @@ async function StoreSections({ category }: { category: string | null }) {
       <div className="mb-8">
         <CategoryCarousel categories={categories} />
       </div>
+
+      {/* The VIP plan's placement, first of the rails. Labelled as what it
+          is: a place the business pays for, not a ranking. */}
+      {!category && featured.length > 0 ? (
+        <section aria-labelledby="destacados-title" className="mb-10">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <SparklesIcon
+                aria-hidden="true"
+                className="text-primary size-4"
+              />
+              <h2
+                id="destacados-title"
+                className="text-h3 font-display font-semibold"
+              >
+                Destacados
+              </h2>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Negocios con plan VIP
+            </p>
+          </div>
+          <StoreRail stores={featured} label="Destacados" />
+        </section>
+      ) : null}
 
       {!category && reorder.length > 0 ? (
         <ShortcutSection

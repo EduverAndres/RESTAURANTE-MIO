@@ -6,6 +6,7 @@ import {
   XCircleIcon,
 } from 'lucide-react'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { BarChart } from '@/components/dashboard/metrics/bar-chart'
 import { KpiTile } from '@/components/dashboard/metrics/kpi-tile'
 import {
@@ -14,6 +15,7 @@ import {
 } from '@/components/dashboard/metrics/period-selector'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { formatCOP } from '@/lib/format'
+import { planHas, planOfStore } from '@/lib/plans'
 import {
   buildSeries,
   computeKpis,
@@ -78,9 +80,12 @@ async function fetchPeriodData(
 
 export default async function MetricsPage({ searchParams }: MetricsPageProps) {
   const { store } = await requireActiveStoreRow('/dashboard/metrics')
+  // Normal sees today's numbers; the periods, the chart and the best sellers
+  // are the "estadísticas completas" of Mediano and VIP.
+  const full = planHas(planOfStore(store), 'full-metrics')
   const params = await searchParams
   const raw = params[PERIOD_PARAM]
-  const period = parsePeriod(Array.isArray(raw) ? raw[0] : raw)
+  const period = full ? parsePeriod(Array.isArray(raw) ? raw[0] : raw) : 'hoy'
   const bounds = periodBounds(period, new Date())
   const { orders, items } = await fetchPeriodData(store.id, bounds)
 
@@ -99,7 +104,7 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
             Cómo va {store.name}. Los ingresos cuentan solo pedidos entregados.
           </p>
         </div>
-        <PeriodSelector current={period} />
+        {full ? <PeriodSelector current={period} /> : null}
       </header>
 
       {/*
@@ -142,47 +147,65 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
         />
       </dl>
 
-      <div className="gap-inline grid lg:grid-cols-[1fr_320px] lg:items-start">
-        <BarChart
-          title={period === 'hoy' ? 'Pedidos por hora' : 'Pedidos por día'}
-          points={series}
-        />
-        <section
-          aria-labelledby="top-products-title"
-          className="rounded-card border-border bg-card shadow-1 p-card border"
-        >
-          <h2
-            id="top-products-title"
-            className="font-display mb-3 text-xl font-semibold"
-          >
-            Más vendidos
+      {!full ? (
+        <section className="rounded-card border-border bg-card shadow-1 p-card space-y-2 border">
+          <h2 className="font-display text-xl font-semibold">
+            Estadísticas completas
           </h2>
-          {top.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Aún no hay ventas en este periodo.
-            </p>
-          ) : (
-            <ol className="space-y-2">
-              {top.map((product, index) => (
-                <li
-                  key={product.key}
-                  className="flex items-center gap-3 text-sm"
-                >
-                  <span className="bg-primary/10 text-primary-on-tint flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-                    {index + 1}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {product.name}
-                  </span>
-                  <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                    {product.quantity} und.
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
+          <p className="text-muted-foreground text-sm text-pretty">
+            Con el plan Mediano ves la semana y el mes, los pedidos por hora y
+            por día y tus productos más vendidos. Hoy ves los números del día.{' '}
+            <Link
+              href="/dashboard/payouts"
+              className="text-primary-on-tint font-medium underline-offset-4 hover:underline"
+            >
+              Ver tu plan
+            </Link>
+          </p>
         </section>
-      </div>
+      ) : (
+        <div className="gap-inline grid lg:grid-cols-[1fr_320px] lg:items-start">
+          <BarChart
+            title={period === 'hoy' ? 'Pedidos por hora' : 'Pedidos por día'}
+            points={series}
+          />
+          <section
+            aria-labelledby="top-products-title"
+            className="rounded-card border-border bg-card shadow-1 p-card border"
+          >
+            <h2
+              id="top-products-title"
+              className="font-display mb-3 text-xl font-semibold"
+            >
+              Más vendidos
+            </h2>
+            {top.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Aún no hay ventas en este periodo.
+              </p>
+            ) : (
+              <ol className="space-y-2">
+                {top.map((product, index) => (
+                  <li
+                    key={product.key}
+                    className="flex items-center gap-3 text-sm"
+                  >
+                    <span className="bg-primary/10 text-primary-on-tint flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {product.name}
+                    </span>
+                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                      {product.quantity} und.
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   )
 }

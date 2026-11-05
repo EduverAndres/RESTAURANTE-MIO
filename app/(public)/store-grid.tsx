@@ -4,6 +4,7 @@ import { StoreCard, type StoreCardData } from '@/components/store/store-card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { estimateEtaMinutes } from '@/lib/geo'
+import { bogotaDate } from '@/lib/plans'
 import {
   LOCATION_COOKIE,
   parseLocation,
@@ -38,6 +39,28 @@ async function readFavoriteIds(): Promise<Set<string>> {
  * Active stores ranked by distance when a location is known (via the
  * stores_nearby SQL function), otherwise by rating.
  */
+/**
+ * Ids of the stores the home features: VIP stores and founders still inside
+ * their offer (they get VIP). Read apart from `fetchStores` because the
+ * `stores_nearby` RPC returns a fixed column list without the plan. Any
+ * failure, including a database without the plans migration yet, just
+ * means nothing is featured.
+ */
+export async function fetchFeaturedStoreIds(): Promise<Set<string>> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('status', 'active')
+      .or(`plan.eq.vip,founder_until.gte.${bogotaDate(new Date())}`)
+    if (error || !data) return new Set()
+    return new Set(data.map((store) => store.id))
+  } catch {
+    return new Set()
+  }
+}
+
 export async function fetchStores(
   location: VisitorLocation | null,
 ): Promise<StoreCardData[]> {
