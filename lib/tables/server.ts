@@ -48,9 +48,20 @@ export function tableQrTargetUrl(
   return tableEntryUrl(origin, slug, token)
 }
 
-/** Inline SVG markup for a QR code; rendered server-side, no client library. */
+/**
+ * Inline SVG markup for a QR code; rendered server-side, no client library.
+ *
+ * Error correction H (about 30% of the code recoverable) because the platform
+ * mark is laid over the centre of every table card (see `QrWithMark`), and a
+ * four-module quiet zone, the margin scanners are specified against: a
+ * printed code is read in dim light, at an angle, by any phone.
+ */
 export async function renderQrSvg(url: string): Promise<string> {
-  return QRCode.toString(url, { type: 'svg', margin: 1 })
+  return QRCode.toString(url, {
+    type: 'svg',
+    margin: 4,
+    errorCorrectionLevel: 'H',
+  })
 }
 
 function isTablePaymentMethod(value: string): value is TablePaymentMethod {
