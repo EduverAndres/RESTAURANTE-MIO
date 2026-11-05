@@ -455,6 +455,7 @@ export type Database = {
       }
       payouts: {
         Row: {
+          cash_collected: number
           commission: number
           created_at: string
           gross: number
@@ -463,11 +464,13 @@ export type Database = {
           paid_at: string | null
           period_end: string
           period_start: string
+          plan_fee: number
           status: Database["public"]["Enums"]["payout_status"]
           store_id: string
           updated_at: string
         }
         Insert: {
+          cash_collected?: number
           commission?: number
           created_at?: string
           gross?: number
@@ -476,11 +479,13 @@ export type Database = {
           paid_at?: string | null
           period_end: string
           period_start: string
+          plan_fee?: number
           status?: Database["public"]["Enums"]["payout_status"]
           store_id: string
           updated_at?: string
         }
         Update: {
+          cash_collected?: number
           commission?: number
           created_at?: string
           gross?: number
@@ -489,6 +494,7 @@ export type Database = {
           paid_at?: string | null
           period_end?: string
           period_start?: string
+          plan_fee?: number
           status?: Database["public"]["Enums"]["payout_status"]
           store_id?: string
           updated_at?: string
@@ -502,6 +508,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          id: string
+          monthly_fee: number
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          monthly_fee: number
+          name: string
+          position: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          monthly_fee?: number
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       product_option_values: {
         Row: {
@@ -902,6 +935,7 @@ export type Database = {
           delivery_fee: number
           delivery_radius_km: number
           description: string | null
+          founder_until: string | null
           id: string
           is_open: boolean
           lat: number | null
@@ -909,7 +943,9 @@ export type Database = {
           logo_url: string | null
           min_order: number
           name: string
+          online_payment_pct: number
           owner_id: string
+          plan: string
           prep_time_min: number
           rating_avg: number
           rating_count: number
@@ -929,6 +965,7 @@ export type Database = {
           delivery_fee?: number
           delivery_radius_km?: number
           description?: string | null
+          founder_until?: string | null
           id?: string
           is_open?: boolean
           lat?: number | null
@@ -936,7 +973,9 @@ export type Database = {
           logo_url?: string | null
           min_order?: number
           name: string
+          online_payment_pct?: number
           owner_id: string
+          plan?: string
           prep_time_min?: number
           rating_avg?: number
           rating_count?: number
@@ -956,6 +995,7 @@ export type Database = {
           delivery_fee?: number
           delivery_radius_km?: number
           description?: string | null
+          founder_until?: string | null
           id?: string
           is_open?: boolean
           lat?: number | null
@@ -963,7 +1003,9 @@ export type Database = {
           logo_url?: string | null
           min_order?: number
           name?: string
+          online_payment_pct?: number
           owner_id?: string
+          plan?: string
           prep_time_min?: number
           rating_avg?: number
           rating_count?: number
@@ -975,6 +1017,13 @@ export type Database = {
           whatsapp_phone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stores_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stores_owner_id_fkey"
             columns: ["owner_id"]

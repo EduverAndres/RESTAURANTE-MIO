@@ -4,11 +4,28 @@
 // the delivery fee (paid to the courier/platform for logistics) and the
 // tip (paid to the courier) never belong to the merchant, so they are
 // excluded from gross/net on purpose.
-import type { OrderStatus, PaymentMethod, PaymentStatus } from '@/types/app'
+//
+// What the platform transfers is not the whole sale. Cash the merchant took
+// in person is already in their till, and the plan's monthly fee is charged
+// here too, so
+//
+//   net = gross - commission - cash_collected - plan_fee
+//
+// A negative net is a debt to the platform (see `isDebtToPlatform`): a
+// merchant who sells mostly in cash owes the commission on those sales.
+import type {
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
+  PaymentStatus,
+} from '@/types/app'
 
 export interface PayoutOrderInput {
   store_id: string
   status: OrderStatus
+  type: OrderType
+  /** Null when no platform courier took the order (pickup, table, own delivery). */
+  courier_id: string | null
   subtotal: number
   platform_fee: number
   delivered_at: string | null
@@ -29,6 +46,10 @@ export interface PayoutSummaryRow {
   period_end: string
   gross: number
   commission: number
+  /** Subtotals the merchant already collected in cash. */
+  cash_collected: number
+  /** The plan's monthly fee, prorated to the period. */
+  plan_fee: number
   net: number
 }
 
@@ -49,6 +70,23 @@ export function isEligible(order: PayoutOrderInput): boolean {
   if (order.status !== 'delivered') return false
   if (order.payment_status === 'refunded') return false
   return order.payment_status === 'paid' || order.payment_method === 'cash'
+}
+
+/**
+ * Whether the merchant, not the platform, ended up holding the money.
+ *
+ * A cash sale is collected by whoever hands the order over: the merchant at
+ * the counter or the table, or on a delivery they made themselves. Only a
+ * cash delivery taken by a platform courier puts the money in the platform's
+ * hands, and that one is still owed to the merchant.
+ *
+ * MIRRORED IN SQL (`MERCHANT_COLLECTED_RULE` in lib/payouts/sql.ts).
+ */
+export function isCollectedByMerchant(
+  order: Pick<PayoutOrderInput, 'payment_method' | 'type' | 'courier_id'>,
+): boolean {
+  if (order.payment_method !== 'cash') return false
+  return order.type !== 'delivery' || order.courier_id === null
 }
 
 /** Start of `dateOnly`, inclusive. */
@@ -81,6 +119,13 @@ export interface PayoutAdjustmentInput {
   store_id: string
   gross: number
   commission: number
+  cash_collected: number
+}
+
+/** One store's plan fee for the period, from `planFeeForPeriod`. */
+export interface PlanFeeInput {
+  store_id: string
+  plan_fee: number
 }
 
 /**
@@ -99,39 +144,61 @@ export function summarizePayouts(
   orders: readonly PayoutOrderInput[],
   { periodStart, periodEnd }: PayoutPeriod,
   adjustments: readonly PayoutAdjustmentInput[] = [],
+  planFees: readonly PlanFeeInput[] = [],
 ): PayoutSummaryRow[] {
   const fromMs = periodStartMs(periodStart)
   const toExclusiveMs = periodEndExclusive(periodEnd).getTime()
 
-  const totals = new Map<string, { gross: number; commission: number }>()
+  type Totals = {
+    gross: number
+    commission: number
+    cash_collected: number
+    plan_fee: number
+  }
+  const totals = new Map<string, Totals>()
+  const entryOf = (storeId: string): Totals => {
+    const entry = totals.get(storeId) ?? {
+      gross: 0,
+      commission: 0,
+      cash_collected: 0,
+      plan_fee: 0,
+    }
+    totals.set(storeId, entry)
+    return entry
+  }
+
   for (const order of orders) {
     if (!isEligible(order)) continue
     if (!inPeriod(order.delivered_at, fromMs, toExclusiveMs)) continue
 
-    const entry = totals.get(order.store_id) ?? { gross: 0, commission: 0 }
+    const entry = entryOf(order.store_id)
     entry.gross += order.subtotal
     entry.commission += order.platform_fee
-    totals.set(order.store_id, entry)
+    if (isCollectedByMerchant(order)) entry.cash_collected += order.subtotal
   }
 
   for (const adjustment of adjustments) {
-    const entry = totals.get(adjustment.store_id) ?? {
-      gross: 0,
-      commission: 0,
-    }
+    const entry = entryOf(adjustment.store_id)
     entry.gross += adjustment.gross
     entry.commission += adjustment.commission
-    totals.set(adjustment.store_id, entry)
+    entry.cash_collected += adjustment.cash_collected
+  }
+
+  // A plan fee alone still produces a row: a store that sold nothing this
+  // period owes its plan all the same.
+  for (const fee of planFees) {
+    if (fee.plan_fee <= 0) continue
+    entryOf(fee.store_id).plan_fee += fee.plan_fee
   }
 
   return [...totals.entries()]
-    .map(([store_id, { gross, commission }]) => ({
+    .map(([store_id, entry]) => ({
       store_id,
       period_start: periodStart,
       period_end: periodEnd,
-      gross,
-      commission,
-      net: gross - commission,
+      ...entry,
+      net:
+        entry.gross - entry.commission - entry.cash_collected - entry.plan_fee,
     }))
     .sort((a, b) => a.store_id.localeCompare(b.store_id))
 }

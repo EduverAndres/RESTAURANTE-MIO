@@ -4,10 +4,23 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { isEligible, type PayoutOrderInput } from '@/lib/payouts/compute'
+import {
+  isCollectedByMerchant,
+  isEligible,
+  type PayoutOrderInput,
+} from '@/lib/payouts/compute'
 import { REFUND_REVERSES_PLATFORM_FEE } from '@/lib/payouts/reversal'
-import { payoutSqlBlocks, PAYOUT_ELIGIBLE_RULE } from '@/lib/payouts/sql'
-import type { OrderStatus, PaymentMethod, PaymentStatus } from '@/types/app'
+import {
+  MERCHANT_COLLECTED_RULE,
+  payoutSqlBlocks,
+  PAYOUT_ELIGIBLE_RULE,
+} from '@/lib/payouts/sql'
+import type {
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
+  PaymentStatus,
+} from '@/types/app'
 
 // ---------------------------------------------------------------------------
 // Payout generation runs inside one database transaction, so the decisions it
@@ -45,6 +58,8 @@ function order(
   return {
     store_id: 'store-1',
     status,
+    type: 'delivery',
+    courier_id: 'courier-1',
     subtotal: 10000,
     platform_fee: 600,
     delivered_at: '2026-09-15T12:00:00.000Z',
@@ -72,6 +87,24 @@ describe('the SQL mirror of the eligibility rule', () => {
   })
 })
 
+const ORDER_TYPES: readonly OrderType[] = ['delivery', 'pickup', 'table']
+
+describe('the SQL mirror of the cash-held-by-merchant rule', () => {
+  it('agrees with isCollectedByMerchant on every method, type and courier', () => {
+    for (const method of PAYMENT_METHODS) {
+      for (const type of ORDER_TYPES) {
+        for (const courier_id of [null, 'courier-1']) {
+          const input = { payment_method: method, type, courier_id }
+          expect(
+            MERCHANT_COLLECTED_RULE.matches(input),
+            `${method}/${type}/${courier_id ?? 'sin domiciliario'}`,
+          ).toBe(isCollectedByMerchant(input))
+        }
+      }
+    }
+  })
+})
+
 describe('the SQL mirror of the commission reversal', () => {
   it('follows REFUND_REVERSES_PLATFORM_FEE', () => {
     // Flipping that constant must not be able to mean one thing to the app
@@ -89,7 +122,8 @@ describe('the SQL mirror of the commission reversal', () => {
 // ---------------------------------------------------------------------------
 const SQL_PATH = fileURLToPath(
   new URL(
-    '../supabase/migrations/20260919000500_money_transactions.sql',
+    // The latest migration that defines public.generate_payouts.
+    '../supabase/migrations/20261105000200_settlement.sql',
     import.meta.url,
   ),
 )
@@ -111,7 +145,7 @@ function block(name: string): string {
   return sql.slice(from + begin.length, to).trim()
 }
 
-describe('20260919000500_money_transactions.sql', () => {
+describe('20261105000200_settlement.sql', () => {
   it('embeds every generated block verbatim', () => {
     for (const [name, sql] of Object.entries(payoutSqlBlocks())) {
       expect(block(name), name).toBe(sql)
@@ -122,6 +156,8 @@ describe('20260919000500_money_transactions.sql', () => {
     // A bare `::timestamptz` would be read in the session's time zone and
     // move every period boundary by the deployment's offset.
     expect(readSql()).not.toMatch(/period_(start|end)::timestamptz/)
-    expect(readSql()).toContain("(p_period_start::timestamp at time zone 'UTC')")
+    expect(readSql()).toContain(
+      "(p_period_start::timestamp at time zone 'UTC')",
+    )
   })
 })

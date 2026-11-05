@@ -9,6 +9,8 @@ function order(overrides: Partial<PayoutOrderInput>): PayoutOrderInput {
   return {
     store_id: 'store-1',
     status: 'delivered',
+    type: 'delivery',
+    courier_id: 'courier-1',
     subtotal: 10000,
     platform_fee: 600,
     delivered_at: '2026-09-08T12:00:00.000Z',
@@ -52,6 +54,8 @@ describe('summarizePayouts', () => {
         period_end: '2026-09-13',
         gross: 30000,
         commission: 1800,
+        cash_collected: 0,
+        plan_fee: 0,
         net: 28200,
       },
       {
@@ -60,6 +64,8 @@ describe('summarizePayouts', () => {
         period_end: '2026-09-13',
         gross: 5000,
         commission: 300,
+        cash_collected: 0,
+        plan_fee: 0,
         net: 4700,
       },
     ])
@@ -100,6 +106,8 @@ describe('summarizePayouts', () => {
         period_end: '2026-09-13',
         gross: 8000,
         commission: 480,
+        cash_collected: 0,
+        plan_fee: 0,
         net: 7520,
       },
     ])
@@ -155,5 +163,110 @@ describe('summarizePayouts', () => {
 
   it('returns an empty array for no orders', () => {
     expect(summarizePayouts([], PERIOD)).toEqual([])
+  })
+})
+
+describe('cash the merchant already holds', () => {
+  it('is never transferred: the merchant owes the commission instead', () => {
+    for (const overrides of [
+      { type: 'pickup' as const, courier_id: null },
+      { type: 'table' as const, courier_id: null },
+      // A delivery the merchant made with their own rider.
+      { type: 'delivery' as const, courier_id: null },
+    ]) {
+      const [row] = summarizePayouts(
+        [
+          order({
+            payment_method: 'cash',
+            payment_status: 'pending',
+            ...overrides,
+          }),
+        ],
+        PERIOD,
+      )
+      expect(row, overrides.type).toMatchObject({
+        gross: 10000,
+        commission: 600,
+        cash_collected: 10000,
+        net: -600,
+      })
+    }
+  })
+
+  it('is still owed to the merchant when a platform courier collected it', () => {
+    const [row] = summarizePayouts(
+      [
+        order({
+          payment_method: 'cash',
+          payment_status: 'pending',
+          type: 'delivery',
+          courier_id: 'courier-1',
+        }),
+      ],
+      PERIOD,
+    )
+    expect(row).toMatchObject({ cash_collected: 0, net: 9400 })
+  })
+
+  it('nets against online sales in the same period', () => {
+    const [row] = summarizePayouts(
+      [
+        order({ payment_method: 'wompi', subtotal: 20000, platform_fee: 2200 }),
+        order({
+          payment_method: 'cash',
+          payment_status: 'pending',
+          type: 'pickup',
+          courier_id: null,
+          subtotal: 10000,
+          platform_fee: 600,
+        }),
+      ],
+      PERIOD,
+    )
+    // 30.000 sold, 20.000 of it through the platform, minus 2.800 commission.
+    expect(row).toMatchObject({
+      gross: 30000,
+      commission: 2800,
+      cash_collected: 10000,
+      net: 17200,
+    })
+  })
+})
+
+describe('plan fees', () => {
+  it('produce a row, and a debt, for a store that sold nothing', () => {
+    expect(
+      summarizePayouts(
+        [],
+        PERIOD,
+        [],
+        [{ store_id: 'store-9', plan_fee: 30310 }],
+      ),
+    ).toEqual([
+      {
+        store_id: 'store-9',
+        period_start: '2026-09-07',
+        period_end: '2026-09-13',
+        gross: 0,
+        commission: 0,
+        cash_collected: 0,
+        plan_fee: 30310,
+        net: -30310,
+      },
+    ])
+  })
+
+  it('come out of the net of a store that did sell, and zero fees add nothing', () => {
+    const rows = summarizePayouts(
+      [order({})],
+      PERIOD,
+      [],
+      [
+        { store_id: 'store-1', plan_fee: 11643 },
+        { store_id: 'store-2', plan_fee: 0 },
+      ],
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ plan_fee: 11643, net: 10000 - 600 - 11643 })
   })
 })
