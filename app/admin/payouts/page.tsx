@@ -27,7 +27,9 @@ export default async function AdminPayoutsPage() {
 
   const { data: payouts } = await supabase
     .from('payouts')
-    .select('id, store_id, period_start, period_end, gross, commission, net, status, paid_at, stores(name, slug)')
+    .select(
+      'id, store_id, period_start, period_end, gross, commission, cash_collected, plan_fee, net, status, paid_at, stores(name, slug)',
+    )
     .order('period_start', { ascending: false })
     .limit(200)
 
@@ -38,9 +40,12 @@ export default async function AdminPayoutsPage() {
           Liquidaciones
         </h1>
         <p className="text-muted-foreground text-sm">
-          Genera las liquidaciones del periodo y marca como pagadas las que
-          ya se transfirieron. Los reembolsos registrados después de generar
-          un periodo se descuentan aquí, como ajuste negativo del siguiente.
+          Genera las liquidaciones del periodo y marca como pagadas las que ya
+          se transfirieron. A transferir = ventas − comisión − efectivo que el
+          negocio ya cobró − mensualidad del plan; en negativo, la tienda le
+          debe a la plataforma. Los reembolsos registrados después de generar un
+          periodo se descuentan como ajuste del siguiente. No generes periodos
+          que se crucen: un pedido o una mensualidad se cobrarían dos veces.
         </p>
       </header>
 
@@ -53,9 +58,13 @@ export default async function AdminPayoutsPage() {
               <TableRow>
                 <TableHead>Tienda</TableHead>
                 <TableHead>Periodo</TableHead>
-                <TableHead className="text-right">Bruto</TableHead>
+                <TableHead className="text-right">Ventas</TableHead>
                 <TableHead className="text-right">Comisión</TableHead>
-                <TableHead className="text-right">Neto</TableHead>
+                <TableHead className="text-right">
+                  Efectivo del negocio
+                </TableHead>
+                <TableHead className="text-right">Plan</TableHead>
+                <TableHead className="text-right">A transferir</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acción</TableHead>
               </TableRow>
@@ -77,6 +86,12 @@ export default async function AdminPayoutsPage() {
                   <TableCell className="text-right tabular-nums">
                     {formatCOP(Number(payout.commission))}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCOP(Number(payout.cash_collected))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCOP(Number(payout.plan_fee))}
+                  </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatCOP(Number(payout.net))}
                     {isDebtToPlatform({ net: Number(payout.net) }) ? (
@@ -96,9 +111,7 @@ export default async function AdminPayoutsPage() {
                       <PayoutMarkPaidButton payoutId={payout.id} />
                     ) : (
                       <span className="text-muted-foreground text-xs">
-                        {payout.paid_at
-                          ? formatDateCO(payout.paid_at)
-                          : '—'}
+                        {payout.paid_at ? formatDateCO(payout.paid_at) : '—'}
                       </span>
                     )}
                   </TableCell>
