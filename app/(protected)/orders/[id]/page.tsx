@@ -31,6 +31,7 @@ import { logger } from '@/lib/log/logger'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
 import { buildCustomerInquiry, buildWhatsAppUrl } from '@/lib/orders/whatsapp'
 import { reconcileWompiTransaction } from '@/lib/payments/wompi/reconcile'
+import { REVIEW_ANCHOR } from '@/lib/push/messages'
 import { estimateRoute } from '@/lib/routing'
 import { createClient } from '@/lib/supabase/server'
 import type { OrderStatus } from '@/types/app'
@@ -281,16 +282,23 @@ export default async function OrderPage({
             </div>
           </div>
 
-          {order.status === 'delivered' && !reviewed ? (
-            <ReviewForm
-              orderId={order.id}
-              storeName={store?.name ?? 'el restaurante'}
-            />
-          ) : null}
-          {reviewed ? (
-            <p className="rounded-card bg-muted/60 text-muted-foreground p-4 text-sm">
-              Gracias por valorar este pedido.
-            </p>
+          {/* The "delivered" push opens this page on this block. */}
+          {order.status === 'delivered' || reviewed ? (
+            <div
+              id={REVIEW_ANCHOR}
+              className="scroll-mt-[calc(var(--app-header-h)+1rem)]"
+            >
+              {reviewed ? (
+                <p className="rounded-card bg-muted/60 text-muted-foreground p-4 text-sm">
+                  Gracias por valorar este pedido.
+                </p>
+              ) : (
+                <ReviewForm
+                  orderId={order.id}
+                  storeName={store?.name ?? 'el restaurante'}
+                />
+              )}
+            </div>
           ) : null}
         </div>
 
