@@ -35,7 +35,7 @@ export function SavingsCalculator() {
       <div className="grid gap-card sm:grid-cols-2">
         <div className="space-y-2">
           <label htmlFor={revenueId} className="text-small font-medium">
-            ¿Cuánto vendés al mes por la app?
+            ¿Cuánto vendes al mes por apps de domicilio?
           </label>
           <input
             id={revenueId}
@@ -73,7 +73,7 @@ export function SavingsCalculator() {
       <dl className="mt-6 grid gap-4 sm:grid-cols-3" aria-live="polite">
         <div>
           <dt className="text-muted-foreground text-small">
-            Comisión que pagás hoy
+            Comisión que pagas hoy
           </dt>
           <dd className="text-h3 font-display tabular-nums">
             {formatCOP(result.marketplaceCost)}
@@ -87,7 +87,7 @@ export function SavingsCalculator() {
         </div>
         <div>
           <dt className="text-muted-foreground text-small">
-            {result.worthIt ? 'Te queda a vos' : 'Diferencia'}
+            {result.worthIt ? 'Te ahorras' : 'Diferencia'}
           </dt>
           <dd
             className={`text-h3 font-display tabular-nums ${
@@ -107,7 +107,7 @@ export function SavingsCalculator() {
           </>
         ) : result.breakEvenRevenue === BREAK_EVEN_UNREACHABLE ? (
           <>
-            Si no te cobran comisión, quedate donde estás. Volvé el día que
+            Si no te cobran comisión, quédate donde estás. Vuelve el día que
             empiecen a cobrarte.
           </>
         ) : (

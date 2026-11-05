@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { env } from '@/lib/env'
+import { storePublicUrl } from '@/lib/subdomain'
 import { Storefront, fetchStore } from './storefront'
 
 // No `loading.tsx` on purpose: it would wrap the page in a Suspense boundary,
@@ -25,6 +27,16 @@ export async function generateMetadata({
     title: store.name,
     description:
       store.description ?? `Pide en ${store.name}: domicilio, recogida o mesa.`,
+    // The same storefront answers on `/t/<slug>` and on its subdomain. The
+    // canonical is the address the merchant shares from the dashboard, so the
+    // links pointing at the store and the URL search engines keep agree.
+    alternates: {
+      canonical: storePublicUrl({
+        slug: store.slug,
+        siteUrl: env.NEXT_PUBLIC_SITE_URL,
+        rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
+      }),
+    },
   }
 }
 

@@ -5,7 +5,7 @@ import { z } from 'zod'
 // import time so a misconfigured deployment fails fast.
 const publicEnvSchema = z
   .object({
-    NEXT_PUBLIC_APP_NAME: z.string().min(1).default('Tienda'),
+    NEXT_PUBLIC_APP_NAME: z.string().min(1).default('Cerquita'),
     NEXT_PUBLIC_SITE_URL: z.url(),
     NEXT_PUBLIC_ROOT_DOMAIN: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_URL: z.url(),

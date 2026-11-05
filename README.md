@@ -1,4 +1,4 @@
-# Tienda
+# Cerquita
 
 Multi-tenant food ordering platform. Each restaurant gets its own themed
 storefront (own subdomain, colors and menu), customers order for delivery,
@@ -115,7 +115,7 @@ notifications configured at all).
 
 | Name                                   | Scope            | Required                                        | Purpose                                                                                                                                                |
 | -------------------------------------- | ---------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_APP_NAME`                 | public           | no (defaults to `Tienda`)                       | Brand name shown in the UI, metadata and manifest.                                                                                                     |
+| `NEXT_PUBLIC_APP_NAME`                 | public           | no (defaults to `Cerquita`)                       | Brand name shown in the UI, metadata and manifest.                                                                                                     |
 | `NEXT_PUBLIC_SITE_URL`                 | public           | yes                                             | Absolute base URL used for redirect URLs, payment return URLs and QR targets.                                                                          |
 | `NEXT_PUBLIC_ROOT_DOMAIN`              | public           | yes                                             | Root domain for store subdomains (e.g. `tienda.app`); use `localhost` in local dev to disable subdomain routing.                                       |
 | `NEXT_PUBLIC_SUPABASE_URL`             | public           | yes                                             | Supabase project URL.                                                                                                                                  |

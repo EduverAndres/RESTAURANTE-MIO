@@ -10,7 +10,7 @@ export function Wordmark({ className }: { className?: string }) {
   return (
     <Link
       href="/"
-      className={`font-display font-display-soft text-foreground text-2xl font-semibold tracking-tight ${className ?? ''}`}
+      className={`font-display font-display-soft text-foreground text-2xl font-semibold tracking-tight lowercase ${className ?? ''}`}
       aria-label={`${APP_NAME}, ir al inicio`}
     >
       {APP_NAME}

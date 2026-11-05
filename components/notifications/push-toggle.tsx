@@ -5,11 +5,11 @@ import { toast } from 'sonner'
 import { usePushSubscription } from '@/hooks/use-push-subscription'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { APP_NAME } from '@/lib/env'
 import { needsHomeScreenInstall } from '@/lib/push/platform'
 import { cn } from '@/lib/utils'
 
-const HOME_SCREEN_HINT =
-  'En iPhone o iPad, agrega Tienda a la pantalla de inicio (Compartir → Agregar a inicio) para recibir notificaciones.'
+const HOME_SCREEN_HINT = `En iPhone o iPad, agrega ${APP_NAME} a la pantalla de inicio (Compartir → Agregar a inicio) para recibir notificaciones.`
 
 /**
  * True on an iPhone or iPad that is browsing rather than running the

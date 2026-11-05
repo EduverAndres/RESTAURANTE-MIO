@@ -32,7 +32,7 @@ export function QrReachNotice({
         aria-hidden="true"
         className={cn(
           'mt-0.5 size-5 shrink-0',
-          blocking ? 'text-destructive-on-tint' : 'text-accent',
+          blocking ? 'text-destructive-on-tint' : 'text-accent-strong',
         )}
       />
       <div className="space-y-1">

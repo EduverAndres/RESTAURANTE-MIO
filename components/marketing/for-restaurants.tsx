@@ -16,17 +16,17 @@ const PROMISES = [
   {
     icon: QrCodeIcon,
     title: 'El QR en la mesa',
-    body: 'El comensal escanea, ve tu carta y pide sin llamar a nadie. Sin cuenta, sin descargar nada. Menos vueltas para el mozo y menos pedidos mal tomados.',
+    body: 'El cliente escanea, ve tu carta y pide sin llamar a nadie. Sin cuenta, sin descargar nada. Menos vueltas para el mesero y menos pedidos mal tomados.',
   },
   {
     icon: PaletteIcon,
     title: 'Tu marca, no la nuestra',
-    body: 'Colores, tipografías, portada y hasta el orden de la carta. Tu tienda no parece una ficha dentro de un catálogo: parece tu local.',
+    body: 'Colores, tipografías, portada y hasta el orden de la carta. Tu tienda no parece una ficha más de un catálogo: se ve como tu negocio.',
   },
   {
     icon: WalletIcon,
-    title: 'La plata va directo a vos',
-    body: 'Cobrás con tus propias credenciales de pago. Nosotros no tocamos la plata de tus ventas en ningún momento.',
+    title: 'La plata te llega directo',
+    body: 'Cobras con tus propias credenciales de pago. Nosotros no tocamos la plata de tus ventas en ningún momento.',
   },
 ] as const
 
@@ -48,7 +48,7 @@ export function ForRestaurants({
           <div className="space-y-8">
             <div className="space-y-3">
               <p className="text-primary text-xs font-semibold tracking-wide uppercase">
-                Para restaurantes
+                Para negocios
               </p>
               <Heading
                 id="para-restaurantes-title"
@@ -58,7 +58,7 @@ export function ForRestaurants({
                 serlo.
               </Heading>
               <p className="text-muted-foreground text-pretty">
-                Recibí pedidos a domicilio, para recoger y desde la mesa con tu
+                Recibe pedidos a domicilio, para recoger y desde la mesa con tu
                 propia marca. Una mensualidad fija, no un porcentaje de cada
                 venta.
               </p>
@@ -94,10 +94,10 @@ export function ForRestaurants({
           <div className="space-y-4 lg:pt-10">
             <div className="space-y-1">
               <h3 className="text-h3 font-display font-semibold">
-                Hacé la cuenta con tus números
+                Haz la cuenta con tus números
               </h3>
               <p className="text-muted-foreground text-sm">
-                No te vamos a decir cuánto te cobran. Ponelo vos, que lo sabés
+                No vamos a adivinar cuánto te cobran. Ponlo tú, que lo sabes
                 mejor que nadie.
               </p>
             </div>

@@ -24,6 +24,10 @@
   --muted-foreground: #6b6259;
   --accent: #f59e0b;
   --accent-foreground: #1c1917;
+  /* The accent as ink: stars and warning glyphs on a light surface. The
+     plain amber measures 2.03:1 on the cream background; this is the same
+     hue taken down to clear AA. */
+  --accent-strong: #b45309;
   --destructive: #b91c1c;
   --destructive-foreground: #ffffff;
   --success: #15803d;
@@ -152,6 +156,7 @@
   --muted-foreground: #a89f93;
   --accent: #fbbf24;
   --accent-foreground: #1c1917;
+  --accent-strong: #fbbf24;
   --destructive: #f87171;
   --destructive-foreground: #1c1917;
   --success: #4ade80;
@@ -215,6 +220,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-strong: var(--accent-strong);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);

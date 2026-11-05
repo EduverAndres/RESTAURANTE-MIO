@@ -1,6 +1,5 @@
 import { ArrowRightIcon } from 'lucide-react'
 import Link from 'next/link'
-import { FadeIn } from '@/components/motion/fade-in'
 import type { VerticalSummary } from '@/lib/marketplace/verticals'
 import { cn } from '@/lib/utils'
 
@@ -22,45 +21,43 @@ export function MarketplaceCategories({
 
   return (
     <section aria-labelledby="categorias-title" className="mb-10">
-      <FadeIn inView>
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-          <h2
-            id="categorias-title"
-            className="text-h2 font-display font-semibold"
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2
+          id="categorias-title"
+          className="text-h2 font-display font-semibold"
+        >
+          Todo lo que necesitas, cerca
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          Comida, mercado, regalos y más, de negocios de aquí.
+        </p>
+      </div>
+
+      <ul className="grid grid-cols-4 gap-2 sm:gap-3 lg:grid-cols-8">
+        {verticals.map((vertical) => (
+          <li key={vertical.key}>
+            <VerticalTile vertical={vertical} />
+          </li>
+        ))}
+      </ul>
+
+      {missing.length > 0 ? (
+        <p className="text-muted-foreground mt-4 text-sm text-pretty">
+          ¿Tienes{' '}
+          {missing
+            .slice(0, 3)
+            .map((vertical) => vertical.label.toLowerCase())
+            .join(', ')}{' '}
+          u otro negocio local?{' '}
+          <Link
+            href="/register?role=merchant"
+            className="text-primary-on-tint inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
           >
-            Todo lo que necesitas, cerca
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Comida, mercado, regalos y más, de negocios de aquí.
-          </p>
-        </div>
-
-        <ul className="grid grid-cols-4 gap-2 sm:gap-3 lg:grid-cols-8">
-          {verticals.map((vertical) => (
-            <li key={vertical.key}>
-              <VerticalTile vertical={vertical} />
-            </li>
-          ))}
-        </ul>
-
-        {missing.length > 0 ? (
-          <p className="text-muted-foreground mt-4 text-sm text-pretty">
-            ¿Tienes{' '}
-            {missing
-              .slice(0, 3)
-              .map((vertical) => vertical.label.toLowerCase())
-              .join(', ')}{' '}
-            u otro negocio local?{' '}
-            <Link
-              href="/register?role=merchant"
-              className="text-primary-on-tint inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
-            >
-              Sé el primero de tu categoría
-              <ArrowRightIcon aria-hidden="true" className="size-3.5" />
-            </Link>
-          </p>
-        ) : null}
-      </FadeIn>
+            Sé el primero de tu categoría
+            <ArrowRightIcon aria-hidden="true" className="size-3.5" />
+          </Link>
+        </p>
+      ) : null}
     </section>
   )
 }
@@ -75,7 +72,7 @@ function VerticalTile({ vertical }: { vertical: VerticalSummary }) {
         className={cn(
           'grid size-12 place-items-center rounded-2xl transition-[background-color,color,transform] duration-300 sm:size-14',
           available
-            ? 'from-primary/12 to-accent/18 text-primary-on-tint group-hover:bg-primary group-hover:text-primary-foreground bg-gradient-to-br group-hover:scale-105 group-hover:from-transparent group-hover:to-transparent'
+            ? 'bg-primary/10 text-primary-on-tint group-hover:bg-primary group-hover:text-primary-foreground'
             : 'bg-muted text-muted-foreground',
         )}
       >

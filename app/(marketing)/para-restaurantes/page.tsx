@@ -10,7 +10,7 @@ import { APP_NAME } from '@/lib/env'
 export const metadata: Metadata = {
   title: `${APP_NAME} · El canal propio de tu restaurante`,
   description:
-    'Recibí pedidos a domicilio, para recoger y desde la mesa con tu propia marca, sin pagar comisión por cada venta.',
+    'Recibe pedidos a domicilio, para recoger y desde la mesa con tu propia marca, sin pagar comisión por cada venta.',
 }
 
 /**
@@ -25,16 +25,16 @@ export const metadata: Metadata = {
 
 const STEPS = [
   {
-    title: 'Armá tu carta',
+    title: 'Arma tu carta',
     body: 'Categorías, productos, fotos y opciones. Los cambios se publican al instante.',
   },
   {
-    title: 'Elegí tu estilo',
-    body: 'Colores, tipografías y portada. Tu tienda se ve como tu local, no como un catálogo ajeno.',
+    title: 'Elige tu estilo',
+    body: 'Colores, tipografías y portada. Tu tienda se ve como tu negocio, no como un catálogo ajeno.',
   },
   {
-    title: 'Imprimí los QR',
-    body: 'Uno por mesa. El comensal escanea, pide desde su celular y la cocina se entera al toque.',
+    title: 'Imprime los QR',
+    body: 'Uno por mesa. El cliente escanea, pide desde su celular y la cocina lo ve al instante.',
   },
 ] as const
 
@@ -78,8 +78,8 @@ export default function OwnerLandingPage() {
               ¿Lo probamos con tu carta?
             </h2>
             <p className="text-muted-foreground text-pretty">
-              Armá tu tienda y mirala funcionando. Si no te convence, no
-              perdiste nada más que una tarde.
+              Arma tu tienda y mírala funcionando. Si no te convence, solo
+              perdiste una tarde.
             </p>
             <div className="flex flex-wrap justify-center gap-3 pt-2">
               <Button asChild size="lg">
