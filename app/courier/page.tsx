@@ -15,7 +15,7 @@ const ORDER_COLUMNS =
 const HISTORY_LIMIT = 20
 
 export default async function CourierPage() {
-  const { user } = await requireRole(['courier', 'admin'], '/courier')
+  const { user, role } = await requireRole(['courier', 'admin'], '/courier')
   const supabase = await createClient()
 
   // RLS already limits the pool to unclaimed, ready deliveries; the filters
@@ -62,6 +62,7 @@ export default async function CourierPage() {
         </p>
       </header>
       <CourierBoard
+        canClaim={role === 'courier'}
         available={available}
         active={active}
         history={history.slice(0, HISTORY_LIMIT)}

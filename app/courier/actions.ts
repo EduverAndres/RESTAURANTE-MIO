@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
+import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { etaFromRoute } from '@/lib/courier/eta'
 import {
   fetchAddressesById,
@@ -37,6 +38,7 @@ import type { OrderStatus } from '@/types/app'
 export type CourierActionResult = { ok: true } | { ok: false; error: string }
 
 const SESSION_EXPIRED = 'Tu sesión expiró. Inicia sesión de nuevo.'
+const COURIERS_ONLY = 'Solo los domiciliarios pueden tomar pedidos.'
 const INVALID_ORDER = 'Pedido inválido.'
 const CODE_REQUIRED = 'Ingresa el código de entrega que te da el cliente.'
 const CODE_MISMATCH = 'El código no coincide. Pídeselo al cliente.'
@@ -89,6 +91,12 @@ export async function claimOrder(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: SESSION_EXPIRED }
+  // /courier is open to admins for oversight, and their RLS lets them update
+  // any order: without this an admin's tap took the delivery away from the
+  // couriers.
+  if ((await resolveUserRole(supabase, user)) !== 'courier') {
+    return { ok: false, error: COURIERS_ONLY }
+  }
 
   const { data, error } = await supabase
     .from('orders')
