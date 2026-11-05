@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ReferralCard } from '@/components/referrals/referral-card'
 import { requireUser } from '@/lib/auth'
 import { pushConfigured } from '@/lib/env.server'
 import { formatCOP } from '@/lib/format'
@@ -219,6 +220,10 @@ export default async function AccountPage() {
               />
             )}
           </section>
+
+          {role === 'customer' ? (
+            <ReferralCard supabase={supabase} userId={user.id} />
+          ) : null}
         </div>
       </div>
     </div>

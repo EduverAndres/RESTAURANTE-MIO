@@ -7,6 +7,7 @@ import {
 } from '@/components/store/section-registry'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { StoreCart } from '@/components/store/store-cart'
+import { LoyaltyStrip } from '@/components/store/loyalty-strip'
 import { StoreHeader } from '@/components/store/store-header'
 import { StoreLive } from '@/components/store/store-live'
 import type { StorefrontContext } from '@/components/store/storefront-context'
@@ -155,6 +156,13 @@ export async function Storefront({ store, table = null }: StorefrontProps) {
         isFavorite={isFavorite}
         offerSchemeToggle={theme.mode === 'auto'}
       />
+
+      {/* The stamp card; not at a table, where guests have no account. */}
+      {!table ? (
+        <Suspense fallback={null}>
+          <LoyaltyStrip storeId={store.id} storeSlug={store.slug} />
+        </Suspense>
+      ) : null}
 
       {sections.map((name) => (
         <Suspense

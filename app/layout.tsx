@@ -12,6 +12,7 @@ import { AccessibilityAttributes } from '@/components/a11y/accessibility-attribu
 import { CookieBanner } from '@/components/legal/cookie-banner'
 import { RealtimeProvider } from '@/components/providers/realtime-provider'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { ReferralClaimer } from '@/components/referrals/referral-claimer'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
 import { SoundUnlock } from '@/components/sound/sound-unlock'
 import { ThemeProvider } from '@/components/theme/theme-provider'
@@ -160,6 +161,7 @@ export default function RootLayout({
           <InstallPrompt />
           <ServiceWorkerRegister />
           <SoundUnlock />
+          <ReferralClaimer />
         </ThemeProvider>
       </body>
     </html>
