@@ -31,6 +31,7 @@ import { latLngOf, type LatLng } from '@/lib/geo'
 import { logger } from '@/lib/log/logger'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
 import { buildCustomerInquiry, buildWhatsAppUrl } from '@/lib/orders/whatsapp'
+import { reconcileMercadoPagoPayment } from '@/lib/payments/mercadopago/reconcile'
 import { reconcileWompiTransaction } from '@/lib/payments/wompi/reconcile'
 import { REVIEW_ANCHOR } from '@/lib/push/messages'
 import { estimateRoute } from '@/lib/routing'
@@ -111,7 +112,12 @@ export const dynamic = 'force-dynamic'
 
 interface OrderPageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ id?: string }>
+  /** `id`: Wompi's transaction; `payment_id`/`collection_id`: Mercado Pago's. */
+  searchParams: Promise<{
+    id?: string
+    payment_id?: string
+    collection_id?: string
+  }>
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -153,13 +159,30 @@ export default async function OrderPage({
 
   // Wompi redirects back with `?id=<transaction_id>`; reconcile it here in
   // case the webhook has not arrived yet (e.g. local dev with no public URL).
-  const { id: transactionId } = await searchParams
+  const {
+    id: transactionId,
+    payment_id: mpPaymentId,
+    collection_id: mpCollectionId,
+  } = await searchParams
   if (
     transactionId &&
     order.payment_method === 'wompi' &&
     order.payment_status === 'pending'
   ) {
     await reconcileWompiTransaction(order.id, transactionId)
+    order = (await fetchOrder(id)) ?? order
+  }
+
+  // Mercado Pago comes back with `?payment_id=` (older flows send
+  // `collection_id`). The webhook used to be the only way the order learned
+  // it was paid; when it did not arrive the order stayed pending forever.
+  const mercadoPagoPaymentId = mpPaymentId ?? mpCollectionId
+  if (
+    mercadoPagoPaymentId &&
+    order.payment_method === 'mercadopago' &&
+    order.payment_status === 'pending'
+  ) {
+    await reconcileMercadoPagoPayment(order.id, mercadoPagoPaymentId)
     order = (await fetchOrder(id)) ?? order
   }
 
