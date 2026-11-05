@@ -102,9 +102,12 @@ function PresetThumbnail({ theme }: { theme: StoreTheme }) {
 
 export function PresetGallery({
   activeId,
+  suggestedId = null,
   onApply,
 }: {
   activeId: string | null
+  /** The look that fits the store category (`suggestPresetFor`). */
+  suggestedId?: string | null
   onApply: (preset: ThemePreset) => void
 }) {
   return (
@@ -129,6 +132,11 @@ export function PresetGallery({
                 <span className="text-sm font-medium">{preset.name}</span>
                 {active ? (
                   <CheckIcon aria-hidden className="text-primary size-3.5" />
+                ) : null}
+                {preset.id === suggestedId ? (
+                  <span className="rounded-pill bg-primary/10 text-primary-on-tint ml-auto px-1.5 py-0.5 text-xs font-medium">
+                    Sugerido para tu negocio
+                  </span>
                 ) : null}
               </span>
               <span className="text-muted-foreground mt-0.5 block px-1 pb-1 text-xs text-pretty">

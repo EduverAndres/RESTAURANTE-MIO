@@ -4,6 +4,7 @@ import type { FeaturedProductOption } from '@/components/dashboard/theme/feature
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeTheme } from '@/lib/theme'
+import { suggestPresetFor } from '@/lib/theme/presets'
 
 export const metadata: Metadata = { title: 'Configuración' }
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,7 @@ export default async function SettingsPage() {
         storeSlug={store.slug}
         storeName={store.name}
         theme={normalizeTheme(store.theme)}
+        suggestedPresetId={suggestPresetFor(store.category)?.id ?? null}
         products={products}
       />
     </div>

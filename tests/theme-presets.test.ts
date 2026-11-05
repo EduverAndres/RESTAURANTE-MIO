@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { THEME_PRESETS, applyPreset, findPreset } from '@/lib/theme/presets'
+import {
+  THEME_PRESETS,
+  applyPreset,
+  findPreset,
+  suggestPresetFor,
+} from '@/lib/theme/presets'
 import { auditTheme } from '@/lib/theme/score'
 import { normalizeTheme } from '@/lib/theme'
 import { storeThemeSchema } from '@/lib/validations/theme'
 import { DEFAULT_STORE_THEME, THEME_CORE_SECTIONS } from '@/types/app'
 
 describe('THEME_PRESETS', () => {
-  it('ships the eight named looks', () => {
+  it('ships the ten named looks', () => {
     expect(THEME_PRESETS.map((preset) => preset.name)).toEqual([
       'Elegante',
       'Callejero',
@@ -16,6 +21,8 @@ describe('THEME_PRESETS', () => {
       'Mar',
       'Minimal',
       'Fiesta',
+      'Asadero',
+      'Barrio',
     ])
   })
 
@@ -159,5 +166,39 @@ describe('applyPreset', () => {
     const snapshot = JSON.stringify(current)
     applyPreset(current, preset)
     expect(JSON.stringify(current)).toBe(snapshot)
+  })
+})
+
+describe('suggestPresetFor', () => {
+  it.each([
+    ['Parrilla', 'asadero'],
+    ['Pollo', 'asadero'],
+    ['Colombiana', 'asadero'],
+    ['Comida rápida', 'callejero'],
+    ['Mexicana', 'callejero'],
+    ['Saludable', 'fresco'],
+    ['Café y panadería', 'cafeteria'],
+    ['Postres', 'fiesta'],
+    ['Japonesa', 'mar'],
+    ['Italiana', 'elegante'],
+    ['Minimarket', 'barrio'],
+    ['Tienda de barrio', 'barrio'],
+    ['Farmacia', 'barrio'],
+    ['Mascotas', 'barrio'],
+    ['Regalos', 'fiesta'],
+  ])('suggests a look for %s', (category, id) => {
+    expect(suggestPresetFor(category)?.id).toBe(id)
+  })
+
+  it('reads the category the way a merchant may have typed it', () => {
+    expect(suggestPresetFor('  parrilla ')?.id).toBe('asadero')
+    expect(suggestPresetFor('FARMACIA')?.id).toBe('barrio')
+  })
+
+  it('suggests nothing when the category says nothing', () => {
+    expect(suggestPresetFor('Otra')).toBeNull()
+    expect(suggestPresetFor('')).toBeNull()
+    expect(suggestPresetFor(null)).toBeNull()
+    expect(suggestPresetFor('Algo que nadie previó')).toBeNull()
   })
 })

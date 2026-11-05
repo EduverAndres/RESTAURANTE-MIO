@@ -173,6 +173,7 @@ export interface ThemeEditorProps {
   storeName: string
   theme: StoreTheme
   products: FeaturedProductOption[]
+  suggestedPresetId: string | null
 }
 
 export default function ThemeEditor({
@@ -181,6 +182,7 @@ export default function ThemeEditor({
   storeName,
   theme: initialTheme,
   products,
+  suggestedPresetId,
 }: ThemeEditorProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -429,7 +431,11 @@ export default function ThemeEditor({
               <p className="text-sm leading-none font-medium">
                 Elige un punto de partida
               </p>
-              <PresetGallery activeId={activePreset} onApply={onPreset} />
+              <PresetGallery
+                activeId={activePreset}
+                suggestedId={suggestedPresetId}
+                onApply={onPreset}
+              />
             </div>
 
             <ImageField

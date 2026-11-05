@@ -48,6 +48,8 @@ export interface ThemeFormProps {
   storeName: string
   theme: StoreTheme
   products: FeaturedProductOption[]
+  /** The preset that fits the store category, marked in the gallery. */
+  suggestedPresetId: string | null
 }
 
 export function ThemeForm(props: ThemeFormProps) {

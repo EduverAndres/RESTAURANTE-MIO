@@ -6,6 +6,7 @@ import { ACTIVE_STORE_COOKIE, isUuid } from '@/lib/dashboard/active-store'
 import { isValidSlug } from '@/lib/slug'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { suggestPresetFor } from '@/lib/theme/presets'
 import {
   ACCEPTED_ASSET_TYPES,
   MAX_ASSET_BYTES,
@@ -17,6 +18,7 @@ import {
   type StoreAssetKind,
   type StoreSettingsInput,
 } from '@/lib/validations/store'
+import { storeThemeSchema } from '@/lib/validations/theme'
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string }
 
@@ -97,11 +99,17 @@ export async function createStore(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: SESSION_EXPIRED }
 
+  // A new store starts from the look that fits its category, so the
+  // merchant sees a finished storefront before designing anything. It is an
+  // ordinary preset: the theme editor can change all of it later.
+  const suggested = suggestPresetFor(parsed.data.category)
+  const theme = suggested ? storeThemeSchema.parse(suggested.theme) : undefined
+
   // status and commission_pct are intentionally omitted: the
   // protect_store_admin_columns trigger rejects them for non-admins.
   const { data, error } = await supabase
     .from('stores')
-    .insert({ ...parsed.data, owner_id: user.id })
+    .insert({ ...parsed.data, ...(theme ? { theme } : {}), owner_id: user.id })
     .select('id, slug')
     .single()
 
