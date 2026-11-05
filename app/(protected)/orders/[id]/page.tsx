@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CancelOrderButton } from './cancel-order-button'
 import { OrderTimeline } from './order-tracker'
+import { RepeatOrderButton } from './repeat-order-button'
 import { ReviewForm } from './review-form'
 import { DeliveryCodePanel } from '@/components/orders/delivery-code-panel'
 import { DeliveryMap } from '@/components/orders/delivery-map'
@@ -268,14 +269,7 @@ export default async function OrderPage({
               </Button>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              {store?.slug ? (
-                <Button asChild variant="outline" className="rounded-pill">
-                  <Link href={`/t/${store.slug}`}>
-                    <StoreIcon aria-hidden="true" />
-                    Volver a pedir
-                  </Link>
-                </Button>
-              ) : null}
+              {store?.slug ? <RepeatOrderButton orderId={order.id} /> : null}
               {order.status === 'pending' ? (
                 <CancelOrderButton orderId={order.id} />
               ) : null}
