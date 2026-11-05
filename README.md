@@ -445,7 +445,11 @@ on the register page.
 
 ### Security headers
 
-`next.config.ts` sends HSTS (two years, `includeSubDomains`, `preload`),
+`next.config.ts` sends HSTS for two years (`lib/http/hsts.ts`): the apex
+only, plus `includeSubDomains` once `NEXT_PUBLIC_STORE_SUBDOMAINS=true`
+(which already requires a wildcard certificate). `preload` is never added
+automatically; submitting the domain to the preload list is a manual
+decision. It also sends
 `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` and a
 `Permissions-Policy` that keeps `geolocation` on our own origin (the address
 picker and the courier board need it) and denies everything else.

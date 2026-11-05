@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { hstsHeaderValue } from '@/lib/http/hsts'
 import nextConfig from '@/next.config'
 
 /**
@@ -17,10 +18,25 @@ async function headerMap(path = '/'): Promise<Map<string, string>> {
 }
 
 describe('security headers', () => {
-  it('sends HSTS for two years, including subdomains and preload', async () => {
+  it('sends HSTS for two years', async () => {
     const headers = await headerMap()
     expect(headers.get('Strict-Transport-Security')).toBe(
-      'max-age=63072000; includeSubDomains; preload',
+      hstsHeaderValue(process.env),
+    )
+    expect(headers.get('Strict-Transport-Security')).toMatch(
+      /^max-age=63072000(; includeSubDomains)?$/,
+    )
+  })
+
+  // includeSubDomains on a domain whose certificate covers only the apex
+  // would lock every subdomain out for two years; preload is a manual call.
+  it('covers subdomains only with store subdomains on, and never preloads', () => {
+    expect(hstsHeaderValue({})).toBe('max-age=63072000')
+    expect(hstsHeaderValue({ NEXT_PUBLIC_STORE_SUBDOMAINS: 'false' })).toBe(
+      'max-age=63072000',
+    )
+    expect(hstsHeaderValue({ NEXT_PUBLIC_STORE_SUBDOMAINS: 'true' })).toBe(
+      'max-age=63072000; includeSubDomains',
     )
   })
 
