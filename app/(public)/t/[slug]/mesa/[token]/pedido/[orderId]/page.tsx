@@ -18,7 +18,7 @@ import { reconcileWompiTransaction } from '@/lib/payments/wompi/reconcile'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { tableEntryPath } from '@/lib/tables/qr'
-import { fetchTableByToken } from '@/lib/tables/server'
+import { requireTableOrRedirect } from '@/lib/tables/server'
 import { TABLE_PAYMENT_LABELS } from '@/lib/validations/table-order'
 import type { OrderStatus } from '@/types/app'
 
@@ -89,14 +89,17 @@ export default async function GuestOrderPage({
   searchParams,
 }: GuestOrderPageProps) {
   const { slug, token, orderId } = await params
-  const resolved = await fetchTableByToken(slug, token)
-  if (!resolved) notFound()
+  const { id: transactionId } = await searchParams
+  const resolved = await requireTableOrRedirect(
+    slug,
+    token,
+    `/pedido/${orderId}${transactionId ? `?id=${encodeURIComponent(transactionId)}` : ''}`,
+  )
   let loaded = await loadGuestOrder(orderId, resolved.store.id)
   if (!loaded) notFound()
 
   // Wompi redirects back with `?id=<transaction_id>`; reconcile it here in
   // case the webhook has not arrived yet (e.g. local dev with no public URL).
-  const { id: transactionId } = await searchParams
   if (
     transactionId &&
     loaded.order.payment_method === 'wompi' &&

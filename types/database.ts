@@ -1348,6 +1348,10 @@ export type Database = {
         Args: { store_slug: string; token: string }
         Returns: { id: string; store_id: string; number: number }[]
       }
+      table_token_store_slug: {
+        Args: { token: string }
+        Returns: string | null
+      }
       store_is_visible: {
         Args: { store_id: string }
         Returns: boolean
