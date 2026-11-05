@@ -15,9 +15,8 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { requireRole } from '@/lib/auth'
-import { APP_NAME, env } from '@/lib/env'
+import { APP_NAME, storeUrl } from '@/lib/env'
 import { formatDateCO } from '@/lib/format-date'
-import { storePublicUrl } from '@/lib/subdomain'
 import { createClient } from '@/lib/supabase/server'
 import { STORE_STATUSES } from '@/lib/validations/admin'
 import type { StoreStatus } from '@/types/app'
@@ -118,11 +117,7 @@ export default async function AdminStoresPage({
                 <TableRow key={store.id}>
                   <TableCell className="font-medium">
                     <Link
-                      href={storePublicUrl({
-                        slug: store.slug,
-                        siteUrl: env.NEXT_PUBLIC_SITE_URL,
-                        rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-                      })}
+                      href={storeUrl(store.slug)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 underline-offset-4 hover:underline"

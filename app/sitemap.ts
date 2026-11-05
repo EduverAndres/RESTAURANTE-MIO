@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { env } from '@/lib/env'
-import { storePublicUrl } from '@/lib/subdomain'
+import { env, storeUrl } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 
 const STATIC_PATHS = [
@@ -37,11 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...pages,
       ...data.map((store) => ({
-        url: storePublicUrl({
-          slug: store.slug,
-          siteUrl: env.NEXT_PUBLIC_SITE_URL,
-          rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-        }),
+        url: storeUrl(store.slug),
         lastModified: store.updated_at,
       })),
     ]

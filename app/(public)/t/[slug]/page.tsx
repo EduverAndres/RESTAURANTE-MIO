@@ -1,16 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { env } from '@/lib/env'
+import { storeUrl } from '@/lib/env'
 import { serializeJsonLd, storeJsonLd } from '@/lib/seo/store-jsonld'
-import { storePublicUrl } from '@/lib/subdomain'
 import { Storefront, fetchStore } from './storefront'
 
 function canonicalOf(slug: string): string {
-  return storePublicUrl({
-    slug,
-    siteUrl: env.NEXT_PUBLIC_SITE_URL,
-    rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-  })
+  return storeUrl(slug)
 }
 
 // No `loading.tsx` on purpose: it would wrap the page in a Suspense boundary,
