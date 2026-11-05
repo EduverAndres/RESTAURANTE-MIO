@@ -120,6 +120,13 @@ export const MERCHANT_COLLECTED_RULE = {
     (order.type !== 'delivery' || order.courier_id === null),
 }
 
+/** Mirror of `settledGross` in `lib/payouts/compute.ts`, against `orders o`. */
+export const SETTLED_GROSS_SQL = '(o.subtotal - o.merchant_discount)'
+
+/** Mirror of `collectedAmount` in `lib/payouts/compute.ts`. */
+export const COLLECTED_AMOUNT_SQL =
+  '(o.subtotal - o.merchant_discount - o.platform_discount)'
+
 /**
  * The blocks the settlement migration embeds, by `codegen:` marker name.
  * `merchant_collected` appears twice in `generate_payouts` (the sale and
@@ -133,5 +140,9 @@ export function payoutSqlBlocks(): Record<string, string> {
     merchant_collected: MERCHANT_COLLECTED_RULE.sql,
     reversal_merchant_collected: MERCHANT_COLLECTED_RULE.sql,
     billable_days: BILLABLE_DAYS_RULE.sql,
+    settled_gross: SETTLED_GROSS_SQL,
+    reversal_settled_gross: SETTLED_GROSS_SQL,
+    collected_amount: COLLECTED_AMOUNT_SQL,
+    reversal_collected_amount: COLLECTED_AMOUNT_SQL,
   }
 }

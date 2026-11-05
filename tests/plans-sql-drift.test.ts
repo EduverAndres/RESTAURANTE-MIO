@@ -72,12 +72,13 @@ describe('the SQL mirror of billableDays', () => {
 
 const PLANS_SQL = fileURLToPath(
   new URL(
-    '../supabase/migrations/20261105000100_plans_and_commission.sql',
+    // The latest migration that defines public.compute_order_totals.
+    '../supabase/migrations/20261105000300_discounts_loyalty_referrals.sql',
     import.meta.url,
   ),
 )
 
-describe('20261105000100_plans_and_commission.sql', () => {
+describe('compute_order_totals (20261105000300)', () => {
   it('embeds the fee rule verbatim', () => {
     const sql = readFileSync(PLANS_SQL, 'utf8').replace(/\r\n/g, '\n')
     for (const [name, rule] of Object.entries(planSqlBlocks())) {

@@ -13,6 +13,8 @@ function order(overrides: Partial<PayoutOrderInput>): PayoutOrderInput {
     courier_id: 'courier-1',
     subtotal: 10000,
     platform_fee: 600,
+    merchant_discount: 0,
+    platform_discount: 0,
     delivered_at: '2026-09-08T12:00:00.000Z',
     payment_method: 'wompi',
     payment_status: 'paid',
@@ -219,6 +221,8 @@ describe('cash the merchant already holds', () => {
           courier_id: null,
           subtotal: 10000,
           platform_fee: 600,
+          merchant_discount: 0,
+          platform_discount: 0,
         }),
       ],
       PERIOD,
@@ -268,5 +272,41 @@ describe('plan fees', () => {
     )
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ plan_fee: 11643, net: 10000 - 600 - 11643 })
+  })
+})
+
+describe('discounts', () => {
+  it('settle the store on its sale net of its own coupon', () => {
+    const [row] = summarizePayouts(
+      [order({ subtotal: 30000, merchant_discount: 3000, platform_fee: 2970 })],
+      PERIOD,
+    )
+    // Online order: 27.000 sold, 11 % of it as commission.
+    expect(row).toMatchObject({ gross: 27000, commission: 2970, net: 24030 })
+  })
+
+  it('make the platform pay the referral credit on a cash sale', () => {
+    const [row] = summarizePayouts(
+      [
+        order({
+          payment_method: 'cash',
+          payment_status: 'pending',
+          type: 'pickup',
+          courier_id: null,
+          subtotal: 30000,
+          platform_discount: 5000,
+          platform_fee: 1800,
+        }),
+      ],
+      PERIOD,
+    )
+    // The customer handed over 25.000; the store sold 30.000 and owes 1.800
+    // of commission, so the platform owes it 5.000 - 1.800.
+    expect(row).toMatchObject({
+      gross: 30000,
+      cash_collected: 25000,
+      commission: 1800,
+      net: 3200,
+    })
   })
 })

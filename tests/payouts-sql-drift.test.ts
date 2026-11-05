@@ -62,6 +62,8 @@ function order(
     courier_id: 'courier-1',
     subtotal: 10000,
     platform_fee: 600,
+    merchant_discount: 0,
+    platform_discount: 0,
     delivered_at: '2026-09-15T12:00:00.000Z',
     payment_method,
     payment_status,
@@ -123,7 +125,7 @@ describe('the SQL mirror of the commission reversal', () => {
 const SQL_PATH = fileURLToPath(
   new URL(
     // The latest migration that defines public.generate_payouts.
-    '../supabase/migrations/20261105000200_settlement.sql',
+    '../supabase/migrations/20261105000300_discounts_loyalty_referrals.sql',
     import.meta.url,
   ),
 )
@@ -145,7 +147,7 @@ function block(name: string): string {
   return sql.slice(from + begin.length, to).trim()
 }
 
-describe('20261105000200_settlement.sql', () => {
+describe('20261105000300_discounts_loyalty_referrals.sql', () => {
   it('embeds every generated block verbatim', () => {
     for (const [name, sql] of Object.entries(payoutSqlBlocks())) {
       expect(block(name), name).toBe(sql)

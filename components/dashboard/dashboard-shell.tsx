@@ -3,6 +3,7 @@
 import {
   BarChart3Icon,
   ClipboardListIcon,
+  GiftIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   LogOutIcon,
@@ -51,6 +52,7 @@ const MERCHANT_ITEMS: DashboardNavItem[] = [
   { label: 'Menú', href: '/dashboard/menu', icon: UtensilsIcon },
   { label: 'Tienda', href: '/dashboard/store', icon: PaletteIcon },
   { label: 'Clientes', href: '/dashboard/customers', icon: UsersIcon },
+  { label: 'Fidelidad', href: '/dashboard/fidelidad', icon: GiftIcon },
   { label: 'Métricas', href: '/dashboard/metrics', icon: BarChart3Icon },
   { label: 'Mesas', href: '/dashboard/tables', icon: QrCodeIcon },
   { label: 'Liquidaciones', href: '/dashboard/payouts', icon: LandmarkIcon },

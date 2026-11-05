@@ -336,6 +336,8 @@ export default async function OrderPage({
             deliveryFee={Number(order.delivery_fee)}
             tip={Number(order.tip)}
             total={Number(order.total)}
+            merchantDiscount={Number(order.merchant_discount ?? 0)}
+            platformDiscount={Number(order.platform_discount ?? 0)}
             notes={order.notes}
             footer={
               <p className="text-muted-foreground text-xs">

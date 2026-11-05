@@ -27,6 +27,10 @@ export interface PayoutOrderInput {
   /** Null when no platform courier took the order (pickup, table, own delivery). */
   courier_id: string | null
   subtotal: number
+  /** Store coupon or loyalty reward: lowers the store's sale. */
+  merchant_discount: number
+  /** Referral credit: paid by the platform, not by the store. */
+  platform_discount: number
   platform_fee: number
   delivered_at: string | null
   payment_method: PaymentMethod
@@ -87,6 +91,30 @@ export function isCollectedByMerchant(
 ): boolean {
   if (order.payment_method !== 'cash') return false
   return order.type !== 'delivery' || order.courier_id === null
+}
+
+/**
+ * The store's sale on one order: what it charged minus its own discount.
+ * MIRRORED IN SQL (`SETTLED_GROSS_SQL`).
+ */
+export function settledGross(
+  order: Pick<PayoutOrderInput, 'subtotal' | 'merchant_discount'>,
+): number {
+  return order.subtotal - order.merchant_discount
+}
+
+/**
+ * What the customer actually handed over toward the subtotal: the sale minus
+ * the platform's credit too. When the merchant collected it in cash, this is
+ * what is already in their till. MIRRORED IN SQL (`COLLECTED_AMOUNT_SQL`).
+ */
+export function collectedAmount(
+  order: Pick<
+    PayoutOrderInput,
+    'subtotal' | 'merchant_discount' | 'platform_discount'
+  >,
+): number {
+  return order.subtotal - order.merchant_discount - order.platform_discount
 }
 
 /** Start of `dateOnly`, inclusive. */
@@ -172,9 +200,10 @@ export function summarizePayouts(
     if (!inPeriod(order.delivered_at, fromMs, toExclusiveMs)) continue
 
     const entry = entryOf(order.store_id)
-    entry.gross += order.subtotal
+    entry.gross += settledGross(order)
     entry.commission += order.platform_fee
-    if (isCollectedByMerchant(order)) entry.cash_collected += order.subtotal
+    if (isCollectedByMerchant(order))
+      entry.cash_collected += collectedAmount(order)
   }
 
   for (const adjustment of adjustments) {
