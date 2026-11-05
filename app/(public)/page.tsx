@@ -11,6 +11,7 @@ import {
 import { CategoryCarousel } from '@/components/home/category-carousel'
 import { HomeHero } from '@/components/home/home-hero'
 import { BenefitsSection } from '@/components/home/benefits-section'
+import { HowItWorks } from '@/components/home/how-it-works'
 import { MarketplaceCategories } from '@/components/home/marketplace-categories'
 import { MerchantSection } from '@/components/home/merchant-section'
 import { SocialProof } from '@/components/home/social-proof'
@@ -255,6 +256,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       <BenefitsSection />
+
+      <HowItWorks />
 
       {/* Below the fold and optional by design: it renders nothing until
           there is enough real proof, so it needs no placeholder either. */}
