@@ -1119,6 +1119,75 @@ html[data-text-size='xlarge'] {
   }
 }
 
+/* Sign-in welcome (components/auth/login-success.tsx): the overlay fades
+   in, two rings spread from the tick and a bar fills while the destination
+   loads. Page entrance (template.tsx in each area): content settles into
+   place instead of snapping. Pure CSS, so server-rendered HTML is visible
+   before any script runs, and the reduced-motion rules collapse all of it. */
+@keyframes success-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes success-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes success-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes success-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@theme inline {
+  --animate-check-draw: check-draw 520ms var(--ease-out-soft) 120ms both;
+  --animate-check-pop: check-pop 320ms var(--ease-out-soft) both;
+  --animate-success-fade: success-fade 220ms var(--ease-out-soft) both;
+  --animate-success-out: success-out 240ms var(--ease-out-soft) both;
+  --animate-success-ripple: success-ripple 1100ms var(--ease-out-soft) 180ms
+    both;
+  --animate-success-bar: success-bar 1000ms var(--ease-out-soft) 80ms both;
+  --animate-page-in: page-in 360ms var(--ease-out-soft) both;
+}
+
+.animate-success-bar {
+  transform-origin: left center;
+}
 
 /* The dashboard header is sticky at 4rem; anything the app scrolls to by
    anchor has to clear it, and the checkout/tracking columns stick under it. */
