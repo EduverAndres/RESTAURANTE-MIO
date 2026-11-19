@@ -273,7 +273,7 @@ export function DashboardShell({
 
       <div className="flex min-h-dvh flex-col">
         <header className="border-border/60 bg-background/80 sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b px-4 backdrop-blur-md sm:px-6 print:hidden">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button
@@ -310,7 +310,7 @@ export function DashboardShell({
                 </div>
               </SheetContent>
             </Sheet>
-            <span className="font-display text-lg font-semibold lg:hidden">
+            <span className="font-display min-w-0 truncate text-lg font-semibold lg:hidden">
               {title}
             </span>
           </div>

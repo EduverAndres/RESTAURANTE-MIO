@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircleIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { FieldError } from '@/components/dashboard/store/field-error'
+import { FieldError } from '@/components/forms/field-error'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

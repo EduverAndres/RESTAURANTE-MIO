@@ -1,6 +1,6 @@
 'use client'
 
-import { PlusIcon, SettingsIcon } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { Highlight } from '@/components/store/highlight'
@@ -118,7 +118,9 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        'group store-card relative isolate flex',
+        // h-full: the grid stretches the cell, the card has to follow it or
+        // two cards in one row end at different heights.
+        'group store-card relative isolate flex h-full',
         row ? 'flex-row items-stretch gap-3 p-3' : 'flex-col',
         feature && !row && 'sm:flex-row sm:items-stretch',
         'shadow-[var(--store-card-shadow)] [border:var(--store-card-border)]',
@@ -217,7 +219,9 @@ export function ProductCard({
             {product.tags.slice(0, 3).map((tag) => (
               <li
                 key={tag}
-                className="rounded-pill bg-[rgb(var(--store-accent-rgb)/0.18)] px-2 py-0.5 text-[11px] font-medium"
+                // Neutral ink tint: an accent-coloured chip reads as a second
+                // badge and its contrast changes with every theme.
+                className="rounded-pill bg-[rgb(var(--store-text-rgb)/0.06)] px-2 py-0.5 text-[11px] font-medium text-[rgb(var(--store-text-rgb)/0.75)] first-letter:uppercase"
               >
                 {tag}
               </li>
@@ -259,11 +263,10 @@ export function ProductCard({
                 data-table-primary="round"
                 className="store-btn shadow-2 size-10 transition-transform hover:scale-105 active:scale-95"
               >
-                {hasOptions ? (
-                  <SettingsIcon aria-hidden="true" className="size-4" />
-                ) : (
-                  <PlusIcon aria-hidden="true" className="size-5" />
-                )}
+                {/* One affordance on every card: a gear next to a plus made
+                    the menu look like two kinds of product. The label and
+                    aria-haspopup still say the options drawer opens. */}
+                <PlusIcon aria-hidden="true" className="size-5" />
               </button>
             )}
           </div>

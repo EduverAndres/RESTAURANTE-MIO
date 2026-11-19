@@ -1,43 +1,71 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="x-apple-disable-message-reformatting" />
-    <title>Tu código de verificación</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>Tu código de verificación de Cerquita</title>
+    <style>
+      @media only screen and (max-width: 600px) {
+        .outer { padding: 16px 8px !important; }
+        .px { padding-left: 20px !important; padding-right: 20px !important; }
+        .btn, .btn td, .btn a { display: block !important; width: 100% !important; box-sizing: border-box; }
+        h1 { font-size: 22px !important; line-height: 28px !important; }
+      }
+      @media (prefers-color-scheme: dark) {
+        .bg { background-color: #0c0a09 !important; }
+        .card { background-color: #1c1917 !important; border-color: #292524 !important; }
+        .card h1, .card .brand, .code { color: #fafaf9 !important; }
+        .card p, .notice { color: #d6d3d1 !important; }
+        .notice { background-color: #292524 !important; border-color: #44403c !important; }
+        .code { background-color: #292524 !important; border-color: #9a3412 !important; }
+      }
+    </style>
   </head>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <span style="display:none;max-height:0;overflow:hidden;color:transparent;">Tu código de verificación de Cerquita es {{ .Token }}.</span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+  <body class="bg" style="margin:0;padding:0;background-color:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;">
+    <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:transparent;">Tu código para confirmar que eres tú.&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
+    <table role="presentation" class="bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f4;">
       <tr>
-        <td align="center" style="padding:32px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#ffffff;border-radius:16px;border:1px solid #e4e4e7;">
+        <td class="outer" align="center" style="padding:40px 16px;">
+          <table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#ffffff;border:1px solid #e7e5e4;border-radius:20px;">
             <tr>
-              <td style="padding:32px 32px 8px 32px;">
-                <p style="margin:0;font-size:20px;font-weight:700;color:#18181b;letter-spacing:-0.01em;">Cerquita</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:16px 32px 0 32px;">
-                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:600;color:#18181b;">Tu código de verificación</h1>
-                <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#3f3f46;">
-                  Ingresa este código en la aplicación para confirmar que eres tú:
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding:0 32px 24px 32px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;border-radius:12px;">
+              <td class="px" style="padding:32px 40px 0 40px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td align="center" style="padding:16px 32px;font-size:32px;line-height:40px;font-weight:700;letter-spacing:0.3em;color:#18181b;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">{{ .Token }}</td>
+                    <td style="width:12px;height:12px;background-color:#c2410c;border-radius:999px;font-size:0;line-height:0;">&nbsp;</td>
+                    <td class="brand" style="padding-left:10px;font-size:20px;line-height:24px;font-weight:800;letter-spacing:-0.02em;color:#1c1917;">Cerquita</td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 32px 32px 32px;border-top:1px solid #e4e4e7;">
-                <p style="margin:24px 0 0 0;font-size:13px;line-height:20px;color:#71717a;">
-                  El código vence en unos minutos y solo puede usarse una vez. Si no solicitaste este correo, ignóralo.
+              <td class="px" style="padding:28px 40px 8px 40px;">
+                <h1 style="margin:0 0 16px 0;font-size:26px;line-height:32px;font-weight:700;letter-spacing:-0.01em;color:#1c1917;">Tu código de verificación</h1>
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;font-weight:600;color:#1c1917;">{{ if .Data.full_name }}Hola, {{ .Data.full_name }}:{{ else }}Hola:{{ end }}</p>
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#57534e;">Escribe este código en la aplicación para confirmar que eres tú:</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="px" align="center" style="padding:8px 40px 8px 40px;">
+                <p class="code" style="margin:0;display:inline-block;padding:14px 24px;background-color:#fff7ed;border:1px solid #fed7aa;border-radius:12px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:30px;line-height:36px;font-weight:700;letter-spacing:8px;color:#1c1917;">{{ .Token }}</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="px" style="padding:24px 40px 0 40px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td class="notice" style="padding:14px 16px;background-color:#fafaf9;border:1px solid #e7e5e4;border-radius:12px;font-size:13px;line-height:20px;color:#57534e;">El código vence en unos minutos. <strong>¿No fuiste tú?</strong> Ignora este correo: sin abrir el enlace no pasa nada. Nunca te pediremos tu contraseña por correo.</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="px" style="padding:32px 40px 32px 40px;">
+                <p style="margin:0;padding-top:20px;border-top:1px solid #e7e5e4;font-size:12px;line-height:18px;color:#78716c;">
+                  Cerquita · Pedidos a los restaurantes de tu barrio.<br />
+                  Recibes este correo porque esta dirección se usó en Cerquita. Es un mensaje automático: no lo respondas.
                 </p>
               </td>
             </tr>

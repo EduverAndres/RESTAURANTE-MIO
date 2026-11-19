@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { storePublicUrl } from '@/lib/subdomain'
 
 // Public environment variables. They are read with literal property access
 // so Next.js can inline them into client bundles, and validated once at
@@ -70,16 +69,6 @@ if (!parsed.success) {
 export const env: PublicEnv = parsed.data
 
 export const APP_NAME = env.NEXT_PUBLIC_APP_NAME
-
-/** Public link to a store's page, with this deployment's settings. */
-export function storeUrl(slug: string): string {
-  return storePublicUrl({
-    slug,
-    siteUrl: env.NEXT_PUBLIC_SITE_URL,
-    rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-    subdomains: env.NEXT_PUBLIC_STORE_SUBDOMAINS,
-  })
-}
 
 // Key used by the browser and SSR clients. The publishable key is preferred;
 // the legacy anon JWT is kept as a fallback.

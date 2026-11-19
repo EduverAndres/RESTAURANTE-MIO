@@ -14,7 +14,7 @@ test('the home page lists stores that link to their storefront', async ({
   await expect(
     page.getByRole('heading', {
       level: 2,
-      name: 'Todos los restaurantes',
+      name: 'Todos los negocios',
     }),
   ).toBeVisible()
 

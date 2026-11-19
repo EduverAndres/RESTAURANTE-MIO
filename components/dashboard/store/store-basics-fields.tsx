@@ -4,7 +4,7 @@ import { CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { checkSlugAvailability } from '@/app/dashboard/store/actions'
-import { FieldError } from '@/components/dashboard/store/field-error'
+import { FieldError } from '@/components/forms/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {

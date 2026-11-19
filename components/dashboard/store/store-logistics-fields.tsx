@@ -1,7 +1,7 @@
 'use client'
 
 import type { UseFormReturn } from 'react-hook-form'
-import { FieldError } from '@/components/dashboard/store/field-error'
+import { FieldError } from '@/components/forms/field-error'
 import { StoreLocationPicker } from '@/components/dashboard/store/store-location-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

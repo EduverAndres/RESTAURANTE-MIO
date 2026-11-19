@@ -9,7 +9,7 @@ interface QuantityStepperProps {
   onIncrement: () => void
   /** Product name, woven into the button labels. */
   itemLabel: string
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
   /**
    * `false` where 1 is the floor rather than a step away from removal — the
    * drawer, for instance, where decrementing past 1 does nothing. The bin
@@ -22,6 +22,8 @@ interface QuantityStepperProps {
 const SIZE = {
   sm: { button: 'size-9', icon: 'size-3.5', value: 'w-7 text-sm' },
   md: { button: 'size-11', icon: 'size-4', value: 'w-9 text-base' },
+  // Same 48px as the `h-12` call to action it sits next to.
+  lg: { button: 'size-12', icon: 'size-4', value: 'w-8 text-base' },
 } as const
 
 /**

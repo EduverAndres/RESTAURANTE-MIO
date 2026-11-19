@@ -43,26 +43,34 @@ export const loginSchema = z.object({
 })
 export type LoginInput = z.infer<typeof loginSchema>
 
-export const registerSchema = z.object({
-  full_name: z
-    .string()
-    .trim()
-    .min(2, 'Ingresa tu nombre completo.')
-    .max(80, 'El nombre es demasiado largo.'),
-  email: emailSchema,
-  password: passwordSchema,
-  phone: z
-    .union([z.literal(''), phoneSchema])
-    .optional()
-    .transform((value) => (value ? value : undefined)),
-  role: z.enum(REGISTER_ROLES, {
-    error: 'Selecciona cómo quieres usar la plataforma.',
-  }),
-  accept_terms: acceptTermsSchema,
-  // Separate and optional on purpose: authorising promotional messages can
-  // never be a condition for using the service.
-  marketing_opt_in: z.boolean().optional().default(false),
-})
+const PASSWORDS_DIFFER = 'Las contraseñas no coinciden.'
+
+export const registerSchema = z
+  .object({
+    full_name: z
+      .string()
+      .trim()
+      .min(2, 'Ingresa tu nombre completo.')
+      .max(80, 'El nombre es demasiado largo.'),
+    email: emailSchema,
+    password: passwordSchema,
+    confirm_password: z.string().min(1, 'Confirma tu contraseña.'),
+    phone: z
+      .union([z.literal(''), phoneSchema])
+      .optional()
+      .transform((value) => (value ? value : undefined)),
+    role: z.enum(REGISTER_ROLES, {
+      error: 'Selecciona cómo quieres usar la plataforma.',
+    }),
+    accept_terms: acceptTermsSchema,
+    // Separate and optional on purpose: authorising promotional messages can
+    // never be a condition for using the service.
+    marketing_opt_in: z.boolean().optional().default(false),
+  })
+  .refine((value) => value.password === value.confirm_password, {
+    message: PASSWORDS_DIFFER,
+    path: ['confirm_password'],
+  })
 export type RegisterInput = z.input<typeof registerSchema>
 export type RegisterValues = z.output<typeof registerSchema>
 
@@ -91,7 +99,7 @@ export const resetPasswordSchema = z
     confirm: z.string(),
   })
   .refine((value) => value.password === value.confirm, {
-    message: 'Las contraseñas no coinciden.',
+    message: PASSWORDS_DIFFER,
     path: ['confirm'],
   })
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>

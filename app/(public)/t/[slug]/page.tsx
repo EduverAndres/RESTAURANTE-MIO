@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { storeUrl } from '@/lib/env'
+import { storeUrl } from '@/lib/site-url'
 import { serializeJsonLd, storeJsonLd } from '@/lib/seo/store-jsonld'
 import { Storefront, fetchStore } from './storefront'
 

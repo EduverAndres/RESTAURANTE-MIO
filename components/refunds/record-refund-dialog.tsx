@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { recordRefundAsAdmin } from '@/app/admin/actions'
 import { recordOrderRefund } from '@/app/dashboard/actions'
-import { FieldError } from '@/components/dashboard/store/field-error'
+import { FieldError } from '@/components/forms/field-error'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

@@ -8,7 +8,7 @@ import {
   type FieldErrors,
   type UseFormRegister,
 } from 'react-hook-form'
-import { FieldError } from '@/components/dashboard/store/field-error'
+import { FieldError } from '@/components/forms/field-error'
 import { describedBy, errorId } from '@/lib/a11y/forms'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

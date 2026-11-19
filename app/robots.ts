@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { env } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 
 /**
  * Public pages are the home, the owner landing, the legal pages and every
@@ -8,7 +8,7 @@ import { env } from '@/lib/env'
  * table link would only find a QR flow meant for someone sitting there.
  */
 export default function robots(): MetadataRoute.Robots {
-  const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
+  const site = siteUrl()
 
   return {
     rules: {

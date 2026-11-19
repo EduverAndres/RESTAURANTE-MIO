@@ -174,8 +174,19 @@ export function OrderBoard({ storeId, initial }: OrderBoardProps) {
         {announcement}
       </p>
       <p className="text-muted-foreground text-xs">{KANBAN_SHORTCUT_HINT}</p>
-      <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
-        <div className="flex gap-4 lg:grid lg:grid-cols-5">
+      {/*
+        Sized by the space the board actually gets (a container query), not
+        by the viewport: with the sidebar open a 1280px screen leaves less
+        room than a 1100px one with it collapsed. Five columns only when each
+        can hold a readable card (about 12.5rem); below that, a scroller of
+        full-size columns that snap into place, the next one peeking in so
+        it is obvious there is more to the right. `relative` makes the
+        scroller the containing block of the cards' visually hidden
+        (absolute) labels; without it they escaped the clipping and stretched
+        the whole page sideways on phones.
+      */}
+      <div className="@container">
+        <div className="relative flex snap-x snap-proximity scroll-px-1 gap-4 overflow-x-auto px-1 pb-3 @[66rem]:grid @[66rem]:grid-cols-5 @[66rem]:overflow-visible @[66rem]:px-0 @[66rem]:pb-0">
           {KANBAN_COLUMNS.map((column) => (
             <BoardColumn
               key={column.status}

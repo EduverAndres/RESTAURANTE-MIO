@@ -1,12 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { env } from '@/lib/env'
 import { requestOrigin } from '@/lib/http/request-origin'
+import { siteUrl } from '@/lib/site-url'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
+  // Revokes the session in Supabase Auth (not just this browser's cookies),
+  // and the server client clears the auth cookies on the response.
   await supabase.auth.signOut()
-  const origin = requestOrigin(request.headers, env.NEXT_PUBLIC_SITE_URL)
+  // The site's own origin (see lib/site-url): never a stale or foreign host.
+  const origin = requestOrigin(request.headers, siteUrl())
   // 303 turns the POST into a GET on the landing page.
-  return NextResponse.redirect(new URL('/', origin), 303)
+  const response = NextResponse.redirect(new URL('/', origin), 303)
+  response.headers.set('Cache-Control', 'no-store')
+  return response
 }

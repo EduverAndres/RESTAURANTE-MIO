@@ -120,7 +120,7 @@ export default async function MetricsPage({ searchParams }: MetricsPageProps) {
         three are single numbers for the whole period — drawing a line through
         one point would be decoration pretending to be data.
       */}
-      <dl className="gap-card grid sm:grid-cols-2 lg:grid-cols-5">
+      <dl className="gap-card grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))]">
         <KpiTile
           label="Pedidos"
           value={String(kpis.orders)}

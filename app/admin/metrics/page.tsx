@@ -97,7 +97,7 @@ export default async function AdminMetricsPage({
         <PeriodSelector current={period} basePath="/admin/metrics" />
       </header>
 
-      <dl className="gap-card grid sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="gap-card grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))]">
         <KpiTile
           label="Pedidos"
           value={String(kpis.orders)}

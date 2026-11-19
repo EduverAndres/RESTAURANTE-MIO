@@ -198,6 +198,28 @@
 [data-store-theme] {
   --elevation-tint: var(--store-primary);
   --ring: var(--store-primary);
+
+  /* Derived radii, so every theme stays tidy whatever its raw numbers.
+     They live here, not on :root, because a custom property that reads
+     another one resolves where it is declared: on this element, the tenant's
+     inline `--store-*` values are the ones in force.
+
+     inner: anything nested inside a card or sheet (images, panels). Smaller
+            than the container so the curves read as concentric; 0 stays 0.
+     field: boxes people type in or tap that can be taller than one line
+            (option rows, textareas). A pill theme keeps its pill buttons,
+            but a 999px textarea is a capsule, so fields cap at `inner`.
+     sheet: the drawer's own corners; a 64px theme radius on a full-width
+            sheet looks like a bubble, so it tops out at 28px. */
+  --store-inner-radius: min(
+    var(--store-radius),
+    clamp(4px, calc(var(--store-radius) * 0.65), 20px)
+  );
+  --store-field-radius: min(
+    var(--store-button-radius),
+    var(--store-inner-radius)
+  );
+  --store-sheet-radius: min(var(--store-radius), 28px);
 }
 
 /* ---------------------------------------------------------------------------
@@ -837,24 +859,116 @@ html[data-text-size='xlarge'] {
 }
 
 /* ---------------------------------------------------------------------------
- * Leaflet chrome  (Phase 5)
+ * Map  (Leaflet)
  *
- * The attribution bar is markup Leaflet injects, and its default link blue on
- * a translucent white strip over map tiles measures about 3.2:1 — below AA,
- * and unpredictable because the tile underneath changes. Pinning the strip to
- * opaque white and the links to the app's ink makes it both readable and
- * stable. Required attribution, so it stays visible; only its colours move.
+ * The map wears the theme instead of Leaflet's defaults. The tiles are
+ * recoloured by a duotone built from --foreground / --background / --primary
+ * (components/map/location-map.tsx, lib/map/tone.ts), so it follows the light
+ * and dark themes and a store's own palette automatically. Everything drawn
+ * on top — controls, attribution, tooltips, route, markers — uses the same
+ * tokens here. High contrast and forced colours keep the original tiles,
+ * whose contrast is higher than any calm duotone.
  * ------------------------------------------------------------------------- */
-.leaflet-control-attribution {
-  background: #ffffff;
-  color: #44403c;
+.cerquita-map.leaflet-container {
+  /* Shown while tiles load: a quiet surface, not Leaflet's grey. */
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.8125rem;
+}
+
+[data-contrast='high'] .cerquita-map .leaflet-tile-pane {
+  filter: none !important;
+}
+
+@media (forced-colors: active) {
+  .cerquita-map .leaflet-tile-pane {
+    filter: none !important;
+  }
+}
+
+/* Zoom: one floating pill-cornered card instead of the bordered box. */
+.cerquita-map .leaflet-bar {
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-2);
+}
+
+.cerquita-map .leaflet-bar a,
+.cerquita-map .leaflet-bar a:hover {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  background: var(--card);
+  color: var(--card-foreground);
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+
+.cerquita-map .leaflet-bar a:last-child {
+  border-bottom: 0;
+}
+
+.cerquita-map .leaflet-bar a:hover,
+.cerquita-map .leaflet-bar a:focus-visible {
+  background: var(--muted);
+}
+
+.cerquita-map .leaflet-bar a.leaflet-disabled {
+  background: var(--card);
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+/* The attribution is required, so it stays visible; it is kept opaque
+   because a translucent strip over changing tiles cannot guarantee AA. */
+.cerquita-map .leaflet-control-attribution {
+  padding: 2px 8px;
+  border-top-left-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
-.leaflet-control-attribution a {
-  color: #1c1917;
+.cerquita-map .leaflet-control-attribution a {
+  color: var(--card-foreground);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.cerquita-map .leaflet-tooltip {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-1);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cerquita-map .leaflet-tooltip-top::before {
+  border-top-color: var(--popover);
+}
+
+.cerquita-map .leaflet-tooltip-bottom::before {
+  border-bottom-color: var(--popover);
+}
+
+/* Route ahead in the brand colour, the travelled part in the quiet ink. The
+   path's own stroke attribute is only a fallback. */
+.map-route {
+  stroke: var(--primary);
+}
+
+.map-route--done {
+  stroke: var(--muted-foreground);
+}
+
+.map-accuracy {
+  stroke: var(--primary);
+  fill: var(--primary);
 }
 
 /* ---------------------------------------------------------------------------
@@ -864,7 +978,9 @@ html[data-text-size='xlarge'] {
  * label hangs below, outside the box, so the anchor stays on the point. The
  * ring only exists on the courier and only pulses while `.is-live`; the
  * reduced-motion block above already shortens every animation to 1ms, and
- * the rule at the end hides the ring outright so nothing flickers.
+ * the rule at the end hides the ring outright so nothing flickers. Each kind
+ * pairs a fill with its own ink token, so the glyph keeps its contrast in
+ * both themes.
  * ------------------------------------------------------------------------- */
 .tienda-marker {
   background: transparent;
@@ -877,10 +993,10 @@ html[data-text-size='xlarge'] {
   display: grid;
   place-items: center;
   border-radius: 9999px;
-  background: var(--marker-fill, #1c1917);
-  color: #ffffff;
+  background: var(--marker-fill, var(--foreground));
+  color: var(--marker-ink, var(--background));
   box-shadow:
-    0 0 0 2px #ffffff,
+    0 0 0 2px var(--card),
     0 2px 6px rgb(0 0 0 / 0.25);
   transition: background-color 200ms ease;
 }
@@ -896,39 +1012,39 @@ html[data-text-size='xlarge'] {
   left: 50%;
   transform: translateX(-50%);
   margin-top: 2px;
-  padding: 1px 6px;
+  padding: 1px 8px;
   border-radius: 9999px;
-  background: #ffffff;
-  color: #1c1917;
+  background: var(--card);
+  color: var(--card-foreground);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  box-shadow: var(--shadow-1);
   pointer-events: none;
 }
 
-.tienda-marker--store {
+.tienda-marker--store,
+.tienda-marker--pin {
   --marker-fill: var(--primary);
+  --marker-ink: var(--primary-foreground);
 }
 
 .tienda-marker--customer {
-  --marker-fill: #0f766e;
+  --marker-fill: var(--success);
+  --marker-ink: var(--success-foreground);
 }
 
 .tienda-marker--courier {
-  --marker-fill: #2563eb;
-}
-
-.tienda-marker--pin {
-  --marker-fill: var(--primary);
+  --marker-fill: var(--foreground);
+  --marker-ink: var(--background);
 }
 
 .tienda-marker__ring {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  background: rgb(37 99 235 / 0.35);
+  background: color-mix(in oklch, var(--primary) 35%, transparent);
   opacity: 0;
   transform: scale(0.6);
 }
@@ -938,7 +1054,8 @@ html[data-text-size='xlarge'] {
 }
 
 .tienda-marker.is-muted .tienda-marker__badge {
-  background: #9ca3af;
+  background: var(--muted-foreground);
+  color: var(--background);
 }
 
 .tienda-marker.is-muted .tienda-marker__ring {
@@ -1024,9 +1141,74 @@ html[data-text-size='xlarge'] {
   }
 }
 
+/* Sign-in welcome (components/auth/login-success.tsx): the overlay fades
+   in, two rings spread from the tick and a bar fills while the destination
+   loads. Page entrance (template.tsx in each area): content settles into
+   place instead of snapping. Pure CSS, so server-rendered HTML is visible
+   before any script runs, and the reduced-motion rules collapse all of it. */
+@keyframes success-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes success-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes success-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes success-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @theme inline {
   --animate-check-draw: check-draw 520ms var(--ease-out-soft) 120ms both;
   --animate-check-pop: check-pop 320ms var(--ease-out-soft) both;
+  --animate-success-fade: success-fade 220ms var(--ease-out-soft) both;
+  --animate-success-out: success-out 240ms var(--ease-out-soft) both;
+  --animate-success-ripple: success-ripple 1100ms var(--ease-out-soft) 180ms
+    both;
+  --animate-success-bar: success-bar 1000ms var(--ease-out-soft) 80ms both;
+  --animate-page-in: page-in 360ms var(--ease-out-soft) both;
+}
+
+.animate-success-bar {
+  transform-origin: left center;
 }
 
 /* The dashboard header is sticky at 4rem; anything the app scrolls to by

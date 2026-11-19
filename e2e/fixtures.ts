@@ -19,6 +19,9 @@ export async function loginAs(page: Page, role: SeedRole): Promise<void> {
   await page.goto('/login')
   await page.getByLabel('Correo electrónico').fill(SEED_USERS[role])
   await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD)
+  // Accepting the Terms is mandatory to sign in (Ley 1581): without the box
+  // ticked the form never submits and every spec timed out on /login.
+  await page.locator('#login-accept').check()
   await page.getByRole('button', { name: 'Entrar' }).click()
   await page.waitForURL((url) => !url.pathname.startsWith('/login'))
 }

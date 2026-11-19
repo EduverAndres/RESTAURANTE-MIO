@@ -1,7 +1,7 @@
 import { GiftIcon } from 'lucide-react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CopyLink } from '@/components/referrals/copy-link'
-import { env } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 import { formatCOP } from '@/lib/format'
 import { formatDateCO } from '@/lib/format-date'
 import { openCredits } from '@/lib/orders/discounts-server'
@@ -51,7 +51,7 @@ export async function ReferralCard({
         Los créditos los pone Cerquita.
       </p>
       <CopyLink
-        value={referralLink(env.NEXT_PUBLIC_SITE_URL, code)}
+        value={referralLink(siteUrl(), code)}
         label="Tu enlace para invitar"
       />
       {credits.length > 0 ? (

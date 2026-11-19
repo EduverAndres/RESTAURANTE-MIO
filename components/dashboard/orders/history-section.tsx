@@ -55,12 +55,12 @@ export function HistorySection({ orders }: HistorySectionProps) {
               key={order.id}
               className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
             >
-              <div className="min-w-0 space-y-0.5">
-                <p className="flex items-center gap-2 text-sm">
+              <div className="min-w-0 flex-1 basis-56 space-y-0.5">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                   <span className="font-mono font-semibold">
                     #{order.short_code}
                   </span>
-                  <Badge variant="outline" className="rounded-pill text-[10px]">
+                  <Badge variant="outline" className="rounded-pill text-xs">
                     {ORDER_TYPE_LABELS[order.type]}
                   </Badge>
                   <span className="text-muted-foreground text-xs">

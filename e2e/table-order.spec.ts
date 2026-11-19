@@ -15,7 +15,11 @@ test('an anonymous guest scans a table QR, orders with cash and reaches the trac
 
   const firstTable = page.getByRole('article', { name: /^Mesa \d+$/ }).first()
   await expect(firstTable).toBeVisible()
-  const tableUrl = await firstTable.locator('p[title]').getAttribute('title')
+  // The card links to the QR target and repeats it in the link's title.
+  const tableUrl = await firstTable
+    .locator('a[href*="/mesa/"]')
+    .first()
+    .getAttribute('href')
   if (!tableUrl) {
     throw new Error(
       'Could not read the table QR target URL from /dashboard/tables.',
@@ -28,6 +32,9 @@ test('an anonymous guest scans a table QR, orders with cash and reaches the trac
   try {
     const guestPage = await guestContext.newPage()
     await guestPage.goto(tableUrl)
+    // A first visit gets the cookie banner, which sits over the bottom of the
+    // page (including "Confirmar pedido") until it is answered.
+    await guestPage.getByRole('button', { name: 'Solo esenciales' }).click()
     await expect(
       guestPage.getByText(/Estás pidiendo desde la mesa \d+/),
     ).toBeVisible()
@@ -83,6 +90,8 @@ test('an anonymous guest scans a table QR, orders with cash and reaches the trac
 
     await guestPage.getByLabel('Tu nombre').fill('Invitado E2E')
     await guestPage.getByRole('radio', { name: /Pagar en la mesa/ }).click()
+    // Ordering requires accepting the Terms (Ley 1581), as signing in does.
+    await guestPage.locator('#table-accept').check()
     await guestPage.getByRole('button', { name: 'Confirmar pedido' }).click()
 
     await guestPage.waitForURL(/\/pedido\/[0-9a-f-]{36}$/)

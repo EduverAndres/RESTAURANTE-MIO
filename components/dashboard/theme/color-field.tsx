@@ -2,7 +2,7 @@
 
 import { CheckIcon, TriangleAlertIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { FieldError } from '@/components/dashboard/store/field-error'
+import { FieldError } from '@/components/forms/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { describedBy, errorId, hintId } from '@/lib/a11y/forms'

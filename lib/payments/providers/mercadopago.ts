@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { env } from '@/lib/env';
 import { serverEnv, mercadopagoConfigured } from '@/lib/env.server';
+import { absoluteUrl } from '@/lib/site-url';
 import { logger } from '@/lib/log/logger';
 import type { PaymentProvider, PaymentResult, CreatePaymentInput } from '@/lib/payments/types';
 
@@ -45,7 +45,7 @@ export const mercadopagoProvider: PaymentProvider = {
       },
       auto_return: 'approved',
       external_reference: input.shortCode,
-      notification_url: `${env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
+      notification_url: absoluteUrl('/api/webhooks/mercadopago'),
       expires: false,
     };
 

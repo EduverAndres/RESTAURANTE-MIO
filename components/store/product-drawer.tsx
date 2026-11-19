@@ -170,39 +170,56 @@ export function ProductDrawer({
       {/* The drawer is portalled to the body, outside the storefront wrapper,
           so it has to carry the tenant skin itself or it would render in the
           app's default palette. */}
+      {/* Overrides of the base sheet carry `!`: its defaults are written as
+          `data-[vaul-drawer-direction=bottom]:…`, which outrank a plain class,
+          so without it the tenant radius and height silently lose. Every
+          horizontal edge uses the same gutter (px-4 / sm:px-6) so the image,
+          the text, the options and the footer line up on one rail. */}
       <DrawerContent
         data-store-theme
         style={themeToCssVars(theme) as CSSProperties}
-        className="mx-auto flex max-h-[94dvh] max-w-lg flex-col rounded-t-[var(--store-radius)] bg-[var(--store-surface)] text-[var(--store-text)]"
+        className={cn(
+          'mx-auto flex max-w-lg flex-col overflow-hidden bg-[var(--store-surface)] text-[var(--store-text)]',
+          'max-h-[94dvh]! rounded-t-[var(--store-sheet-radius)]! border-[rgb(var(--store-text-rgb)/0.08)]',
+          // Desktop: a floating card, not a strip glued to the window edge.
+          'sm:bottom-4! sm:max-h-[calc(100dvh-2rem)]! sm:rounded-[var(--store-sheet-radius)]! sm:border sm:shadow-[0_24px_64px_-16px_rgb(0_0_0/0.35)]',
+          // The grab handle, in the tenant ink instead of the app grey.
+          '[&>div:first-child]:mt-2.5 [&>div:first-child]:mb-0.5 [&>div:first-child]:w-10 [&>div:first-child]:bg-[rgb(var(--store-text-rgb)/0.18)]',
+        )}
       >
         {product ? (
           <>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[3/2]">
-                <StoreImage
-                  src={product.image_url}
-                  alt={product.name}
-                  seed={product.id}
-                  color={theme.primary}
-                  label={product.name}
-                  sizes="(min-width: 640px) 512px, 100vw"
-                  initialScale={2.2}
-                />
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-color:rgb(var(--store-text-rgb)/0.2)_transparent] [scrollbar-width:thin]">
+              <div className="px-4 pt-3 sm:px-6">
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[var(--store-inner-radius)] bg-[rgb(var(--store-text-rgb)/0.05)] sm:aspect-[3/2]">
+                  <StoreImage
+                    src={product.image_url}
+                    alt={product.name}
+                    seed={product.id}
+                    color={theme.primary}
+                    label={product.name}
+                    sizes="(min-width: 640px) 464px, 100vw"
+                    initialScale={2.2}
+                  />
+                </div>
               </div>
 
-              <DrawerHeader className="text-left">
-                <DrawerTitle className="store-heading text-h2">
+              <DrawerHeader className="gap-1.5! px-4 pt-5 pb-0 text-left! sm:px-6">
+                {/* No text colour class here: the drawer's `cn` reads
+                    `text-h2` as a colour and would drop it for the other one.
+                    The colour is inherited from the sheet. */}
+                <DrawerTitle className="store-heading text-h2 leading-tight">
                   {product.name}
                 </DrawerTitle>
-                <DrawerDescription className="text-[rgb(var(--store-text-rgb)/0.7)]">
+                <DrawerDescription className="text-sm leading-relaxed text-[rgb(var(--store-text-rgb)/0.7)]">
                   {product.description ?? 'Sin descripción.'}
                 </DrawerDescription>
-                <p className="text-lead pt-1 font-semibold text-[var(--store-primary)]">
+                <p className="text-lead pt-1 font-semibold text-[var(--store-primary)] tabular-nums">
                   {formatCOP(Number(product.price))}
                 </p>
               </DrawerHeader>
 
-              <div className="space-y-6 px-4 pb-6">
+              <div className="mt-5 space-y-6 border-t border-[rgb(var(--store-text-rgb)/0.08)] px-4 pt-5 pb-6 sm:px-6">
                 {options.map((option) => {
                   const max = Math.max(1, option.max)
                   const values = [...option.product_option_values].sort(
@@ -210,10 +227,17 @@ export function ProductDrawer({
                   )
                   const error = touched ? errors[option.id] : undefined
                   return (
-                    <fieldset key={option.id} className="space-y-2">
-                      <legend className="flex w-full items-baseline justify-between text-sm font-semibold">
+                    <fieldset key={option.id} className="space-y-2.5">
+                      <legend className="mb-2.5 flex w-full items-center justify-between gap-3 text-sm font-semibold">
                         {option.name}
-                        <span className="text-xs font-normal text-[rgb(var(--store-text-rgb)/0.75)]">
+                        <span
+                          className={cn(
+                            'rounded-pill px-2.5 py-0.5 text-[11px] font-medium',
+                            option.required
+                              ? 'bg-[rgb(var(--store-primary-rgb)/0.12)] text-[var(--store-primary)]'
+                              : 'bg-[rgb(var(--store-text-rgb)/0.06)] text-[rgb(var(--store-text-rgb)/0.75)]',
+                          )}
+                        >
                           {option.required ? 'Obligatorio' : 'Opcional'}
                           {max > 1 ? ` · hasta ${max}` : ''}
                         </span>
@@ -235,33 +259,40 @@ export function ProductDrawer({
                               aria-checked={checked}
                               onClick={() => toggle(option.id, value.id, max)}
                               className={cn(
-                                // 44px minimum: this is the control people
-                                // actually tap, often one-handed.
-                                'flex min-h-[44px] items-center justify-between gap-3 rounded-[var(--store-button-radius)] border px-4 py-3 text-left text-sm transition-colors',
+                                // 48px: this is the control people actually
+                                // tap, often one-handed. Field radius, not
+                                // button radius: a pill theme would turn a
+                                // two-line option into a capsule.
+                                'flex min-h-12 items-center justify-between gap-3 rounded-[var(--store-field-radius)] border px-4 py-3 text-left text-sm font-medium transition-colors',
                                 checked
-                                  ? 'border-[var(--store-primary)] bg-[rgb(var(--store-primary-rgb)/0.1)]'
-                                  : 'border-[rgb(var(--store-text-rgb)/0.12)] hover:bg-[rgb(var(--store-text-rgb)/0.04)]',
+                                  ? 'border-[var(--store-primary)] bg-[rgb(var(--store-primary-rgb)/0.08)]'
+                                  : 'border-[rgb(var(--store-text-rgb)/0.12)] hover:border-[rgb(var(--store-text-rgb)/0.24)] hover:bg-[rgb(var(--store-text-rgb)/0.03)]',
                               )}
                             >
                               <span className="flex items-center gap-3">
                                 <span
                                   aria-hidden="true"
                                   className={cn(
-                                    'flex size-6 shrink-0 items-center justify-center border transition-colors',
-                                    max > 1 ? 'rounded-md' : 'rounded-full',
+                                    'flex size-5 shrink-0 items-center justify-center border-[1.5px] transition-colors',
+                                    max > 1
+                                      ? 'rounded-[min(6px,var(--store-field-radius))]'
+                                      : 'rounded-full',
                                     checked
                                       ? 'border-[var(--store-primary)] bg-[var(--store-primary)] text-[var(--store-on-primary)]'
                                       : 'border-[rgb(var(--store-text-rgb)/0.3)]',
                                   )}
                                 >
                                   {checked ? (
-                                    <CheckIcon className="size-4" />
+                                    <CheckIcon
+                                      className="size-3.5"
+                                      strokeWidth={3}
+                                    />
                                   ) : null}
                                 </span>
                                 {value.name}
                               </span>
                               {Number(value.price_delta) !== 0 ? (
-                                <span className="text-xs text-[rgb(var(--store-text-rgb)/0.7)] tabular-nums">
+                                <span className="shrink-0 text-sm font-normal text-[rgb(var(--store-text-rgb)/0.65)] tabular-nums">
                                   {Number(value.price_delta) > 0 ? '+' : ''}
                                   {formatCOP(Number(value.price_delta))}
                                 </span>
@@ -279,28 +310,38 @@ export function ProductDrawer({
                   )
                 })}
 
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor={`notes-${product.id}`}
-                    className="text-sm font-semibold"
-                  >
-                    Notas para la cocina
-                  </Label>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label
+                      htmlFor={`notes-${product.id}`}
+                      className="text-sm font-semibold"
+                    >
+                      Notas para la cocina
+                    </Label>
+                    <span
+                      aria-hidden="true"
+                      className="text-[11px] text-[rgb(var(--store-text-rgb)/0.5)] tabular-nums"
+                    >
+                      {notes.length}/200
+                    </span>
+                  </div>
                   <Textarea
                     id={`notes-${product.id}`}
                     value={notes}
                     maxLength={200}
                     onChange={(event) => setNotes(event.target.value)}
                     placeholder="Sin cebolla, salsa aparte…"
-                    className="min-h-20 rounded-[var(--store-button-radius)] border-[rgb(var(--store-text-rgb)/0.12)] bg-transparent"
+                    className="min-h-24 resize-none rounded-[var(--store-field-radius)] border-[rgb(var(--store-text-rgb)/0.12)] bg-transparent px-4 py-3 placeholder:text-[rgb(var(--store-text-rgb)/0.45)] focus-visible:border-[var(--store-primary)] focus-visible:ring-[rgb(var(--store-primary-rgb)/0.18)] dark:bg-transparent"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-3 border-t border-[rgb(var(--store-text-rgb)/0.1)] bg-[var(--store-surface)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {/* items-stretch: the stepper takes the button's height, including
+                the 56px table-mode target, so the two never sit unevenly. */}
+            <div className="flex shrink-0 items-stretch gap-3 border-t border-[rgb(var(--store-text-rgb)/0.08)] bg-[var(--store-surface)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-4">
               <QuantityStepper
-                size="md"
+                size="lg"
                 quantity={quantity}
                 allowRemove={false}
                 itemLabel={product.name}
@@ -310,7 +351,9 @@ export function ProductDrawer({
                 onIncrement={() =>
                   setQuantity((value) => Math.min(50, value + 1))
                 }
-                className="bg-transparent text-[var(--store-text)] shadow-none [border:1px_solid_rgb(var(--store-text-rgb)/0.15)]"
+                // An inset ring instead of a border: it draws the same line
+                // without adding 2px to the height.
+                className="bg-transparent text-[var(--store-text)] shadow-[inset_0_0_0_1px_rgb(var(--store-text-rgb)/0.15)]"
               />
               <motion.button
                 type="button"

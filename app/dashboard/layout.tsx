@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
+import { BfcacheGuard } from '@/components/auth/bfcache-guard'
 import { DashboardShell } from '@/components/dashboard/dashboard-shell'
 import { requireRole } from '@/lib/auth'
 import {
@@ -35,22 +36,25 @@ export default async function DashboardLayout({
   )
 
   return (
-    <DashboardShell
-      variant="merchant"
-      appName={APP_NAME}
-      user={{
-        name:
-          profile?.full_name?.trim() ||
-          user.email?.split('@')[0] ||
-          'Tu cuenta',
-        email: user.email ?? '',
-        role,
-      }}
-      stores={stores.map(({ id, name, status }) => ({ id, name, status }))}
-      activeStoreId={active?.id}
-      pushEnabled={pushConfigured()}
-    >
-      {children}
-    </DashboardShell>
+    <>
+      <BfcacheGuard />
+      <DashboardShell
+        variant="merchant"
+        appName={APP_NAME}
+        user={{
+          name:
+            profile?.full_name?.trim() ||
+            user.email?.split('@')[0] ||
+            'Tu cuenta',
+          email: user.email ?? '',
+          role,
+        }}
+        stores={stores.map(({ id, name, status }) => ({ id, name, status }))}
+        activeStoreId={active?.id}
+        pushEnabled={pushConfigured()}
+      >
+        {children}
+      </DashboardShell>
+    </>
   )
 }
