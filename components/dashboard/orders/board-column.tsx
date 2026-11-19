@@ -29,13 +29,13 @@ export function BoardColumn({
   return (
     <section
       aria-labelledby={headingId}
-      className="flex w-72 shrink-0 flex-col gap-3 lg:w-auto lg:min-w-0"
+      className="flex w-[min(18rem,85cqw)] shrink-0 snap-start flex-col gap-3 @[66rem]:w-auto @[66rem]:min-w-0"
     >
-      <header className="flex items-center justify-between gap-2 px-1">
-        <h2 id={headingId} className="text-sm font-semibold">
+      <header className="flex min-h-6 items-center justify-between gap-2 px-1">
+        <h2 id={headingId} className="min-w-0 truncate text-sm font-semibold">
           {column.title}
         </h2>
-        <span className="flex items-center gap-1">
+        <span className="flex shrink-0 items-center gap-1">
           {/*
             The column's own alarm. One glance across the board answers
             "where is the fire?" before a single card has been read.
@@ -58,7 +58,8 @@ export function BoardColumn({
           </span>
         </span>
       </header>
-      <div className="rounded-card bg-muted/40 flex min-h-40 flex-col gap-3 p-2">
+      {/* flex-1: every lane runs to the bottom of the tallest one. */}
+      <div className="rounded-card bg-muted/40 flex min-h-40 flex-1 flex-col gap-3 p-2">
         {orders.length === 0 ? (
           <p className="text-muted-foreground px-2 py-6 text-center text-xs">
             Sin pedidos

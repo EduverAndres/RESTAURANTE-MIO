@@ -56,9 +56,9 @@ function TipSelector({ checkout }: { checkout: CheckoutController }) {
               <span
                 className={cn(
                   'text-xs tabular-nums',
-                  active
-                    ? 'text-primary-foreground/80'
-                    : 'text-muted-foreground',
+                  // Full strength: at 80% the amount on the brand orange
+                  // fell to 3.85:1, under the 4.5:1 small text needs.
+                  active ? 'text-primary-foreground' : 'text-muted-foreground',
                 )}
               >
                 {preset === 0 ? 'Sin propina' : formatCOP(amount)}
