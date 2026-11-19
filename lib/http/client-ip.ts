@@ -3,10 +3,12 @@
 //
 // These headers are attacker-controlled on a naked origin, so this is never
 // an authorisation input — a forged `x-forwarded-for` buys an attacker a
-// fresh rate-limit bucket, nothing more. On Vercel the platform overwrites
-// `x-forwarded-for` with the real peer, which is what makes it usable at all;
-// see `lib/http/request-origin.ts` for the same header-trust reasoning where
-// the stakes are higher and the value has to be allow-listed.
+// fresh rate-limit bucket, nothing more. It is only usable because nginx in
+// front of the app (AWS Lightsail) overwrites it with the real peer —
+// `proxy_set_header X-Forwarded-For $remote_addr;`, not the appending
+// `$proxy_add_x_forwarded_for` (README, deployment runbook). See
+// `lib/http/request-origin.ts` for the same header-trust reasoning where the
+// stakes are higher and the value has to be allow-listed.
 
 function firstAddress(header: string | null): string | null {
   if (!header) return null

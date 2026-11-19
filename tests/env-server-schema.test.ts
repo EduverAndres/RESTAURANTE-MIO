@@ -33,7 +33,7 @@ describe('parseServerEnv', () => {
   })
 
   // A dashboard variable created and left blank is an ordinary thing to have
-  // (Vercel, .env files). It must read as "unset", not as an invalid value
+  // (.env files, the service environment). It must read as "unset", not as an invalid value
   // that bricks the build: the public env already does this, the server env
   // did not, and a deployment failed on an empty SENTRY_DSN.
   it('treats an empty string as unset', () => {

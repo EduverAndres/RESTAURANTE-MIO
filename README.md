@@ -415,7 +415,7 @@ on the register page.
 1. **Supabase**: create a project, then run `npm run db:push` and
    `npm run db:seed` (or your own data) against it with `SUPABASE_DB_URL`
    set to that project's connection string.
-2. **AWS Lightsail** (the production host; Vercel is not used). The app
+2. **AWS Lightsail** (the production host). The app
    builds with `output: 'standalone'`:
    - Node 22 on the instance; check out the `aws` branch, which always
      matches what is deployed.
