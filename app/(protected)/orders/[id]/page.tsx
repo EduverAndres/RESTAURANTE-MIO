@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import { CancelOrderButton } from './cancel-order-button'
 import { OrderTimeline } from './order-tracker'
 import { RepeatOrderButton } from './repeat-order-button'
+import type { ReviewableDish } from './dish-ratings'
 import { ReviewForm } from './review-form'
 import { DeliveryCodePanel } from '@/components/orders/delivery-code-panel'
 import { DeliveryMap } from '@/components/orders/delivery-map'
@@ -133,7 +134,7 @@ async function fetchOrder(id: string) {
   const { data } = await supabase
     .from('orders')
     .select(
-      '*, stores(name, slug, whatsapp_phone, address, lat, lng), addresses(label, line1, line2, lat, lng), order_items(id, name_snapshot, unit_price, quantity, options, line_total), reviews(id, rating)',
+      '*, stores(name, slug, whatsapp_phone, address, lat, lng), addresses(label, line1, line2, lat, lng), order_items(id, product_id, name_snapshot, unit_price, quantity, options, line_total), reviews(id, rating)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -146,6 +147,24 @@ export async function generateMetadata({
   const { id } = await params
   const order = await fetchOrder(id)
   return { title: order ? `Pedido #${order.short_code}` : 'Pedido' }
+}
+
+/**
+ * One rating slot per dish still on the menu: the same product ordered twice
+ * (say, with different options) is rated once, and a line whose product was
+ * deleted has nothing left to rate.
+ */
+function reviewableDishes(
+  items: { id: string; product_id: string | null; name_snapshot: string }[],
+): ReviewableDish[] {
+  const seen = new Set<string>()
+  const dishes: ReviewableDish[] = []
+  for (const item of items) {
+    if (!item.product_id || seen.has(item.product_id)) continue
+    seen.add(item.product_id)
+    dishes.push({ orderItemId: item.id, name: item.name_snapshot })
+  }
+  return dishes
 }
 
 export default async function OrderPage({
@@ -313,6 +332,7 @@ export default async function OrderPage({
                 <ReviewForm
                   orderId={order.id}
                   storeName={store?.name ?? 'el restaurante'}
+                  dishes={reviewableDishes(order.order_items ?? [])}
                 />
               )}
             </div>

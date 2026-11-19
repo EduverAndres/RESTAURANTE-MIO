@@ -3,6 +3,7 @@
 import { PlusIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { DishRatingBadge } from '@/components/store/dish-rating-badge'
 import { Highlight } from '@/components/store/highlight'
 import { ProductBadge, productBadgeOf } from '@/components/store/product-badge'
 import { QuantityStepper } from '@/components/store/quantity-stepper'
@@ -202,6 +203,11 @@ export function ProductCard({
             <Highlight text={product.name} query={query} />
           </button>
         </h4>
+
+        <DishRatingBadge
+          average={product.rating_avg}
+          count={product.rating_count}
+        />
 
         {product.description ? (
           <p

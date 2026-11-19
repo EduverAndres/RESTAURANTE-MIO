@@ -87,7 +87,9 @@ export async function recordRefund({
     p_amount: plan.refund.amount,
     p_reason: plan.refund.reason,
     p_method: plan.refund.method,
-    p_note: plan.refund.note,
+    // A refund may carry no note. Postgres accepts null for any function
+    // argument, but `supabase gen types` types them all as non-null.
+    p_note: plan.refund.note as string,
     p_issued_by: issuedBy,
   })
   if (error || !isOutcome(data)) {

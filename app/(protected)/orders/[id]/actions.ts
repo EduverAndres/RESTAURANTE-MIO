@@ -152,7 +152,7 @@ export async function submitReview(input: ReviewInput): Promise<Result> {
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, store_id, status')
+    .select('id, store_id, status, stores(slug)')
     .eq('id', parsed.data.orderId)
     .eq('customer_id', user.id)
     .maybeSingle()
@@ -160,12 +160,18 @@ export async function submitReview(input: ReviewInput): Promise<Result> {
     return { ok: false, error: 'Solo puedes valorar pedidos entregados.' }
   }
 
-  const { error } = await supabase.from('reviews').insert({
-    order_id: order.id,
-    store_id: order.store_id,
-    customer_id: user.id,
-    rating: parsed.data.rating,
-    comment: parsed.data.comment || null,
+  // The restaurant review and the dish reviews are written together by the
+  // database (submit_order_reviews), which re-checks that the order is this
+  // customer's, delivered, and that every item belongs to it.
+  const { error } = await supabase.rpc('submit_order_reviews', {
+    p_order_id: order.id,
+    p_rating: parsed.data.rating,
+    p_comment: parsed.data.comment,
+    p_items: parsed.data.items.map((item) => ({
+      order_item_id: item.orderItemId,
+      rating: item.rating,
+      comment: item.comment || null,
+    })),
   })
   if (error) {
     console.error('Failed to save review', error)
@@ -174,9 +180,12 @@ export async function submitReview(input: ReviewInput): Promise<Result> {
       error:
         error.code === '23505'
           ? 'Ya valoraste este pedido.'
-          : 'No pudimos guardar tu valoración.',
+          : error.code === '42501'
+            ? 'Solo puedes valorar pedidos entregados.'
+            : 'No pudimos guardar tu valoración.',
     }
   }
+  if (order.stores?.slug) revalidatePath(`/t/${order.stores.slug}`)
   revalidatePath(`/orders/${order.id}`)
   return { ok: true }
 }
