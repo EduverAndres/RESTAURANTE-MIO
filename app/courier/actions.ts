@@ -22,11 +22,8 @@ import { sendPushToUsers } from '@/lib/push/send'
 import { estimateRoute } from '@/lib/routing'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { deliveryAttemptOutcome } from '@/lib/tracking/delivery-attempts'
-import {
-  deliveryCodeMatches,
-  generateDeliveryCode,
-} from '@/lib/tracking/delivery-code'
+import { MAX_DELIVERY_CODE_ATTEMPTS } from '@/lib/tracking/delivery-attempts'
+import { generateDeliveryCode } from '@/lib/tracking/delivery-code'
 import {
   advanceOrderInputSchema,
   courierPositionSchema,
@@ -189,47 +186,33 @@ async function deliverWithCode(
     return { ok: false, error: CODE_CHECK_FAILED }
   }
 
-  const { data: issued, error: readError } = await admin
-    .from('delivery_codes')
-    .select('code, attempts, locked_at')
-    .eq('order_id', orderId)
-    .maybeSingle()
-  if (readError) {
-    logger.error('courier.delivery_code.read_failed', { orderId }, readError)
+  // Compared and counted in one locked step in the database
+  // (try_delivery_code): parallel guesses are serialised, so the attempt
+  // limit holds even against a burst of concurrent requests.
+  const entered = enteredCode.replace(/\D/g, '')
+  const { data: rows, error: checkError } = await admin.rpc(
+    'try_delivery_code',
+    {
+      p_order_id: orderId,
+      p_code: entered,
+      p_max_attempts: MAX_DELIVERY_CODE_ATTEMPTS,
+    },
+  )
+  if (checkError) {
+    logger.error('courier.delivery_code.check_failed', { orderId }, checkError)
     return { ok: false, error: CODE_CHECK_FAILED }
   }
-  const now = new Date()
-  const outcome = deliveryAttemptOutcome({
-    attempts: issued?.attempts ?? 0,
-    lockedAt: issued?.locked_at ?? null,
-    matches: deliveryCodeMatches(issued?.code ?? null, enteredCode),
-    now,
-  })
-  if (outcome.kind === 'locked') return { ok: false, error: CODE_LOCKED }
-  if (outcome.kind === 'mismatch') {
+  const check = (Array.isArray(rows) ? rows[0] : rows) as
+    { outcome: string; attempts: number } | undefined
+  const outcome = check?.outcome ?? 'none'
+  if (outcome === 'locked') {
+    logger.warn('courier.delivery_code.locked', { orderId, courierId })
+    return { ok: false, error: CODE_LOCKED }
+  }
+  if (outcome !== 'ok') {
+    // 'mismatch', or 'none' when no code was ever issued: nothing matches.
     logger.warn('courier.delivery_code.mismatch', { orderId, courierId })
-    // A row is guaranteed here: with none issued nothing can match, but
-    // there is also nothing to count against.
-    if (issued) {
-      const { error: countError } = await admin
-        .from('delivery_codes')
-        .update({
-          attempts: outcome.attempts,
-          ...(outcome.locked ? { locked_at: now.toISOString() } : {}),
-        })
-        .eq('order_id', orderId)
-      if (countError) {
-        logger.error(
-          'courier.delivery_code.count_failed',
-          { orderId },
-          countError,
-        )
-      }
-      if (outcome.locked) {
-        logger.warn('courier.delivery_code.locked', { orderId })
-      }
-    }
-    return { ok: false, error: outcome.locked ? CODE_LOCKED : CODE_MISMATCH }
+    return { ok: false, error: CODE_MISMATCH }
   }
 
   const { data, error } = await admin

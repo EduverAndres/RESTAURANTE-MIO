@@ -3,6 +3,7 @@ import 'server-only'
 import { after } from 'next/server'
 import { mercadopagoConfigured } from '@/lib/env.server'
 import { logger } from '@/lib/log/logger'
+import { paidAmountMatches } from '@/lib/payments/amount'
 import { mercadopagoProvider } from '@/lib/payments/providers/mercadopago'
 import type { PaymentResult } from '@/lib/payments/types'
 import { applyGatewayStatus } from '@/lib/payments/wompi/apply-status'
@@ -13,6 +14,8 @@ import type { PaymentStatus } from '@/types/app'
 
 export interface MercadoPagoReconcileResult {
   paymentStatus: PaymentStatus
+  /** True when the status could not be written; the webhook retries then. */
+  writeFailed?: boolean
 }
 
 export interface MercadoPagoReconcileDependencies {
@@ -56,7 +59,7 @@ export async function reconcileMercadoPagoPayment(
   const { data: order } = await admin
     .from('orders')
     .select(
-      'id, status, payment_status, payment_method, store_id, short_code, stores(name)',
+      'id, status, payment_status, payment_method, total, store_id, short_code, stores(name)',
     )
     .eq('id', orderId)
     .maybeSingle()
@@ -72,8 +75,23 @@ export async function reconcileMercadoPagoPayment(
   }
   // `pending` is where the order already is: nothing to write.
   if (payment.status === 'pending') return { paymentStatus: 'pending' }
+  // A payment for another amount never settles this order.
+  if (
+    payment.status === 'paid' &&
+    !paidAmountMatches(order.total, payment.amountCents)
+  ) {
+    logger.error('mercadopago.reconcile.amount_mismatch', {
+      orderId,
+      expectedTotal: order.total,
+      receivedCents: payment.amountCents ?? null,
+    })
+    return null
+  }
 
   const applied = await applyGatewayStatus(admin, order, payment.status)
+  if (applied.outcome === 'write_failed') {
+    return { paymentStatus: payment.status, writeFailed: true }
+  }
   if (applied.outcome !== 'applied') return { paymentStatus: payment.status }
 
   // Same as the webhook: the order keeps Mercado Pago's payment id, which a

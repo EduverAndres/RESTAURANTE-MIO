@@ -20,6 +20,8 @@ export interface PaymentResult {
   /** When set, the customer must be redirected to finish the payment. */
   redirectUrl?: string
   message?: string
+  /** Amount the gateway charged, in cents, when it reports one. */
+  amountCents?: number
 }
 
 export interface PaymentProvider {

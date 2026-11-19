@@ -22,6 +22,14 @@ import type { CouponRule, CouponUsage } from '@/lib/discounts'
 import { getPaymentProvider } from '@/lib/payments'
 import { newOrderMessage } from '@/lib/push/messages'
 import { sendPushToStoreOwner } from '@/lib/push/send'
+import {
+  COUPON_CHECK_POLICY,
+  rateLimitIdentifier,
+} from '@/lib/rate-limit/policy'
+import {
+  enforceRateLimit,
+  postgresRateLimitStore,
+} from '@/lib/rate-limit/store'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { absoluteUrl } from '@/lib/site-url'
@@ -102,6 +110,23 @@ export type CouponCheckResult =
   | { ok: true; code: string; rule: CouponRule; usage: CouponUsage }
   | { ok: false; error: string }
 
+const COUPON_RATE_LIMITED =
+  'Probaste demasiados cupones. Espera unos minutos e inténtalo de nuevo.'
+
+/** Spends one coupon attempt from the account's budget; true when allowed. */
+async function allowCouponAttempt(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<boolean> {
+  const decision = await enforceRateLimit(postgresRateLimitStore(admin), [
+    {
+      policy: COUPON_CHECK_POLICY,
+      identifier: rateLimitIdentifier('user', userId),
+    },
+  ])
+  return decision.allowed
+}
+
 /**
  * Looks a coupon up so the summary can show its discount. The checkout
  * applies the same rule again on submit: this is a preview, not a promise.
@@ -118,6 +143,8 @@ export async function checkCoupon(
     return { ok: false, error: 'Tu sesión expiró. Inicia sesión de nuevo.' }
   try {
     const admin = createAdminClient()
+    if (!(await allowCouponAttempt(admin, user.id)))
+      return { ok: false, error: COUPON_RATE_LIMITED }
     const coupon = await loadCoupon(admin, storeId, code)
     if (!coupon)
       return { ok: false, error: 'Ese cupón no existe en este negocio.' }
@@ -251,6 +278,11 @@ export async function placeOrder(
   if (!built.ok) return built
   const { totals } = built
 
+  // Submitting is the same oracle as the preview, so a code spends the same
+  // budget here.
+  if (values.couponCode && !(await allowCouponAttempt(admin, user.id)))
+    return { ok: false, error: COUPON_RATE_LIMITED, field: 'couponCode' }
+
   // Coupon, loyalty reward and referral credit, re-derived here; the client
   // only sent a code and a checkbox.
   const discounts = await resolveDiscounts(supabase, admin, {
@@ -280,8 +312,11 @@ export async function placeOrder(
       ? new Date(values.scheduledAt)
       : new Date(Date.now() + etaMinutes * 60_000)
 
-  // Insert under RLS: the customer can only create their own pending order.
-  const { data: order, error: orderError } = await supabase
+  // Written with the service role: everything below was decided on this
+  // server (the caller, the address, the prices). The API no longer lets a
+  // session insert orders or items itself (20261119000100_lock_order_writes),
+  // which is what stopped a client from posting an order already "paid".
+  const { data: order, error: orderError } = await admin
     .from('orders')
     .insert({
       store_id: store.id,
@@ -308,7 +343,7 @@ export async function placeOrder(
     }
   }
 
-  const { error: itemsError } = await supabase
+  const { error: itemsError } = await admin
     .from('order_items')
     .insert(orderItemRows(order.id, pricedItems))
 

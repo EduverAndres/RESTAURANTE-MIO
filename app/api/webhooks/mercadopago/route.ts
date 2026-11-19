@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { serverEnv } from '@/lib/env.server'
 import { logger } from '@/lib/log/logger'
+import { reconcileMercadoPagoPayment } from '@/lib/payments/mercadopago/reconcile'
 import { verifyMercadoPagoSignature } from '@/lib/payments/mercadopago/signature'
 import { mercadopagoProvider } from '@/lib/payments/providers/mercadopago'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -51,14 +52,31 @@ export async function POST(req: NextRequest) {
   // a settled order backwards if notifications arrive out of order.
   if (result.status === 'pending') return NextResponse.json({ ok: true })
 
-  const { error } = await createAdminClient()
+  const { data: order, error } = await createAdminClient()
     .from('orders')
-    .update({ payment_status: result.status, payment_ref: dataId })
+    .select('id')
     .eq('short_code', result.reference)
     .eq('payment_method', 'mercadopago')
-
+    .maybeSingle()
   if (error) {
-    logger.error('mercadopago.webhook_update_failed', { error })
+    logger.error('mercadopago.webhook_order_read_failed', { error })
+    return NextResponse.json({ error: 'Read failed' }, { status: 500 })
+  }
+  if (!order) {
+    // Not ours (or not a Mercado Pago order): acknowledge so it stops retrying.
+    logger.warn('mercadopago.webhook_order_not_found', {
+      reference: result.reference,
+    })
+    return NextResponse.json({ ok: true })
+  }
+
+  // The same path as the return page: reference and amount must match, and
+  // the status only moves through the guarded transitions (a refunded or
+  // settled order is never pushed back by a late or replayed notification).
+  const outcome = await reconcileMercadoPagoPayment(order.id, dataId, {
+    verifyPayment: async () => result,
+  })
+  if (outcome?.writeFailed) {
     return NextResponse.json({ error: 'Update failed' }, { status: 500 })
   }
   return NextResponse.json({ ok: true })

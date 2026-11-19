@@ -69,6 +69,7 @@ function mpOrder(overrides: Record<string, unknown> = {}) {
     status: 'pending',
     payment_status: 'pending',
     payment_method: 'mercadopago',
+    total: 49000,
     store_id: STORE_ID,
     short_code: 'A1B2',
     stores: { name: 'La Parrilla' },
@@ -77,7 +78,12 @@ function mpOrder(overrides: Record<string, unknown> = {}) {
 }
 
 function payment(overrides: Partial<PaymentResult> = {}): PaymentResult {
-  return { status: 'paid', reference: 'A1B2', ...overrides }
+  return {
+    status: 'paid',
+    reference: 'A1B2',
+    amountCents: 4900000,
+    ...overrides,
+  }
 }
 
 afterEach(() => {
@@ -89,6 +95,24 @@ afterEach(() => {
 // The webhook used to be the only way an order learned it was paid: when it
 // never arrived, the customer came back to an order stuck on "pendiente".
 describe('reconcileMercadoPagoPayment', () => {
+  it('does not mark paid a payment for another amount', async () => {
+    const updates = fakeAdmin(mpOrder())
+    const result = await reconcileMercadoPagoPayment(ORDER_ID, PAYMENT_ID, {
+      verifyPayment: async () => payment({ amountCents: 100000 }),
+    })
+    expect(result).toBeNull()
+    expect(updates).toEqual([])
+  })
+
+  it('does not mark paid when the gateway reports no amount', async () => {
+    const updates = fakeAdmin(mpOrder())
+    const result = await reconcileMercadoPagoPayment(ORDER_ID, PAYMENT_ID, {
+      verifyPayment: async () => payment({ amountCents: undefined }),
+    })
+    expect(result).toBeNull()
+    expect(updates).toEqual([])
+  })
+
   it('marks the order paid from the payment the customer came back with', async () => {
     const updates = fakeAdmin(mpOrder())
     const verifyPayment = vi.fn(async () => payment())

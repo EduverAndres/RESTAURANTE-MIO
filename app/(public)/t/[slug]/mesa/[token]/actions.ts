@@ -157,11 +157,13 @@ export async function placeTableOrder(
     type: 'table',
   })
 
-  // Anonymous inserts cannot be read back (no anon SELECT policy), so the id
-  // is generated here and the insert returns nothing.
+  // Written with the service role once the QR token, the rate limit and the
+  // prices were checked above: the API no longer accepts orders or items
+  // from a session (20261119000100_lock_order_writes), so a guest cannot
+  // skip the token by posting to the database directly.
   const orderId = randomUUID()
   const anonymous = user === null
-  const { error: orderError } = await supabase.from('orders').insert({
+  const { error: orderError } = await admin.from('orders').insert({
     id: orderId,
     store_id: store.id,
     customer_id: user?.id ?? null,
@@ -183,7 +185,7 @@ export async function placeTableOrder(
     return { ok: false, error: 'No pudimos crear el pedido. Inténtalo de nuevo.' }
   }
 
-  const { error: itemsError } = await supabase
+  const { error: itemsError } = await admin
     .from('order_items')
     .insert(orderItemRows(orderId, priced.items))
   if (itemsError) {

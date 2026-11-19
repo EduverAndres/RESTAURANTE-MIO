@@ -213,3 +213,15 @@ export const AUTH_EMAIL_IP_POLICY: RateLimitPolicy = {
   limit: 10,
   windowSeconds: 900,
 }
+
+/**
+ * Coupon codes tried by one account, in the checkout preview and on submit.
+ * Codes are short (3–20 letters and digits) and stores share them in person,
+ * so without a budget an account could guess a store's private codes. A real
+ * customer types one or two; fifteen in fifteen minutes is generous.
+ */
+export const COUPON_CHECK_POLICY: RateLimitPolicy = {
+  bucket: 'coupon_check',
+  limit: 15,
+  windowSeconds: 900,
+}

@@ -67,6 +67,7 @@ function wompiOrder(overrides: Record<string, unknown> = {}) {
     payment_status: 'pending',
     payment_ref: REFERENCE,
     payment_method: 'wompi',
+    total: 49000,
     store_id: STORE_ID,
     short_code: 'A1B2',
     stores: { name: 'La Parrilla' },
@@ -91,6 +92,15 @@ afterEach(() => {
 })
 
 describe('reconcileWompiTransaction', () => {
+  it('does not settle an order with a transaction for another amount', async () => {
+    const recorded = fakeAdmin(wompiOrder())
+    const result = await reconcileWompiTransaction(ORDER_ID, 'tx_1', {
+      fetchTransaction: async () => transaction({ amount_in_cents: 100000 }),
+    })
+    expect(result).toBeNull()
+    expect(recorded.orderUpdates).toEqual([])
+  })
+
   it('applies paid on a matching approved transaction', async () => {
     const recorded = fakeAdmin(wompiOrder())
     const fetchTransaction = vi.fn(async () => transaction())

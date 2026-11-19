@@ -1387,6 +1387,14 @@ export type Database = {
           whatsapp_phone: string | null
         }[]
       }
+      try_delivery_code: {
+        Args: {
+          p_order_id: string
+          p_code: string
+          p_max_attempts: number
+        }
+        Returns: { outcome: string; attempts: number }[]
+      }
       user_role_of: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]

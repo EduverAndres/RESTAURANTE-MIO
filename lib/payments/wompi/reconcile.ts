@@ -3,6 +3,7 @@ import 'server-only'
 import { after } from 'next/server'
 import { wompiConfigured } from '@/lib/env.server'
 import { logger } from '@/lib/log/logger'
+import { paidAmountMatches } from '@/lib/payments/amount'
 import { applyGatewayStatus } from '@/lib/payments/wompi/apply-status'
 import {
   fetchWompiTransaction,
@@ -50,7 +51,7 @@ export async function reconcileWompiTransaction(
   const { data: order } = await admin
     .from('orders')
     .select(
-      'id, status, payment_status, payment_ref, payment_method, store_id, short_code, stores(name)',
+      'id, status, payment_status, payment_ref, payment_method, total, store_id, short_code, stores(name)',
     )
     .eq('id', orderId)
     .maybeSingle()
@@ -63,6 +64,17 @@ export async function reconcileWompiTransaction(
       orderId,
       transactionReference: transaction.reference,
       orderReference: order.payment_ref,
+    })
+    return null
+  }
+
+  // Same check as the webhook: a transaction for another amount never
+  // settles this order, whatever its status says.
+  if (!paidAmountMatches(order.total, transaction.amount_in_cents)) {
+    logger.error('wompi.reconcile.amount_mismatch', {
+      orderId,
+      expectedTotal: order.total,
+      receivedCents: transaction.amount_in_cents,
     })
     return null
   }

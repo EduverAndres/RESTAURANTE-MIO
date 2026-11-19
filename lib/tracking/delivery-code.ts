@@ -28,6 +28,16 @@ function isAcceptable(code: string): boolean {
   return !isAllEqual(code) && !isSequential(code)
 }
 
+/**
+ * Uniform in [0, 1) from the platform CSPRNG (Web Crypto, available in Node
+ * and browsers). Math.random is predictable and has no place in a code that
+ * proves a delivery happened.
+ */
+function secureRandom(): number {
+  const [value] = crypto.getRandomValues(new Uint32Array(1))
+  return value! / 2 ** 32
+}
+
 function drawCode(random: () => number): string {
   const raw = random()
   const unit = Number.isFinite(raw) ? Math.min(0.999999, Math.max(0, raw)) : 0
@@ -40,7 +50,7 @@ function drawCode(random: () => number): string {
  * falls back to a fixed, well-formed value rather than looping forever.
  */
 export function generateDeliveryCode(
-  random: () => number = Math.random,
+  random: () => number = secureRandom,
 ): string {
   for (let i = 0; i < MAX_DRAWS; i += 1) {
     const code = drawCode(random)

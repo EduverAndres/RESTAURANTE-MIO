@@ -2,8 +2,11 @@
 // stops being checked at all. Four digits leave 10,000 possibilities, so
 // without a cap a courier could simply try them all through the action.
 //
-// Pure: the action reads the row, asks this module what happened, and
-// writes the counters back. A lock never expires on its own; only the
+// What runs is the database function `try_delivery_code`
+// (20261119000200_delivery_code_atomic.sql), which applies this exact rule
+// with the row locked so concurrent guesses cannot race past the limit; this
+// pure version is the tested statement of the rule it mirrors, and
+// MAX_DELIVERY_CODE_ATTEMPTS is passed to it. A lock never expires on its own; only the
 // customer ("Ya lo recibí") or the merchant (dashboard) can close the order
 // after that, which is exactly the point.
 

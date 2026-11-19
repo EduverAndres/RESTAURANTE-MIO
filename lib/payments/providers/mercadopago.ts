@@ -103,6 +103,10 @@ export const mercadopagoProvider: PaymentProvider = {
       status: map[data.status] ?? 'pending',
       reference: data.external_reference ?? paymentId,
       message: data.status_detail,
+      amountCents:
+        typeof data.transaction_amount === 'number'
+          ? Math.round(data.transaction_amount * 100)
+          : undefined,
     };
   },
 };
