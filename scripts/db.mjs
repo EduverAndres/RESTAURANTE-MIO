@@ -7,7 +7,9 @@
 //   node scripts/db.mjs types  -> regenerate types/database.ts (requires Docker)
 //   node scripts/db.mjs config -> push supabase/config.toml (auth settings and
 //                                 email templates) to the hosted project;
-//                                 add --yes to skip the confirmation gate
+//                                 add --yes to skip the confirmation gate;
+//                                 refuses a local site_url unless
+//                                 --allow-local-urls is passed
 import { spawnSync } from 'node:child_process'
 import {
   existsSync,
@@ -167,6 +169,7 @@ const commands = {
   // proceeds by default when it is not attached to a TTY. `config push` is
   // still run without --yes so the CLI's own per-resource prompt applies too.
   async config() {
+    refuseLocalSiteUrl()
     const projectRef = resolveProjectRef()
     console.log(`Diffing supabase/config.toml against project ${projectRef}…`)
     runSupabase(['config', 'diff', '--project-ref', projectRef])
@@ -176,6 +179,33 @@ const commands = {
     }
     runSupabase(['config', 'push', '--project-ref', projectRef])
   },
+}
+
+// config.toml is the LOCAL stack's config: its `site_url` is
+// http://localhost:3000 and its redirect list holds LAN addresses. Pushed as
+// is, every confirmation and recovery email of the hosted project would link
+// to localhost and every sign-in would bounce to the wrong host. The hosted
+// Site URL and Redirect URLs belong in the dashboard (README, "Auth
+// emails"); this refuses unless the operator explicitly opts in.
+function refuseLocalSiteUrl() {
+  if (flags.has('--allow-local-urls')) return
+  const toml = readFileSync(
+    resolve(projectRoot, 'supabase/config.toml'),
+    'utf8',
+  )
+  const siteUrl = /^site_url\s*=\s*"([^"]*)"/m.exec(toml)?.[1] ?? ''
+  const local =
+    /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[::1\])/i
+  if (!siteUrl || local.test(siteUrl)) {
+    console.error(
+      `Refusing to push: supabase/config.toml has site_url = "${siteUrl}", ` +
+        'a local address. Pushing it would make every auth email of the ' +
+        'hosted project link to it. Set Site URL and Redirect URLs in the ' +
+        'Supabase dashboard (Authentication → URL Configuration) instead, or ' +
+        're-run with --allow-local-urls if that is really intended.',
+    )
+    process.exit(1)
+  }
 }
 
 async function confirmConfigPush(projectRef) {

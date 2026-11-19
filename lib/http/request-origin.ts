@@ -59,6 +59,29 @@ function siteHost(fallback: string): string | null {
 }
 
 /**
+ * The public host a request reached us on, when it is NOT the site's own and
+ * not a loopback/LAN one. Every redirect then falls back to the site URL, so
+ * a non-null answer in production almost always means `NEXT_PUBLIC_SITE_URL`
+ * still holds an old address (an instance whose public IP changed). Used only
+ * for a diagnostic log, never to build a URL.
+ */
+export function foreignPublicHost(
+  headers: Headers,
+  siteUrl: string,
+): string | null {
+  const rawHost =
+    firstValue(headers.get('x-forwarded-host')) ??
+    firstValue(headers.get('host'))
+  if (!rawHost) return null
+  const host = rawHost.toLowerCase()
+  const { hostname } = splitHost(host)
+  if (BIND_ALL_HOSTNAMES.has(hostname) || isPrivateHostname(hostname)) {
+    return null
+  }
+  return host === siteHost(siteUrl) ? null : host
+}
+
+/**
  * Whether the browser reached us over HTTPS, so a cookie may carry `Secure`.
  *
  * A `Secure` cookie sent over plain http is dropped by the browser without a

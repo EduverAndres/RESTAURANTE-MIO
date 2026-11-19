@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { env, storeUrl } from '@/lib/env'
+import { siteUrl, storeUrl } from '@/lib/site-url'
 import { createClient } from '@/lib/supabase/server'
 
 const STATIC_PATHS = [
@@ -20,7 +20,7 @@ const STATIC_PATHS = [
  * search engines remember.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
+  const site = siteUrl()
   const pages: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
     url: `${site}${path === '/' ? '' : path}`,
   }))

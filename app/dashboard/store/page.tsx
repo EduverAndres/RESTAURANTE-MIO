@@ -3,6 +3,7 @@ import { StoreAssetsCard } from './store-assets-card'
 import { StoreForm } from './store-form'
 import { StoreStatusCard } from './store-status-card'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
+import { storeUrl } from '@/lib/site-url'
 import { scheduleToForm } from '@/lib/validations/store'
 
 export const metadata: Metadata = { title: 'Tienda' }
@@ -44,7 +45,7 @@ export default async function StoreSettingsPage() {
         <div className="space-y-6">
           <StoreStatusCard
             storeId={store.id}
-            slug={store.slug}
+            publicUrl={storeUrl(store.slug)}
             status={store.status}
             isOpen={store.is_open}
           />

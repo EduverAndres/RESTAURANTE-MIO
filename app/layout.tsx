@@ -19,7 +19,8 @@ import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { accessibilityPreferencesScript } from '@/lib/a11y/preferences'
-import { APP_NAME, env } from '@/lib/env'
+import { APP_NAME } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -85,7 +86,7 @@ const THEME_FONT_VARIABLES = [
 ].join(' ')
 
 export const metadata: Metadata = {
-  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
+  metadataBase: new URL(siteUrl()),
   title: {
     default: `${APP_NAME} · Pide a los negocios de tu barrio en Barranquilla`,
     template: `%s · ${APP_NAME}`,

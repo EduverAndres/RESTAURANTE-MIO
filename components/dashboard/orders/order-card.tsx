@@ -57,7 +57,8 @@ interface OrderCardProps {
  * blind.
  */
 const CARD_TONES: Record<ElapsedTone, string> = {
-  fresh: 'border-border',
+  // shadow-1 already draws a hairline; a visible border on top doubled it.
+  fresh: 'border-transparent',
   warn: 'border-accent/60 bg-accent/6',
   late: 'border-destructive/60 bg-destructive/6',
 }
@@ -133,11 +134,13 @@ export function OrderCard({
       aria-busy={pending || undefined}
       onKeyDown={onKeyDown}
       className={cn(
-        'rounded-card bg-card shadow-1 space-y-3 border p-4 transition-colors',
+        'rounded-card bg-card shadow-1 min-w-0 space-y-3 overflow-hidden border p-4 transition-colors',
         CARD_TONES[tone],
       )}
     >
-      <header className="flex items-start justify-between gap-2">
+      {/* Wraps instead of overlapping when the column is narrow: the
+          clock and the menu drop under the order code. */}
+      <header className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
         <div className="min-w-0 space-y-1">
           <p className="flex items-center gap-1.5 font-mono text-sm font-semibold">
             <span
@@ -147,7 +150,7 @@ export function OrderCard({
             #{order.short_code}
           </p>
           <div className="flex flex-wrap items-center gap-1">
-            <Badge variant="outline" className="rounded-pill text-[10px]">
+            <Badge variant="outline" className="rounded-pill text-xs">
               {ORDER_TYPE_LABELS[order.type]}
               {order.type === 'table' && order.table_number
                 ? ` ${order.table_number}`
@@ -157,7 +160,7 @@ export function OrderCard({
               <Badge
                 variant="outline"
                 className={cn(
-                  'rounded-pill border-transparent text-[10px] font-semibold',
+                  'rounded-pill border-transparent text-xs font-semibold',
                   tone === 'late'
                     ? 'bg-destructive/12 text-destructive-on-tint'
                     : 'bg-accent/20 text-foreground',
@@ -168,9 +171,12 @@ export function OrderCard({
             )}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <p
-            className={cn('flex items-center gap-1 text-xs', CLOCK_TONES[tone])}
+            className={cn(
+              'flex items-center gap-1 text-xs whitespace-nowrap',
+              CLOCK_TONES[tone],
+            )}
           >
             <ClockIcon aria-hidden="true" className="size-3.5" />
             {elapsedLabel(order.created_at, now)}
@@ -186,7 +192,7 @@ export function OrderCard({
 
       <div className="space-y-1.5 text-sm">
         <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-          <UserRoundIcon aria-hidden="true" className="size-3.5" />
+          <UserRoundIcon aria-hidden="true" className="size-3.5 shrink-0" />
           <span className="truncate">{order.customer_name ?? 'Cliente'}</span>
         </p>
         <p className="line-clamp-2">{itemsSummary(order.items)}</p>
@@ -199,7 +205,12 @@ export function OrderCard({
             <span className="line-clamp-2">{order.notes}</span>
           </p>
         ) : null}
-        <p className="font-semibold tabular-nums">{formatCOP(order.total)}</p>
+        <p
+          className="truncate font-semibold tabular-nums"
+          title={formatCOP(order.total)}
+        >
+          {formatCOP(order.total)}
+        </p>
       </div>
 
       <OrderActions actions={actions} pending={pending} onAction={run} />

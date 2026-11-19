@@ -45,6 +45,70 @@ for file in .env.local .env.production; do
 done
 grep -h '^NEXT_PUBLIC_APP_NAME=' .env.local .env.production 2>/dev/null || echo "Sin NEXT_PUBLIC_APP_NAME: se usa Cerquita"
 
+step "2b. Dirección pública del sitio (NEXT_PUBLIC_SITE_URL)"
+# Next.js copia NEXT_PUBLIC_SITE_URL dentro del build: redirecciones, QR de
+# las mesas, URLs de pago y enlaces de correo salen de aquí. Si la instancia
+# cambió de IP pública y esta variable no, todo manda a la IP vieja.
+# Precedencia de Next en producción: entorno del shell, .env.production.local,
+# .env.local, .env.production, .env.
+site_url="${NEXT_PUBLIC_SITE_URL:-}"
+site_file=""
+if [ -n "$site_url" ]; then
+  site_file="(entorno del shell)"
+else
+  for file in .env.production.local .env.local .env.production .env; do
+    [ -f "$file" ] || continue
+    line=$(grep -E '^NEXT_PUBLIC_SITE_URL=' "$file" | tail -n 1 | tr -d '\r' || true)
+    if [ -n "$line" ]; then
+      site_url="${line#NEXT_PUBLIC_SITE_URL=}"
+      site_url="${site_url%\"}"; site_url="${site_url#\"}"
+      site_url="${site_url%\'}"; site_url="${site_url#\'}"
+      site_file="$file"
+      break
+    fi
+  done
+fi
+if [ -z "$site_url" ]; then
+  echo "ERROR: no hay NEXT_PUBLIC_SITE_URL en el entorno ni en los .env."
+  echo "Agrégala a .env.local, por ejemplo: NEXT_PUBLIC_SITE_URL=http://<IP-o-dominio>"
+  exit 1
+fi
+echo "NEXT_PUBLIC_SITE_URL=${site_url}  (de ${site_file})"
+
+# IP pública de esta máquina: metadatos de la instancia (IMDSv2) y, si no
+# responden, el servicio de AWS que devuelve la IP de quien pregunta.
+imds_token=$(curl -s -m 2 -X PUT http://169.254.169.254/latest/api/token \
+  -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' || true)
+public_ip=$(curl -s -m 2 -H "X-aws-ec2-metadata-token: ${imds_token}" \
+  http://169.254.169.254/latest/meta-data/public-ipv4 || true)
+if ! [[ "$public_ip" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+  public_ip=$(curl -s -m 4 https://checkip.amazonaws.com | tr -d '[:space:]' || true)
+fi
+[[ "$public_ip" =~ ^[0-9]+(\.[0-9]+){3}$ ]] || public_ip=""
+echo "IP pública de esta instancia: ${public_ip:-desconocida}"
+
+site_scheme="${site_url%%://*}"
+site_host="${site_url#*://}"; site_host="${site_host%%/*}"; site_host="${site_host%%:*}"
+if [ -n "$public_ip" ] && [[ "$site_host" =~ ^[0-9]+(\.[0-9]+){3}$ ]] \
+  && [ "$site_host" != "$public_ip" ]; then
+  echo "AVISO: el sitio apunta a ${site_host}, pero esta instancia es ${public_ip}."
+  echo "Los usuarios terminarían en una IP que no es esta máquina."
+  if [ "$site_file" != "(entorno del shell)" ] \
+    && ask "¿Cambio NEXT_PUBLIC_SITE_URL a ${site_scheme}://${public_ip} en ${site_file} (con respaldo)?"; then
+    cp "$site_file" "$site_file.bak.$(date +%s)"
+    sed -i "s#^NEXT_PUBLIC_SITE_URL=.*#NEXT_PUBLIC_SITE_URL=${site_scheme}://${public_ip}#" "$site_file"
+    echo "Actualizado: $(grep -E '^NEXT_PUBLIC_SITE_URL=' "$site_file")"
+    echo "Recuerda poner la misma dirección en Supabase (Authentication → URL Configuration)."
+  else
+    ask "¿Sigo compilando con ${site_url} de todas formas?" || exit 1
+  fi
+elif [ -n "$public_ip" ] && ! [[ "$site_host" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+  resolved=$(getent hosts "$site_host" | awk '{print $1}' | head -n 1 || true)
+  if [ -n "$resolved" ] && [ "$resolved" != "$public_ip" ]; then
+    echo "AVISO: ${site_host} resuelve a ${resolved}, no a ${public_ip}. Revisa el DNS."
+  fi
+fi
+
 step "3. Memoria para compilar"
 mem_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
 swap_mb=$(awk '/SwapTotal/ {print int($2/1024)}' /proc/meminfo)

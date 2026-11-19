@@ -114,55 +114,56 @@ All variables are read and validated in `lib/env.ts` (public) and
 there is optional, so the app runs with cash/mock payments and no push
 notifications configured at all).
 
-| Name                                   | Scope            | Required                                        | Purpose                                                                                                                                                |
-| -------------------------------------- | ---------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_APP_NAME`                 | public           | no (defaults to `Cerquita`)                       | Brand name shown in the UI, metadata and manifest.                                                                                                     |
-| `NEXT_PUBLIC_SITE_URL`                 | public           | yes                                             | Absolute base URL used for redirect URLs, payment return URLs and QR targets.                                                                          |
-| `NEXT_PUBLIC_ROOT_DOMAIN`              | public           | yes                                             | Root domain for store subdomains (e.g. `tienda.app`); use `localhost` in local dev to disable subdomain routing.                                       |
-| `NEXT_PUBLIC_STORE_SUBDOMAINS`         | public           | no (`true`/`false`, defaults to off)            | Link stores as `https://<slug>.<root domain>`. Turn on only with wildcard DNS and a wildcard certificate; off, links use `<site>/t/<slug>`.            |
-| `NEXT_PUBLIC_SUPABASE_URL`             | public           | yes                                             | Supabase project URL.                                                                                                                                  |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public           | one of this or the anon key                     | Supabase publishable (new-style) key for browser/SSR clients.                                                                                          |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | public           | one of this or the publishable key              | Legacy Supabase anon JWT, used as a fallback.                                                                                                          |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         | public           | no                                              | VAPID public key; enables the push subscription UI on the client.                                                                                      |
-| `NEXT_PUBLIC_ENABLE_SW`                | public           | no (`true`/`false`, defaults to off)            | Set to `true` to register the service worker outside production (e.g. to test push/offline locally).                                                   |
-| `SUPABASE_SECRET_KEY`                  | server           | one of this or the service-role key             | Supabase secret (new-style) key for the admin client.                                                                                                  |
-| `SUPABASE_SERVICE_ROLE_KEY`            | server           | one of this or the secret key                   | Legacy Supabase service-role JWT, used as a fallback.                                                                                                  |
-| `SUPABASE_DB_URL`                      | server (tooling) | yes, for `db:*` scripts                         | Direct Postgres connection string used by `scripts/db.mjs` (push/seed/types), read from `.env.local` or the environment; never used by the app itself. |
+| Name                                   | Scope            | Required                                        | Purpose                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------- | ---------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_NAME`                 | public           | no (defaults to `Cerquita`)                     | Brand name shown in the UI, metadata and manifest.                                                                                                                                                                                                                                                                                                    |
+| `NEXT_PUBLIC_SITE_URL`                 | public           | yes                                             | The site's one public address (`http://<IP>` or `https://<domain>`). Every absolute URL users receive is built from it through `lib/site-url.ts`: redirects, table QR codes, payment return/webhook URLs, referral and store links, sitemap, canonical. Inlined at build time: **change it, then rebuild**.                                           |
+| `NEXT_PUBLIC_ROOT_DOMAIN`              | public           | yes                                             | Root domain for store subdomains (e.g. `tienda.app`); use `localhost` in local dev to disable subdomain routing.                                                                                                                                                                                                                                      |
+| `NEXT_PUBLIC_STORE_SUBDOMAINS`         | public           | no (`true`/`false`, defaults to off)            | Link stores as `https://<slug>.<root domain>`. Turn on only with wildcard DNS and a wildcard certificate; off, links use `<site>/t/<slug>`.                                                                                                                                                                                                           |
+| `NEXT_PUBLIC_SUPABASE_URL`             | public           | yes                                             | Supabase project URL.                                                                                                                                                                                                                                                                                                                                 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public           | one of this or the anon key                     | Supabase publishable (new-style) key for browser/SSR clients.                                                                                                                                                                                                                                                                                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | public           | one of this or the publishable key              | Legacy Supabase anon JWT, used as a fallback.                                                                                                                                                                                                                                                                                                         |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         | public           | no                                              | VAPID public key; enables the push subscription UI on the client.                                                                                                                                                                                                                                                                                     |
+| `NEXT_PUBLIC_ENABLE_SW`                | public           | no (`true`/`false`, defaults to off)            | Set to `true` to register the service worker outside production (e.g. to test push/offline locally).                                                                                                                                                                                                                                                  |
+| `SUPABASE_SECRET_KEY`                  | server           | one of this or the service-role key             | Supabase secret (new-style) key for the admin client.                                                                                                                                                                                                                                                                                                 |
+| `SUPABASE_SERVICE_ROLE_KEY`            | server           | one of this or the secret key                   | Legacy Supabase service-role JWT, used as a fallback.                                                                                                                                                                                                                                                                                                 |
+| `SUPABASE_DB_URL`                      | server (tooling) | yes, for `db:*` scripts                         | Direct Postgres connection string used by `scripts/db.mjs` (push/seed/types), read from `.env.local` or the environment; never used by the app itself.                                                                                                                                                                                                |
 | `PAYMENT_PROVIDER`                     | server           | no (defaults to cash-only)                      | Selects the simulated gateway: `mock` keeps `lib/payments/mock.ts` available **in production too**, where it approves every charge instantly and no money moves. Correct for a demo, catastrophic if copied by accident — the server logs `startup.mock_payments_live` at error level on every boot while it is set. Use `cash` or `wompi` otherwise. |
-| `WOMPI_PUBLIC_KEY`                     | server           | no (all four required together to enable Wompi) | Wompi public key (`pub_test_…` / `pub_prod_…`), also picks sandbox vs. production.                                                                     |
-| `WOMPI_PRIVATE_KEY`                    | server           | no                                              | Wompi private key, used to query transaction status.                                                                                                   |
-| `WOMPI_EVENTS_SECRET`                  | server           | no                                              | Verifies the webhook checksum sent by Wompi.                                                                                                           |
-| `WOMPI_INTEGRITY_SECRET`               | server           | no                                              | Signs the Web Checkout integrity hash.                                                                                                                 |
-| `VAPID_PRIVATE_KEY`                    | server           | no (required with the two below to enable push) | VAPID private key used to sign push payloads.                                                                                                          |
-| `VAPID_SUBJECT`                        | server           | no                                              | `mailto:` contact required by the push protocol.                                                                                                       |
-| `SENTRY_DSN`                           | server           | no (error reporting is off until it is set)     | Sentry DSN (`https://<key>@<host>/<projectId>`); with none set the SDK is never loaded and `logger.error` only writes its JSON line.                    |
-| `SENTRY_ENVIRONMENT`                   | server           | no (defaults to `NODE_ENV`)                     | Label attached to reported errors, to tell staging from production in Sentry.                                                                          |
-| `OSRM_BASE_URL`                        | server           | no (defaults to the public OSRM demo server)    | Base URL of an OSRM instance for delivery routing/ETA.                                                                                                 |
-| `ROUTING_PROVIDER`                     | server           | no (defaults to `osrm`)                         | `osrm`, `ors` or `haversine`; falls back to `haversine` automatically on failure.                                                                      |
-| `ORS_API_KEY`                          | server           | no (only used when `ROUTING_PROVIDER=ors`)      | OpenRouteService API key.                                                                                                                              |
-| `TZ`                                   | server           | no, but effectively required in production      | IANA time zone used for date-only logic (payout periods, the today/7d/30d metrics windows). A Lightsail instance defaults to UTC, which files every Colombian order placed after 19:00 under the next day. Set `America/Bogota`.                        |
-| `TZ`                                   | process          | no, but recommended (`America/Bogota`)          | Node's runtime time zone; date-only logic (payout periods, "today" metrics) is computed in local time, so this decides what "today" means.             |
+| `WOMPI_PUBLIC_KEY`                     | server           | no (all four required together to enable Wompi) | Wompi public key (`pub_test_…` / `pub_prod_…`), also picks sandbox vs. production.                                                                                                                                                                                                                                                                    |
+| `WOMPI_PRIVATE_KEY`                    | server           | no                                              | Wompi private key, used to query transaction status.                                                                                                                                                                                                                                                                                                  |
+| `WOMPI_EVENTS_SECRET`                  | server           | no                                              | Verifies the webhook checksum sent by Wompi.                                                                                                                                                                                                                                                                                                          |
+| `WOMPI_INTEGRITY_SECRET`               | server           | no                                              | Signs the Web Checkout integrity hash.                                                                                                                                                                                                                                                                                                                |
+| `VAPID_PRIVATE_KEY`                    | server           | no (required with the two below to enable push) | VAPID private key used to sign push payloads.                                                                                                                                                                                                                                                                                                         |
+| `VAPID_SUBJECT`                        | server           | no                                              | `mailto:` contact required by the push protocol.                                                                                                                                                                                                                                                                                                      |
+| `SENTRY_DSN`                           | server           | no (error reporting is off until it is set)     | Sentry DSN (`https://<key>@<host>/<projectId>`); with none set the SDK is never loaded and `logger.error` only writes its JSON line.                                                                                                                                                                                                                  |
+| `SENTRY_ENVIRONMENT`                   | server           | no (defaults to `NODE_ENV`)                     | Label attached to reported errors, to tell staging from production in Sentry.                                                                                                                                                                                                                                                                         |
+| `OSRM_BASE_URL`                        | server           | no (defaults to the public OSRM demo server)    | Base URL of an OSRM instance for delivery routing/ETA.                                                                                                                                                                                                                                                                                                |
+| `ROUTING_PROVIDER`                     | server           | no (defaults to `osrm`)                         | `osrm`, `ors` or `haversine`; falls back to `haversine` automatically on failure.                                                                                                                                                                                                                                                                     |
+| `ORS_API_KEY`                          | server           | no (only used when `ROUTING_PROVIDER=ors`)      | OpenRouteService API key.                                                                                                                                                                                                                                                                                                                             |
+| `TZ`                                   | server           | no, but effectively required in production      | IANA time zone used for date-only logic (payout periods, the today/7d/30d metrics windows). A Lightsail instance defaults to UTC, which files every Colombian order placed after 19:00 under the next day. Set `America/Bogota`.                                                                                                                      |
+| `TZ`                                   | process          | no, but recommended (`America/Bogota`)          | Node's runtime time zone; date-only logic (payout periods, "today" metrics) is computed in local time, so this decides what "today" means.                                                                                                                                                                                                            |
 
 ## Scripts
 
-| Script                            | Purpose                                                                                                                                                                          |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                     | Start the dev server (Turbopack).                                                                                                                                                |
-| `npm run dev:lan`                 | Dev server reachable from other devices on the network (see [Testing on a phone](#testing-on-a-phone)).                                                                          |
-| `npm run dev:https`               | Same, over HTTPS with a self-signed certificate — required for geolocation on a phone.                                                                                           |
-| `npm run build`                   | Production build (Turbopack).                                                                                                                                                    |
-| `npm run start`                   | Start the production server after a build.                                                                                                                                       |
-| `npm run lint`                    | ESLint.                                                                                                                                                                          |
-| `npm run typecheck`               | `tsc --noEmit`.                                                                                                                                                                  |
-| `npm test` / `npm run test:watch` | Unit tests (Vitest).                                                                                                                                                             |
-| `npm run test:e2e`                | End-to-end tests (Playwright); starts the dev server automatically.                                                                                                              |
-| `npm run db:push`                 | Apply pending migrations in `supabase/migrations/` to `SUPABASE_DB_URL`.                                                                                                         |
-| `npm run db:seed`                 | Run `supabase/seed.sql` against `SUPABASE_DB_URL` (idempotent).                                                                                                                  |
-| `npm run db:types`                | Regenerate `types/database.ts` (requires Docker locally; otherwise keep the hand-maintained file in sync by hand).                                                               |
-| `npm run db:config`               | Push the auth settings and email templates in `supabase/config.toml` to the hosted project (shows the diff, then requires `yes` or `-- --yes`). See [Auth emails](#auth-emails). |
-| `npm run push:keys`               | Print a fresh VAPID key pair to paste into `.env.local`. Never writes any file.                                                                                                  |
-| `npm run icons`                   | Regenerate the PWA icon set in `public/icons/` from `public/icon.svg`.                                                                                                           |
-| `npm run format`                  | Prettier, writes in place.                                                                                                                                                       |
+| Script                            | Purpose                                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                     | Start the dev server (Turbopack).                                                                                                                                                   |
+| `npm run dev:lan`                 | Dev server reachable from other devices on the network (see [Testing on a phone](#testing-on-a-phone)).                                                                             |
+| `npm run dev:https`               | Same, over HTTPS with a self-signed certificate — required for geolocation on a phone.                                                                                              |
+| `npm run build`                   | Production build (Turbopack).                                                                                                                                                       |
+| `npm run start`                   | Start the production server after a build.                                                                                                                                          |
+| `npm run lint`                    | ESLint.                                                                                                                                                                             |
+| `npm run typecheck`               | `tsc --noEmit`.                                                                                                                                                                     |
+| `npm test` / `npm run test:watch` | Unit tests (Vitest).                                                                                                                                                                |
+| `npm run test:e2e`                | End-to-end tests (Playwright); starts the dev server automatically.                                                                                                                 |
+| `npm run db:push`                 | Apply pending migrations in `supabase/migrations/` to `SUPABASE_DB_URL`.                                                                                                            |
+| `npm run db:seed`                 | Run `supabase/seed.sql` against `SUPABASE_DB_URL` (idempotent).                                                                                                                     |
+| `npm run db:types`                | Regenerate `types/database.ts` (requires Docker locally; otherwise keep the hand-maintained file in sync by hand).                                                                  |
+| `npm run db:config`               | Push `supabase/config.toml` (auth settings, templates) to a hosted project. Refuses a local `site_url`; production is configured in the dashboard. See [Auth emails](#auth-emails). |
+| `npm run emails`                  | Regenerate the auth email templates in `supabase/templates/` from `scripts/email-templates.mjs`.                                                                                    |
+| `npm run push:keys`               | Print a fresh VAPID key pair to paste into `.env.local`. Never writes any file.                                                                                                     |
+| `npm run icons`                   | Regenerate the PWA icon set in `public/icons/` from `public/icon.svg`.                                                                                                              |
+| `npm run format`                  | Prettier, writes in place.                                                                                                                                                          |
 
 ## Database
 
@@ -346,21 +347,38 @@ which would produce a malformed link. A stale or reused link lands on
 `/login?error=expired` with a clear message and a "Reenviar correo" button
 on the register page.
 
-- Apply the templates (and the auth settings in the same file: confirmations
-  on, 24 h link expiry, 60 s resend interval, redirect allow-list) with
-  `npm run db:config`. It needs a CLI session (`npx supabase login`, or
-  `SUPABASE_ACCESS_TOKEN`) and resolves the project ref from
-  `SUPABASE_PROJECT_REF` or `NEXT_PUBLIC_SUPABASE_URL`. It prints the diff
-  first and only pushes after you type `yes` (or pass
-  `npm run db:config -- --yes`, e.g. in CI); review that diff, because
-  `config.toml` also declares local-dev defaults that could overwrite a
-  hosted setting you customised by hand.
+- The templates are generated from one shared layout by
+  `npm run emails` (`scripts/email-templates.mjs`); edit the script, not the
+  HTML. Local Supabase (`npx supabase start`) reads them from `config.toml`
+  and delivers every email to Mailpit at http://127.0.0.1:54324.
+- **Hosted project (production):** set these in the dashboard, not with
+  `npm run db:config`. `config.toml` is the _local_ stack's config
+  (`site_url = http://localhost:3000`, LAN redirects, 2 emails/hour), and
+  `db:config` refuses to push a local `site_url` unless given
+  `--allow-local-urls`.
+  1. Authentication → Emails → **Templates**: paste each
+     `supabase/templates/*.html` and its subject from `config.toml`.
+  2. Authentication → Emails → **SMTP Settings**: the built-in sender only
+     delivers to the project's team and a few emails per hour, so real users
+     need custom SMTP. This project uses **Brevo** (free plan: 300
+     emails/day). In Brevo: verify a sender (Senders, Domains & Dedicated
+     IPs → Senders) and create an SMTP key (SMTP & API → SMTP). In
+     Supabase: host `smtp-relay.brevo.com`, port `587`, user = the Brevo
+     SMTP login (`…@smtp-brevo.com`), password = the SMTP key, sender = the
+     verified address, sender name `Cerquita`. The key lives only there.
+  3. Authentication → **Rate Limits**: raise "emails per hour" (custom SMTP
+     starts at 30) to what Brevo allows, e.g. 100.
+  4. Without an authenticated domain (SPF/DKIM) deliverability is weaker
+     and free-mail senders (Gmail, Yahoo) may be rewritten by Brevo; verify
+     a domain in Brevo as soon as there is one.
 - In the Supabase dashboard (Authentication → URL Configuration) the **Site
   URL** must be the canonical app URL (the same value as
-  `NEXT_PUBLIC_SITE_URL`): every email link is built from it. The
+  `NEXT_PUBLIC_SITE_URL`, e.g. `http://44.213.146.211`): every email link is
+  built from it. The
   **Redirect URLs** allow-list must still include every host you open the app
   from, e.g. `http://localhost:3000/**`, `http://127.0.0.1:3000/**` and your
-  LAN address (`http://192.168.1.16:3000/**`), plus the production domain, so
+  LAN address (`http://192.168.1.16:3000/**`), plus the production one
+  (`http://44.213.146.211/**`), so
   OAuth and the stock `ConfirmationURL` path can return there.
 - Redirects issued by the app (`/auth/callback`, sign-out, the middleware
   gate) are built from the browser's `Host`/`X-Forwarded-*` headers via
@@ -401,6 +419,13 @@ on the register page.
    builds with `output: 'standalone'`:
    - Node 22 on the instance; check out the `aws` branch, which always
      matches what is deployed.
+   - Run `bash scripts/deploy-lightsail.sh` from the repo on the instance. Before
+     building it checks that `NEXT_PUBLIC_SITE_URL` matches the instance's
+     public IP and offers to fix it (with a backup): a Lightsail instance
+     without a static IP gets a new public IP when it stops, and a build with
+     the old one sends every redirect, QR code and payment URL there. The
+     middleware also logs `site_url.host_mismatch` when visitors arrive on a
+     public host that is not the site's.
    - Set every environment variable from the table above **before building**:
      `NEXT_PUBLIC_*` values are inlined at build time, so a build made with
      `NEXT_PUBLIC_SITE_URL=http://localhost:3000` prints table QR codes and
@@ -415,7 +440,7 @@ on the register page.
      the service environment.
    - Put Nginx in front with TLS (Let's Encrypt). It must **overwrite**, not
      append, the client address (`proxy_set_header X-Forwarded-For
-     $remote_addr;`), plus `Host $host` and `X-Forwarded-Proto $scheme`:
+$remote_addr;`), plus `Host $host` and `X-Forwarded-Proto $scheme`:
      rate limits (`lib/http/client-ip.ts`) and redirect origins
      (`lib/http/request-origin.ts`) trust these headers.
 3. **Wildcard subdomains** (optional): point `*.<root-domain>` at the

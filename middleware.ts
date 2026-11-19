@@ -2,12 +2,32 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { canAccess, requiredRolesFor } from '@/lib/auth/roles'
 import { env } from '@/lib/env'
-import { requestOrigin } from '@/lib/http/request-origin'
+import { foreignPublicHost, requestOrigin } from '@/lib/http/request-origin'
 import { ACCEPT_PATH, needsLegalAcceptance } from '@/lib/legal/consent'
+import { logger } from '@/lib/log/logger'
+import { siteUrl } from '@/lib/site-url'
 import { rewriteForStore, storeSlugFromHost } from '@/lib/subdomain'
 import { updateSession } from '@/lib/supabase/middleware'
 
+// One warning per server process is enough to spot a stale site URL in the
+// logs without writing a line per request.
+let warnedForeignHost = false
+
+function warnIfSiteUrlIsStale(headers: Headers): void {
+  if (warnedForeignHost || process.env.NODE_ENV !== 'production') return
+  const site = siteUrl()
+  const host = foreignPublicHost(headers, site)
+  if (!host) return
+  warnedForeignHost = true
+  logger.warn('site_url.host_mismatch', {
+    host,
+    siteUrl: site,
+    hint: 'NEXT_PUBLIC_SITE_URL does not match the host visitors use: redirects, QR codes, payment and email links point to siteUrl. Fix it and rebuild (scripts/deploy-lightsail.sh checks it).',
+  })
+}
+
 export async function middleware(request: NextRequest) {
+  warnIfSiteUrlIsStale(request.headers)
   const { supabase, response, user } = await updateSession(request)
   const { pathname, search } = request.nextUrl
 
@@ -18,7 +38,7 @@ export async function middleware(request: NextRequest) {
   // from the cookie, so the check costs nothing extra and cannot be spoofed
   // by editing a token. The documents and the auth routes stay reachable.
   if (user && needsLegalAcceptance(pathname, user.user_metadata)) {
-    const origin = requestOrigin(request.headers, env.NEXT_PUBLIC_SITE_URL)
+    const origin = requestOrigin(request.headers, siteUrl())
     const gateUrl = new URL(ACCEPT_PATH, origin)
     gateUrl.searchParams.set('next', `${pathname}${search}`)
     const redirect = NextResponse.redirect(gateUrl)
@@ -54,7 +74,7 @@ export async function middleware(request: NextRequest) {
   // proxy headers), not `nextUrl.origin`, which under `next dev -H 0.0.0.0`
   // or behind a proxy is the server bind address and would send the browser
   // to a host that never received the session cookies.
-  const origin = requestOrigin(request.headers, env.NEXT_PUBLIC_SITE_URL)
+  const origin = requestOrigin(request.headers, siteUrl())
 
   // A redirect must carry any cookies rotated by updateSession, otherwise a
   // refreshed token is dropped and the next request fails with a stale one.

@@ -153,3 +153,63 @@ export const TABLE_ORDER_IP_POLICY: RateLimitPolicy = {
   limit: 30,
   windowSeconds: 300,
 }
+
+// ---------------------------------------------------------------------------
+// Authentication
+// ---------------------------------------------------------------------------
+// Supabase Auth has its own per-address limits, but every call reaches it
+// from this server, so it sees one address for all visitors: those limits
+// throttle the whole site at once and never a single attacker. These budgets
+// are the per-account and per-address guard that GoTrue cannot provide here.
+// The account key is a hash of the normalised email (see
+// `rateLimitIdentifier`), so no address is ever stored in `rate_limits`, and
+// the budget is spent whether or not the account exists, so hitting it says
+// nothing about who is registered.
+
+/**
+ * Password attempts against one account. Ten in fifteen minutes is plenty
+ * for a person mistyping, and turns an online guessing attack into a few
+ * dozen tries an hour. Someone else can spend this budget, which locks the
+ * owner out of *password* login for at most one window; the recovery email
+ * and the other sign-in methods keep working.
+ */
+export const AUTH_LOGIN_ACCOUNT_POLICY: RateLimitPolicy = {
+  bucket: 'auth_login_account',
+  limit: 10,
+  windowSeconds: 900,
+}
+
+/**
+ * Password attempts from one address, across accounts (credential stuffing).
+ * Loose because offices, campuses and mobile carriers put many people behind
+ * one address.
+ */
+export const AUTH_LOGIN_IP_POLICY: RateLimitPolicy = {
+  bucket: 'auth_login_ip',
+  limit: 50,
+  windowSeconds: 900,
+}
+
+/** Accounts created from one address in an hour. */
+export const AUTH_SIGNUP_IP_POLICY: RateLimitPolicy = {
+  bucket: 'auth_signup_ip',
+  limit: 10,
+  windowSeconds: 3600,
+}
+
+/**
+ * Emails sent to one address (password recovery or a new confirmation
+ * link). Stops the form being used to flood someone's inbox.
+ */
+export const AUTH_EMAIL_ACCOUNT_POLICY: RateLimitPolicy = {
+  bucket: 'auth_email_account',
+  limit: 3,
+  windowSeconds: 900,
+}
+
+/** Emails requested from one address, across accounts. */
+export const AUTH_EMAIL_IP_POLICY: RateLimitPolicy = {
+  bucket: 'auth_email_ip',
+  limit: 10,
+  windowSeconds: 900,
+}

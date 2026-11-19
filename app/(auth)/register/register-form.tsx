@@ -159,6 +159,7 @@ export function RegisterForm({
       full_name: '',
       email: '',
       password: '',
+      confirm_password: '',
       phone: '',
       role: initialRole,
       accept_terms: false,
@@ -377,6 +378,23 @@ export function RegisterForm({
         <FieldError
           id="register-password-error"
           message={errors.password?.message}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="register-confirm-password">Confirmar contraseña</Label>
+        <Input
+          id="register-confirm-password"
+          type={showPassword ? 'text' : 'password'}
+          autoComplete="new-password"
+          aria-invalid={Boolean(errors.confirm_password)}
+          aria-describedby="register-confirm-password-error"
+          className="rounded-control h-11"
+          {...form.register('confirm_password')}
+        />
+        <FieldError
+          id="register-confirm-password-error"
+          message={errors.confirm_password?.message}
         />
       </div>
 

@@ -49,10 +49,15 @@ export function OrderActions({
             className={cn(
               // A kitchen taps this with a thumb, often with one hand busy:
               // the move-forward button is a 40px target, not a link.
-              'rounded-pill h-10',
+              // Long labels ("Empezar a preparar") wrap inside the pill
+              // rather than spilling out of a narrow card.
+              'rounded-pill h-auto min-h-10 py-2 leading-tight text-balance whitespace-normal',
               destructive && 'text-destructive hover:bg-destructive/10',
               !destructive && TONE_CLASSES[action.tone],
-              !destructive && 'flex-1',
+              // Grows to fill the row, but never below 8rem: in a narrow
+              // card "Cancelar" wraps under it instead of squeezing the
+              // main action into three lines.
+              !destructive && 'flex-[1_1_8rem]',
             )}
             onClick={() => onAction(action)}
           >

@@ -27,12 +27,15 @@ export function KpiTile({
   trend,
 }: KpiTileProps) {
   return (
-    <div className="rounded-card border-border bg-card shadow-1 flex flex-col gap-1 border p-4">
+    <div className="rounded-card bg-card shadow-1 flex min-w-0 flex-col gap-1 p-4">
       <dt className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase">
         {Icon ? <Icon aria-hidden="true" className="size-3.5" /> : null}
         {label}
       </dt>
-      <dd className="font-display text-h3 leading-none font-semibold tabular-nums">
+      <dd
+        className="font-display text-h3 truncate leading-tight font-semibold tabular-nums"
+        title={value}
+      >
         {value}
       </dd>
       {hint ? <dd className="text-muted-foreground text-xs">{hint}</dd> : null}
