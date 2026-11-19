@@ -4,6 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CheckIcon } from 'lucide-react'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { toast } from 'sonner'
+import { DishRatingBadge } from '@/components/store/dish-rating-badge'
+import { DishReviews } from '@/components/store/dish-reviews'
 import { QuantityStepper } from '@/components/store/quantity-stepper'
 import { StoreImage } from '@/components/store/store-image'
 import {
@@ -189,7 +191,7 @@ export function ProductDrawer({
       >
         {product ? (
           <>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-color:rgb(var(--store-text-rgb)/0.2)_transparent] [scrollbar-width:thin]">
+            <div className="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgb(var(--store-text-rgb)/0.2)_transparent] overflow-y-auto overscroll-contain">
               <div className="px-4 pt-3 sm:px-6">
                 <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[var(--store-inner-radius)] bg-[rgb(var(--store-text-rgb)/0.05)] sm:aspect-[3/2]">
                   <StoreImage
@@ -217,6 +219,10 @@ export function ProductDrawer({
                 <p className="text-lead pt-1 font-semibold text-[var(--store-primary)] tabular-nums">
                   {formatCOP(Number(product.price))}
                 </p>
+                <DishRatingBadge
+                  average={product.rating_avg}
+                  count={product.rating_count}
+                />
               </DrawerHeader>
 
               <div className="mt-5 space-y-6 border-t border-[rgb(var(--store-text-rgb)/0.08)] px-4 pt-5 pb-6 sm:px-6">
@@ -334,6 +340,12 @@ export function ProductDrawer({
                     className="min-h-24 resize-none rounded-[var(--store-field-radius)] border-[rgb(var(--store-text-rgb)/0.12)] bg-transparent px-4 py-3 placeholder:text-[rgb(var(--store-text-rgb)/0.45)] focus-visible:border-[var(--store-primary)] focus-visible:ring-[rgb(var(--store-primary-rgb)/0.18)] dark:bg-transparent"
                   />
                 </div>
+
+                <DishReviews
+                  productId={product.id}
+                  average={product.rating_avg}
+                  count={product.rating_count}
+                />
               </div>
             </div>
 

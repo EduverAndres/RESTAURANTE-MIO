@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { submitReview } from './actions'
+import {
+  DishRatings,
+  type DishRating,
+  type ReviewableDish,
+} from './dish-ratings'
 import { FieldError } from '@/components/forms/field-error'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -17,14 +22,18 @@ const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente']
 export function ReviewForm({
   orderId,
   storeName,
+  dishes = [],
 }: {
   orderId: string
   storeName: string
+  /** One entry per dish of the order (deduplicated by product). */
+  dishes?: ReviewableDish[]
 }) {
   const router = useRouter()
   const [rating, setRating] = useState(0)
   const [hover, setHover] = useState(0)
   const [comment, setComment] = useState('')
+  const [dishRatings, setDishRatings] = useState<Record<string, DishRating>>({})
   const [pending, startTransition] = useTransition()
   // A toast alone was the whole error affordance here: it disappears, and a
   // customer who scrolled past the stars had nothing to go back to.
@@ -39,7 +48,14 @@ export function ReviewForm({
     }
     setRatingError('')
     startTransition(async () => {
-      const result = await submitReview({ orderId, rating, comment })
+      const items = Object.entries(dishRatings)
+        .filter(([, dish]) => dish.rating > 0)
+        .map(([orderItemId, dish]) => ({
+          orderItemId,
+          rating: dish.rating,
+          comment: dish.comment,
+        }))
+      const result = await submitReview({ orderId, rating, comment, items })
       if (!result.ok) {
         toast.error(result.error)
         return
@@ -120,6 +136,13 @@ export function ReviewForm({
           className="rounded-control min-h-20"
         />
       </div>
+      <DishRatings
+        dishes={dishes}
+        value={dishRatings}
+        onChange={(orderItemId, next) =>
+          setDishRatings((current) => ({ ...current, [orderItemId]: next }))
+        }
+      />
       <Button type="submit" disabled={pending} className="rounded-pill">
         {pending ? (
           <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
