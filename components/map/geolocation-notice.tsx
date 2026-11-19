@@ -1,4 +1,4 @@
-import { LocateOffIcon, TriangleAlertIcon } from 'lucide-react'
+import { LocateOffIcon, ShieldAlertIcon, TriangleAlertIcon } from 'lucide-react'
 import {
   geolocationFailureMessage,
   type GeolocationFailure,
@@ -18,11 +18,18 @@ export function GeolocationNotice({
   reason,
   className,
 }: GeolocationNoticeProps) {
-  const noGps = reason === 'unsupported' || reason === 'insecure'
-  const Icon = noGps ? LocateOffIcon : TriangleAlertIcon
+  // The icon says what kind of problem it is: no location on this device,
+  // an insecure connection (not the device's fault), or a passing failure.
+  const Icon =
+    reason === 'insecure'
+      ? ShieldAlertIcon
+      : reason === 'unsupported' || reason === 'denied'
+        ? LocateOffIcon
+        : TriangleAlertIcon
   return (
     <p
       role="status"
+      data-reason={reason}
       className={cn(
         'rounded-control bg-muted/60 text-muted-foreground flex items-start gap-2 px-3 py-2.5 text-xs',
         className,
