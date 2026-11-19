@@ -1,7 +1,12 @@
 import { AlertTriangleIcon, FileTextIcon } from 'lucide-react'
 import Link from 'next/link'
 import { SiteFooter } from '@/components/layout/site-footer'
-import { COMPANY, COMPANY_INCOMPLETE } from '@/lib/legal/company'
+import {
+  COMPANY,
+  COMPANY_INCOMPLETE,
+  COMPANY_MISSING_FIELDS,
+  type CompanyField,
+} from '@/lib/legal/company'
 import {
   LEGAL_DOCUMENTS,
   LEGAL_UPDATED_AT,
@@ -9,6 +14,38 @@ import {
   type LegalDocumentKey,
 } from '@/lib/legal/consent'
 import { cn } from '@/lib/utils'
+
+const FIELD_LABELS: Record<CompanyField, string> = {
+  legalName: 'la razón social',
+  nit: 'el NIT',
+  address: 'la dirección',
+  email: 'el correo de contacto',
+  phone: 'el teléfono',
+}
+
+/** Says exactly what is missing; the NIT alone reads as "en trámite". */
+function incompleteNotice(missing: readonly CompanyField[]) {
+  if (missing.length === 1 && missing[0] === 'nit') {
+    return (
+      <>
+        <strong>NIT en trámite.</strong> El número de identificación tributaria
+        está en proceso ante la DIAN y lo publicaremos aquí apenas sea asignado.
+      </>
+    )
+  }
+  const labels = missing.map((field) => FIELD_LABELS[field])
+  const list =
+    labels.length > 1
+      ? `${labels.slice(0, -1).join(', ')} y ${labels.at(-1)}`
+      : labels[0]
+  return (
+    <>
+      <strong>Datos de la empresa pendientes.</strong> Falta publicar {list}
+      {missing.includes('nit') ? ' (el NIT está en trámite)' : ''}. Se
+      completarán antes de operar.
+    </>
+  )
+}
 
 export interface LegalSection {
   id: string
@@ -125,11 +162,7 @@ export function LegalDocument({
                 aria-hidden="true"
                 className="text-accent-strong mt-0.5 size-5 shrink-0"
               />
-              <span>
-                <strong>Datos de la empresa pendientes.</strong> Este documento
-                muestra marcadores entre corchetes que deben reemplazarse por la
-                razón social, NIT, dirección y contactos reales antes de operar.
-              </span>
+              <span>{incompleteNotice(COMPANY_MISSING_FIELDS)}</span>
             </div>
           ) : null}
 
