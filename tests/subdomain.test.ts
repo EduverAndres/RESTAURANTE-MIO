@@ -44,10 +44,8 @@ describe('storeSlugFromHost', () => {
     expect(storeSlugFromHost('127.0.0.1:3000', ROOT)).toBeNull()
   })
 
-  it('returns null for Vercel preview hosts', () => {
-    expect(
-      storeSlugFromHost('tienda-git-main-eduver.vercel.app', ROOT),
-    ).toBeNull()
+  it('returns null for hosts outside the root domain', () => {
+    expect(storeSlugFromHost('tienda.otro-dominio.com', ROOT)).toBeNull()
   })
 
   it('returns null for a nested subdomain', () => {

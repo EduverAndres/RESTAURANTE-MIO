@@ -40,7 +40,8 @@ function hostWithoutPort(host: string): string {
 /**
  * Extracts the store slug from the request host, or null when the host does
  * not address a single store subdomain: the bare root domain, a reserved
- * name, localhost/127.0.0.1, a Vercel preview host, or a nested subdomain.
+ * name, localhost/127.0.0.1, any host outside the root domain, or a nested
+ * subdomain.
  */
 export function storeSlugFromHost(
   host: string | null | undefined,
@@ -53,7 +54,6 @@ export function storeSlugFromHost(
   if (!root) return null
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') return null
-  if (hostname.endsWith('.vercel.app')) return null
   if (hostname === root) return null
   if (!hostname.endsWith(`.${root}`)) return null
 
