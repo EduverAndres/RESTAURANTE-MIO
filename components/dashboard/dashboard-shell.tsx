@@ -14,6 +14,7 @@ import {
   QrCodeIcon,
   ReceiptTextIcon,
   SettingsIcon,
+  StarIcon,
   StoreIcon,
   TriangleAlertIcon,
   UsersIcon,
@@ -69,6 +70,7 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
     href: '/admin/payments',
     icon: TriangleAlertIcon,
   },
+  { label: 'Reseñas de platos', href: '/admin/reviews', icon: StarIcon },
   { label: 'Métricas', href: '/admin/metrics', icon: ClipboardListIcon },
 ]
 

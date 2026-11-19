@@ -20,7 +20,7 @@ import {
   callbackErrorMessage,
   mapAuthError,
 } from '@/lib/auth/errors'
-import { getRoleHome } from '@/lib/auth/roles'
+import { getRoleHome, isUserRole } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/client'
 import {
   loginSchema,
@@ -28,6 +28,7 @@ import {
   verifyOtpSchema,
   type LoginInput,
 } from '@/lib/validations/auth'
+import type { UserRole } from '@/types/app'
 
 interface LoginFormProps {
   next: string | null
@@ -100,7 +101,7 @@ export function LoginForm({
         toast.error(result.error)
         return
       }
-      celebrate(result.redirectTo)
+      celebrate(result.redirectTo, result.role)
     })
   })
 
@@ -242,7 +243,7 @@ function PhoneOtpForm({
   next: string | null
   ensureAccepted: () => boolean
   /** Plays the welcome and navigates (see useLoginSuccess). */
-  onSignedIn: (redirectTo: string) => void
+  onSignedIn: (redirectTo: string, role: UserRole | null) => void
 }) {
   const [phone, setPhone] = useState('')
   const [token, setToken] = useState('')
@@ -306,11 +307,15 @@ function PhoneOtpForm({
       // The session was created in the browser; record the box ticked on
       // this form before the first navigation meets the legal gate.
       const accepted = await acceptLegalTerms('login-sms', next)
-      onSignedIn(
-        accepted.ok
-          ? accepted.redirectTo
-          : (next ?? getRoleHome(data.session.user.app_metadata?.role)),
-      )
+      const claimedRole = data.session.user.app_metadata?.role
+      if (accepted.ok) {
+        onSignedIn(accepted.redirectTo, accepted.role)
+      } else {
+        onSignedIn(
+          next ?? getRoleHome(claimedRole),
+          isUserRole(claimedRole) ? claimedRole : null,
+        )
+      }
     })
   }
 

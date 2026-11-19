@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DISH_COMMENT_MAX } from '@/lib/reviews/dish-rating'
 
 // Shared by the checkout form (client) and the placeOrder action (server).
 // Prices are never accepted from the client: only product ids, option value
@@ -81,6 +82,20 @@ export const checkoutSchema = z
 export type CheckoutInput = z.input<typeof checkoutSchema>
 export type CheckoutValues = z.output<typeof checkoutSchema>
 
+export const dishReviewSchema = z.object({
+  orderItemId: z.uuid(),
+  rating: z.number().int().min(1).max(5),
+  comment: z
+    .string()
+    .trim()
+    .max(
+      DISH_COMMENT_MAX,
+      `El comentario de un plato admite hasta ${DISH_COMMENT_MAX} caracteres.`,
+    )
+    .default(''),
+})
+export type DishReviewInput = z.input<typeof dishReviewSchema>
+
 export const reviewSchema = z.object({
   orderId: z.uuid(),
   rating: z.number().int().min(1, 'Elige una calificación.').max(5),
@@ -89,5 +104,7 @@ export const reviewSchema = z.object({
     .trim()
     .max(500, 'El comentario es demasiado largo.')
     .default(''),
+  // Optional: rating the dishes never blocks rating the restaurant.
+  items: z.array(dishReviewSchema).max(50).default([]),
 })
 export type ReviewInput = z.input<typeof reviewSchema>

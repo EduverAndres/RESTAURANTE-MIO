@@ -16,6 +16,7 @@ import {
   serializeLocation,
   type VisitorLocation,
 } from '@/lib/location'
+import { logger } from '@/lib/log/logger'
 
 /** `unknown` until the effect runs on the client (SSR renders no verdict). */
 export type GpsSupport = GeolocationSupport | 'unknown'
@@ -26,6 +27,19 @@ function readCookie(): VisitorLocation | null {
     .split('; ')
     .find((entry) => entry.startsWith(`${LOCATION_COOKIE}=`))
   return parseLocation(match?.slice(LOCATION_COOKIE.length + 1))
+}
+
+// One report per page load is enough to see in the logs that visitors are
+// reaching a site whose plain-http origin blocks geolocation.
+let reportedInsecure = false
+
+function reportInsecureContext(): void {
+  if (reportedInsecure) return
+  reportedInsecure = true
+  logger.warn('geolocation.insecure_context', {
+    origin: window.location.origin,
+    hint: 'Browsers block geolocation on http; serve the site over https.',
+  })
 }
 
 function detectSupport(): GeolocationSupport {
@@ -43,7 +57,9 @@ export function useVisitorLocation(initial: VisitorLocation | null = null) {
   useEffect(() => {
     const fromCookie = readCookie()
     if (fromCookie) setLocationState(fromCookie)
-    setGpsSupport(detectSupport())
+    const support = detectSupport()
+    if (support === 'insecure') reportInsecureContext()
+    setGpsSupport(support)
   }, [])
 
   const setLocation = useCallback(

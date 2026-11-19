@@ -45,14 +45,25 @@ export function classifyPositionError(code: number): GeolocationFailure {
   }
 }
 
-const NO_GPS_MESSAGE =
+/** No usable GPS for this person: the device has none, or they said no. */
+export const NO_GPS_MESSAGE =
   'No tienes acceso a GPS en este dispositivo. Te recomendamos hacer la compra desde un dispositivo con GPS, o busca tu dirección manualmente.'
+
+/**
+ * The device may well have GPS: it is the connection. Browsers only allow
+ * geolocation on secure (https) origins, so on plain http the request is
+ * refused before the phone is ever asked. Telling this person "your device
+ * has no GPS" would be false, so they get the honest reason instead.
+ */
+export const INSECURE_GPS_MESSAGE =
+  'La ubicación automática no está disponible en esta conexión porque el sitio todavía no usa una conexión segura. Busca tu dirección manualmente o marca el punto en el mapa.'
 
 const FAILURE_MESSAGES: Record<GeolocationFailure, string> = {
   unsupported: NO_GPS_MESSAGE,
-  insecure: NO_GPS_MESSAGE,
-  denied:
-    'El permiso de ubicación está bloqueado. Actívalo en tu navegador o busca tu dirección manualmente.',
+  insecure: INSECURE_GPS_MESSAGE,
+  // Same copy as "no GPS": from where the person stands, location is not
+  // available on this device, and the way forward is the manual search.
+  denied: NO_GPS_MESSAGE,
   unavailable:
     'No pudimos obtener tu ubicación. Intenta de nuevo o busca tu dirección manualmente.',
   timeout:

@@ -1,5 +1,6 @@
 import 'server-only'
 import { cache } from 'react'
+import { firstNameOnly } from '@/lib/reviews/dish-rating'
 import { createClient } from '@/lib/supabase/server'
 import type { MenuCategoryWithProducts, Review, Store } from '@/types/app'
 
@@ -56,7 +57,10 @@ export const fetchMenu = cache(async function fetchMenu(
 })
 
 export interface StoreReview extends Review {
-  /** Null for an anonymous visitor: `profiles` is not publicly readable. */
+  /**
+   * The reviewer's first name, never the surname. Null for an anonymous
+   * visitor: `profiles` is not publicly readable.
+   */
   authorName: string | null
 }
 
@@ -83,7 +87,8 @@ export const fetchReviews = cache(async function fetchReviews(
     const { profiles, ...review } = row as typeof row & {
       profiles: { full_name: string | null } | null
     }
-    return { ...review, authorName: profiles?.full_name ?? null }
+    // First name only in public (Ley 1581), same rule as dish reviews.
+    return { ...review, authorName: firstNameOnly(profiles?.full_name) }
   })
 })
 

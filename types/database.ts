@@ -56,6 +56,56 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          kind: string
+          max_uses: number | null
+          min_order: number
+          starts_at: string | null
+          store_id: string
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          kind: string
+          max_uses?: number | null
+          min_order?: number
+          starts_at?: string | null
+          store_id: string
+          value: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          max_uses?: number | null
+          min_order?: number
+          starts_at?: string | null
+          store_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courier_locations: {
         Row: {
           accuracy_m: number | null
@@ -86,6 +136,64 @@ export type Database = {
             foreignKeyName: "courier_locations_courier_id_fkey"
             columns: ["courier_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_credits: {
+        Row: {
+          amount: number
+          created_at: string
+          expires_at: string
+          id: string
+          min_order: number
+          reason: string
+          referral_id: string | null
+          used_order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          min_order?: number
+          reason: string
+          referral_id?: string | null
+          used_order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          min_order?: number
+          reason?: string
+          referral_id?: string | null
+          used_order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_credits_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credits_used_order_id_fkey"
+            columns: ["used_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -189,6 +297,44 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_programs: {
+        Row: {
+          enabled: boolean
+          min_order: number
+          reward_label: string
+          reward_value: number
+          stamps_required: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          min_order?: number
+          reward_label?: string
+          reward_value?: number
+          stamps_required?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          min_order?: number
+          reward_label?: string
+          reward_value?: number
+          stamps_required?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_programs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_categories: {
         Row: {
           created_at: string
@@ -243,7 +389,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          line_total?: never
+          line_total?: number | null
           name_snapshot: string
           options?: Json
           options_delta?: number
@@ -255,7 +401,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          line_total?: never
+          line_total?: number | null
           name_snapshot?: string
           options?: Json
           options_delta?: number
@@ -392,20 +538,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "orders_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_credit_id_fkey"
-            columns: ["credit_id"]
-            isOneToOne: false
-            referencedRelation: "customer_credits"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "orders_address_id_fkey"
             columns: ["address_id"]
             isOneToOne: false
@@ -413,10 +545,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_courier_id_fkey"
             columns: ["courier_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credits"
             referencedColumns: ["id"]
           },
           {
@@ -565,6 +711,33 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          id: boolean
+          referral_amount: number
+          referral_credit_days: number
+          referral_min_order: number
+          referral_monthly_budget: number
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          referral_amount?: number
+          referral_credit_days?: number
+          referral_min_order?: number
+          referral_monthly_budget?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          referral_amount?: number
+          referral_credit_days?: number
+          referral_min_order?: number
+          referral_monthly_budget?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_option_values: {
         Row: {
           created_at: string
@@ -647,6 +820,84 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          author_first_name: string | null
+          comment: string | null
+          created_at: string
+          customer_id: string | null
+          hidden_at: string | null
+          id: string
+          order_id: string
+          order_item_id: string
+          product_id: string | null
+          rating: number
+          store_id: string
+        }
+        Insert: {
+          author_first_name?: string | null
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          hidden_at?: string | null
+          id?: string
+          order_id: string
+          order_item_id: string
+          product_id?: string | null
+          rating: number
+          store_id: string
+        }
+        Update: {
+          author_first_name?: string | null
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          hidden_at?: string | null
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          product_id?: string | null
+          rating?: number
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: true
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string | null
@@ -658,6 +909,8 @@ export type Database = {
           name: string
           position: number
           price: number
+          rating_avg: number
+          rating_count: number
           store_id: string
           tags: string[]
           updated_at: string
@@ -672,6 +925,8 @@ export type Database = {
           name: string
           position?: number
           price: number
+          rating_avg?: number
+          rating_count?: number
           store_id: string
           tags?: string[]
           updated_at?: string
@@ -686,6 +941,8 @@ export type Database = {
           name?: string
           position?: number
           price?: number
+          rating_avg?: number
+          rating_count?: number
           store_id?: string
           tags?: string[]
           updated_at?: string
@@ -778,58 +1035,6 @@ export type Database = {
           },
         ]
       }
-      reviews: {
-        Row: {
-          comment: string | null
-          created_at: string
-          customer_id: string
-          id: string
-          order_id: string
-          rating: number
-          store_id: string
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string
-          customer_id: string
-          id?: string
-          order_id: string
-          rating: number
-          store_id: string
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string
-          customer_id?: string
-          id?: string
-          order_id?: string
-          rating?: number
-          store_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: true
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       rate_limits: {
         Row: {
           bucket: string
@@ -850,6 +1055,71 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          rewarded_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          rewarded_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          rewarded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refunds: {
         Row: {
@@ -902,7 +1172,7 @@ export type Database = {
           {
             foreignKeyName: "refunds_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -922,213 +1192,57 @@ export type Database = {
           },
         ]
       }
-      coupons: {
+      reviews: {
         Row: {
-          active: boolean
-          code: string
+          comment: string | null
           created_at: string
-          ends_at: string | null
+          customer_id: string
           id: string
-          kind: string
-          max_uses: number | null
-          min_order: number
-          starts_at: string | null
+          order_id: string
+          rating: number
           store_id: string
-          value: number
         }
         Insert: {
-          active?: boolean
-          code: string
+          comment?: string | null
           created_at?: string
-          ends_at?: string | null
+          customer_id: string
           id?: string
-          kind: string
-          max_uses?: number | null
-          min_order?: number
-          starts_at?: string | null
+          order_id: string
+          rating: number
           store_id: string
-          value: number
         }
         Update: {
-          active?: boolean
-          code?: string
+          comment?: string | null
           created_at?: string
-          ends_at?: string | null
+          customer_id?: string
           id?: string
-          kind?: string
-          max_uses?: number | null
-          min_order?: number
-          starts_at?: string | null
+          order_id?: string
+          rating?: number
           store_id?: string
-          value?: number
         }
         Relationships: [
           {
-            foreignKeyName: "coupons_store_id_fkey"
-            columns: ["store_id"]
+            foreignKeyName: "reviews_customer_id_fkey"
+            columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      customer_credits: {
-        Row: {
-          amount: number
-          created_at: string
-          expires_at: string
-          id: string
-          min_order: number
-          reason: string
-          referral_id: string | null
-          used_order_id: string | null
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          expires_at: string
-          id?: string
-          min_order?: number
-          reason: string
-          referral_id?: string | null
-          used_order_id?: string | null
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          expires_at?: string
-          id?: string
-          min_order?: number
-          reason?: string
-          referral_id?: string | null
-          used_order_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customer_credits_referral_id_fkey"
-            columns: ["referral_id"]
-            isOneToOne: false
-            referencedRelation: "referrals"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "customer_credits_used_order_id_fkey"
-            columns: ["used_order_id"]
-            isOneToOne: false
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      loyalty_programs: {
-        Row: {
-          enabled: boolean
-          min_order: number
-          reward_label: string
-          reward_value: number
-          stamps_required: number
-          store_id: string
-          updated_at: string
-        }
-        Insert: {
-          enabled?: boolean
-          min_order?: number
-          reward_label?: string
-          reward_value?: number
-          stamps_required?: number
-          store_id: string
-          updated_at?: string
-        }
-        Update: {
-          enabled?: boolean
-          min_order?: number
-          reward_label?: string
-          reward_value?: number
-          stamps_required?: number
-          store_id?: string
-          updated_at?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "loyalty_programs_store_id_fkey"
+            foreignKeyName: "reviews_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
-      }
-      platform_settings: {
-        Row: {
-          id: boolean
-          referral_amount: number
-          referral_credit_days: number
-          referral_min_order: number
-          referral_monthly_budget: number
-          updated_at: string
-        }
-        Insert: {
-          id?: boolean
-          referral_amount?: number
-          referral_credit_days?: number
-          referral_min_order?: number
-          referral_monthly_budget?: number
-          updated_at?: string
-        }
-        Update: {
-          id?: boolean
-          referral_amount?: number
-          referral_credit_days?: number
-          referral_min_order?: number
-          referral_monthly_budget?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      referral_codes: {
-        Row: {
-          code: string
-          created_at: string
-          user_id: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          user_id: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      referrals: {
-        Row: {
-          created_at: string
-          id: string
-          referred_id: string
-          referrer_id: string
-          rewarded_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          referred_id: string
-          referrer_id: string
-          rewarded_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          referred_id?: string
-          referrer_id?: string
-          rewarded_at?: string | null
-        }
-        Relationships: []
       }
       store_tables: {
         Row: {
@@ -1255,17 +1369,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "stores_plan_fkey"
-            columns: ["plan"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "stores_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
         ]
@@ -1275,104 +1389,74 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_edit_order_items: {
-        Args: { order_id: string }
-        Returns: boolean
-      }
-      claim_referral: {
-        Args: { p_code: string }
-        Returns: string
-      }
+      can_edit_order_items: { Args: { order_id: string }; Returns: boolean }
+      claim_referral: { Args: { p_code: string }; Returns: string }
       consume_rate_limit: {
         Args: {
           p_bucket: string
           p_identifier: string
           p_window_seconds: number
         }
-        Returns: { hit_count: number; window_start: string }[]
+        Returns: {
+          hit_count: number
+          window_start: string
+        }[]
       }
-      ensure_referral_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      ensure_referral_code: { Args: never; Returns: string }
       generate_payouts: {
-        Args: { p_period_start: string; p_period_end: string }
+        Args: { p_period_end: string; p_period_start: string }
         Returns: {
           payouts_created: number
           payouts_skipped: number
-          refunds_reversed: number
           refunds_resolved: number
+          refunds_reversed: number
         }[]
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      next_short_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      option_store_id: {
-        Args: { option_id: string }
-        Returns: string
-      }
-      owns_store: {
-        Args: { store_id: string }
-        Returns: boolean
-      }
-      owns_store_folder: {
-        Args: { folder: string }
-        Returns: boolean
-      }
-      product_store_id: {
-        Args: { product_id: string }
-        Returns: string
-      }
-      referral_spent_this_month: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      is_admin: { Args: never; Returns: boolean }
+      next_short_code: { Args: never; Returns: string }
+      option_store_id: { Args: { option_id: string }; Returns: string }
+      owns_store: { Args: { store_id: string }; Returns: boolean }
+      owns_store_folder: { Args: { folder: string }; Returns: boolean }
+      product_store_id: { Args: { product_id: string }; Returns: string }
       record_refund: {
         Args: {
-          p_order_id: string
-          p_expected_payment_status: Database["public"]["Enums"]["payment_status"]
           p_amount: number
-          p_reason: string
-          p_method: string
-          p_note: string | null
+          p_expected_payment_status: Database["public"]["Enums"]["payment_status"]
           p_issued_by: string
+          p_method: string
+          p_note: string
+          p_order_id: string
+          p_reason: string
         }
         Returns: string
       }
+      referral_spent_this_month: { Args: never; Returns: number }
       resolve_store_table: {
         Args: { store_slug: string; token: string }
-        Returns: { id: string; store_id: string; number: number }[]
+        Returns: {
+          id: string
+          number: number
+          store_id: string
+        }[]
       }
-      table_token_store_slug: {
-        Args: { token: string }
-        Returns: string | null
-      }
-      store_is_visible: {
-        Args: { store_id: string }
-        Returns: boolean
-      }
+      store_is_visible: { Args: { store_id: string }; Returns: boolean }
       stores_nearby: {
         Args: { p_lat: number; p_lng: number; p_radius_km?: number }
         Returns: {
-          address: string | null
-          category: string | null
+          address: string
+          category: string
           commission_pct: number
-          cover_url: string | null
+          cover_url: string
           created_at: string
           delivery_fee: number
           delivery_radius_km: number
-          description: string | null
+          description: string
           distance_km: number
           id: string
           is_open: boolean
-          lat: number | null
-          lng: number | null
-          logo_url: string | null
+          lat: number
+          lng: number
+          logo_url: string
           min_order: number
           name: string
           owner_id: string
@@ -1384,16 +1468,25 @@ export type Database = {
           status: Database["public"]["Enums"]["store_status"]
           theme: Json
           updated_at: string
-          whatsapp_phone: string | null
+          whatsapp_phone: string
         }[]
       }
-      try_delivery_code: {
+      submit_order_reviews: {
         Args: {
+          p_comment: string
+          p_items?: Json
           p_order_id: string
-          p_code: string
-          p_max_attempts: number
+          p_rating: number
         }
-        Returns: { outcome: string; attempts: number }[]
+        Returns: undefined
+      }
+      table_token_store_slug: { Args: { token: string }; Returns: string }
+      try_delivery_code: {
+        Args: { p_code: string; p_max_attempts: number; p_order_id: string }
+        Returns: {
+          attempts: number
+          outcome: string
+        }[]
       }
       user_role_of: {
         Args: { uid: string }
@@ -1424,18 +1517,18 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof DatabaseWithoutInternals, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1459,11 +1552,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1484,11 +1577,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1509,11 +1602,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1526,11 +1619,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1560,3 +1653,4 @@ export const Constants = {
     },
   },
 } as const
+

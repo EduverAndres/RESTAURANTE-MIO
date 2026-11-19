@@ -370,3 +370,38 @@ export async function recordRefundAsAdmin(
   revalidatePath(`/orders/${order.id}`)
   return { ok: true }
 }
+
+// ---------------------------------------------------------------------------
+// Dish reviews: hidden, never deleted
+// ---------------------------------------------------------------------------
+
+/**
+ * Hides a dish review (or shows it again). A hidden review stays in the
+ * database for the record but is not shown and does not count: the trigger
+ * recomputes the dish's average and count on every hide and show.
+ */
+export async function setProductReviewHidden(
+  reviewId: string,
+  hidden: boolean,
+): Promise<AdminActionResult> {
+  if (!isUuid(reviewId)) return { ok: false, error: 'Reseña inválida.' }
+  await requireRole(['admin'])
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('product_reviews')
+    .update({ hidden_at: hidden ? new Date().toISOString() : null })
+    .eq('id', reviewId)
+    .select('id, stores(slug)')
+    .maybeSingle()
+  if (error || !data) {
+    logger.error(
+      'admin.product_review.hide_failed',
+      { reviewId, hidden },
+      error,
+    )
+    return { ok: false, error: GENERIC_ERROR }
+  }
+  revalidatePath('/admin/reviews')
+  if (data.stores?.slug) revalidatePath(`/t/${data.stores.slug}`)
+  return { ok: true }
+}

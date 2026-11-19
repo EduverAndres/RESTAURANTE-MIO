@@ -25,6 +25,13 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
+// The dish detail fetches its comments through a server action; the render
+// tests stay on the client and need no database.
+vi.mock('@/app/(public)/actions', () => ({
+  getDishReviews: async () => [],
+  toggleFavorite: async () => ({ ok: true, favorite: false }),
+}))
+
 // jsdom ships no IntersectionObserver; the scroll-spy maths is tested on its
 // own in tests/store-scroll-spy.test.ts, so a no-op stub is enough here.
 vi.stubGlobal(
