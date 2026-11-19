@@ -1,23 +1,40 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { welcomeFor } from '@/lib/auth/welcome'
+import { APP_NAME } from '@/lib/env'
+import type { UserRole } from '@/types/app'
 
-/** How long the welcome plays before it fades to the destination. */
-const SUCCESS_MS = 1100
-/** With reduced motion there is nothing to watch: just a beat to read it. */
+/**
+ * How long the welcome stays before fading out. With FADE_OUT_MS the whole
+ * thing lasts 1.6 s, and the destination loads underneath the entire time.
+ */
+const SUCCESS_MS = 1400
+/** Reduced motion: no movement, just long enough to read the line. */
 const REDUCED_MS = 250
-/** Fade-out length; matches `--animate-success-out` in globals.css. */
-const FADE_OUT_MS = 240
-/** Length of the tick path, so the dash animation fits it exactly. */
-const CHECK_LENGTH = 36
+/** Matches `--animate-success-out` in globals.css. */
+const FADE_OUT_MS = 200
+/**
+ * If the destination is still loading when the animation ends (a slow
+ * network, a cold server), the welcome holds its last frame instead of
+ * fading back onto the login form — but never longer than this.
+ */
+const MAX_HOLD_MS = 4000
 
 // The welcome lives in the root layout, not in the login form: a successful
 // sign-in sets the session cookies, Next re-renders /login, and that page
 // redirects a signed-in visitor at once — the form (and anything it owned)
 // unmounts mid-animation. The root layout survives the navigation, so the
 // overlay covers it and fades out onto the destination.
-let shownAt: number | null = null
+interface Shown {
+  at: number
+  role: UserRole | null
+  /** Path the sign-in started on; leaving it means the destination is up. */
+  from: string
+}
+
+let shown: Shown | null = null
 const listeners = new Set<() => void>()
 
 function emit() {
@@ -37,15 +54,14 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Plays the sign-in welcome and navigates to the destination underneath it.
- * The destination starts loading immediately, so the animation costs no
- * extra time beyond its own length.
+ * Plays the sign-in welcome for `role` and navigates to the destination
+ * underneath it, so the animation costs no time of its own.
  */
 export function useLoginSuccess() {
   const router = useRouter()
   return {
-    celebrate(redirectTo: string) {
-      shownAt = Date.now()
+    celebrate(redirectTo: string, role: UserRole | null = null) {
+      shown = { at: Date.now(), role, from: window.location.pathname }
       emit()
       router.push(redirectTo)
       router.refresh()
@@ -55,88 +71,160 @@ export function useLoginSuccess() {
 
 /** Mounted once in the root layout; renders the welcome while it plays. */
 export function LoginSuccessHost() {
-  const started = useSyncExternalStore(
+  const current = useSyncExternalStore(
     subscribe,
-    () => shownAt,
+    () => shown,
     () => null,
   )
+  const pathname = usePathname()
   const [leaving, setLeaving] = useState(false)
 
+  // Fades out once the animation has played AND the destination has
+  // replaced the login page (or after MAX_HOLD_MS, whichever comes first).
+  // Re-runs when the path changes, so arriving early never cuts it short
+  // and arriving late never shows the login form again.
   useEffect(() => {
-    if (started === null) return
+    if (current === null) return
     setLeaving(false)
     const visibleFor = prefersReducedMotion() ? REDUCED_MS : SUCCESS_MS
-    const remaining = Math.max(0, started + visibleFor - Date.now())
-    const fade = window.setTimeout(() => setLeaving(true), remaining)
+    const elapsed = Date.now() - current.at
+    const untilPlayed = Math.max(0, visibleFor - elapsed)
+    const arrived = pathname !== current.from
+    const wait = arrived
+      ? untilPlayed
+      : Math.max(untilPlayed, MAX_HOLD_MS - elapsed)
+    const fade = window.setTimeout(() => setLeaving(true), wait)
     const done = window.setTimeout(() => {
-      shownAt = null
+      shown = null
       emit()
-    }, remaining + FADE_OUT_MS)
+    }, wait + FADE_OUT_MS)
     return () => {
       window.clearTimeout(fade)
       window.clearTimeout(done)
     }
-  }, [started])
+  }, [current, pathname])
 
-  if (started === null) return null
-  return <LoginSuccessOverlay leaving={leaving} />
+  if (current === null) return null
+  return <WelcomeOverlay role={current.role} leaving={leaving} />
 }
 
-function LoginSuccessOverlay({ leaving }: { leaving: boolean }) {
+export function WelcomeOverlay({
+  role,
+  leaving = false,
+}: {
+  role: UserRole | null
+  leaving?: boolean
+}) {
+  const { phrase, scene } = welcomeFor(role)
   return (
     <div
       role="status"
       aria-live="polite"
+      data-role={role ?? 'customer'}
       className={`${leaving ? 'animate-success-out' : 'animate-success-fade'} bg-background fixed inset-0 z-[100] grid place-items-center px-6`}
       style={{
         backgroundImage:
-          'radial-gradient(circle at 50% 45%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 55%)',
+          'radial-gradient(circle at 50% 42%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 60%)',
       }}
     >
-      <div className="flex flex-col items-center gap-6 text-center">
-        <span className="relative grid size-28 place-items-center">
-          <span
-            aria-hidden="true"
-            className="animate-success-ripple bg-primary/25 absolute inset-2 rounded-full"
-          />
-          <span
-            aria-hidden="true"
-            className="animate-success-ripple bg-primary/15 absolute inset-2 rounded-full [animation-delay:420ms]"
-          />
-          <span className="animate-check-pop bg-primary text-primary-foreground shadow-lift relative grid size-20 place-items-center rounded-full">
-            <svg
-              viewBox="0 0 48 48"
-              aria-hidden="true"
-              className="size-11"
-              fill="none"
-            >
-              <path
-                d="M13 24.5 21 32 35 17"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="animate-check-draw"
-                style={{
-                  strokeDasharray: CHECK_LENGTH,
-                  // Consumed by the `check-draw` keyframes in globals.css.
-                  ['--check-length' as string]: CHECK_LENGTH,
-                }}
-              />
-            </svg>
-          </span>
-        </span>
-        <div className="animate-fade-up space-y-1.5 [animation-delay:220ms]">
-          <p className="font-display text-h2 font-semibold">¡Hola de nuevo!</p>
-          <p className="text-muted-foreground">Preparando tu espacio…</p>
-        </div>
-        <span
-          aria-hidden="true"
-          className="bg-muted h-1 w-40 overflow-hidden rounded-full"
-        >
-          <span className="animate-success-bar bg-primary block h-full rounded-full" />
-        </span>
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
+        {scene ? <PinScene /> : null}
+        <p className="animate-welcome-brand font-display font-display-soft text-foreground text-4xl font-semibold tracking-tight lowercase sm:text-5xl">
+          {APP_NAME}
+          <span className="text-primary">.</span>
+        </p>
+        {phrase ? (
+          <p className="animate-welcome-phrase text-muted-foreground text-lg text-balance sm:text-xl">
+            {phrase}
+          </p>
+        ) : null}
       </div>
     </div>
+  )
+}
+
+/**
+ * The idea in one image: a short dotted route leaves a place nearby and a
+ * pin lands at your door. Pure SVG painted with the theme tokens, so it is
+ * crisp at any size and follows light, dark and high-contrast themes.
+ */
+function PinScene() {
+  return (
+    <svg
+      viewBox="0 0 240 132"
+      aria-hidden="true"
+      className="w-full max-w-[17rem] overflow-visible"
+    >
+      {/* A hint of streets, enough to read "map" without drawing one. */}
+      <g stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round">
+        <path d="M6 106 H234" />
+        <path d="M6 70 H120" />
+        <path d="M150 24 V126" />
+        <path d="M70 18 V126" />
+      </g>
+
+      {/* The route, drawn from the restaurant toward the landing point. */}
+      <defs>
+        <mask id="welcome-route-mask" maskUnits="userSpaceOnUse">
+          <path
+            d="M42 104 C 84 104, 104 60, 168 74"
+            fill="none"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            pathLength={1}
+            className="animate-welcome-route"
+            style={{ strokeDasharray: 1 }}
+          />
+        </mask>
+      </defs>
+      <path
+        d="M42 104 C 84 104, 104 60, 168 74"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeDasharray="0.1 9"
+        mask="url(#welcome-route-mask)"
+      />
+
+      {/* The restaurant: a small storefront dot where the route starts. */}
+      <g className="animate-welcome-dot welcome-origin">
+        <circle cx="42" cy="104" r="11" fill="var(--foreground)" />
+        <path
+          d="M35 99 H49 V103 a2.4 2.4 0 0 1 -4.7 0 a2.4 2.4 0 0 1 -4.6 0 a2.4 2.4 0 0 1 -4.7 0 Z"
+          fill="var(--background)"
+        />
+      </g>
+
+      {/* Landing: a ripple and a soft shadow where the pin touches down. */}
+      <ellipse
+        cx="170"
+        cy="78"
+        rx="16"
+        ry="5"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="2"
+        className="animate-welcome-ripple welcome-origin"
+      />
+      <ellipse
+        cx="170"
+        cy="78"
+        rx="9"
+        ry="3"
+        fill="var(--foreground)"
+        className="animate-welcome-shadow welcome-origin"
+      />
+
+      {/* The pin, tip at (170, 78). */}
+      <g className="animate-welcome-pin welcome-pin">
+        <path
+          d="M170 78 C 160 64, 152 56, 152 44 a18 18 0 0 1 36 0 c0 12 -8 20 -18 34 Z"
+          fill="var(--primary)"
+        />
+        <circle cx="170" cy="44" r="7" fill="var(--background)" />
+      </g>
+    </svg>
   )
 }

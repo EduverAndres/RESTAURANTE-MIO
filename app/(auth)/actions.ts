@@ -17,6 +17,7 @@ import {
   type AuthRateLimitAction,
 } from '@/lib/rate-limit/auth'
 import { createClient } from '@/lib/supabase/server'
+import type { UserRole } from '@/types/app'
 import {
   emailSchema,
   forgotPasswordSchema,
@@ -58,7 +59,7 @@ async function rateLimitError(
 export async function signInWithPassword(
   input: LoginInput,
   next?: string | null,
-): Promise<ActionResult<{ redirectTo: string }>> {
+): Promise<ActionResult<{ redirectTo: string; role: UserRole }>> {
   const parsed = loginSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
 
@@ -85,7 +86,9 @@ export async function signInWithPassword(
   // back to the profile row rather than sending a merchant to the home page.
   const role = await resolveUserRole(supabase, data.user)
   const redirectTo = safeNextPath(next) ?? getRoleHome(role)
-  return { ok: true, redirectTo }
+  // The role travels back for the welcome screen; it was already resolved
+  // for the redirect, so no extra query.
+  return { ok: true, redirectTo, role }
 }
 
 /**
@@ -237,7 +240,7 @@ export async function updatePassword(
 export async function acceptLegalTerms(
   source: Extract<ConsentSource, 'gate' | 'login-sms'>,
   next?: string | null,
-): Promise<ActionResult<{ redirectTo: string }>> {
+): Promise<ActionResult<{ redirectTo: string; role: UserRole }>> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -259,5 +262,9 @@ export async function acceptLegalTerms(
   }
 
   const role = await resolveUserRole(supabase, user)
-  return { ok: true, redirectTo: safeNextPath(next) ?? getRoleHome(role) }
+  return {
+    ok: true,
+    redirectTo: safeNextPath(next) ?? getRoleHome(role),
+    role,
+  }
 }
