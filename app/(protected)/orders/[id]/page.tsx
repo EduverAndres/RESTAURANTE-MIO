@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CancelOrderButton } from './cancel-order-button'
 import { OrderTimeline } from './order-tracker'
+import { RepeatOrderButton } from './repeat-order-button'
 import { ReviewForm } from './review-form'
 import { DeliveryCodePanel } from '@/components/orders/delivery-code-panel'
 import { DeliveryMap } from '@/components/orders/delivery-map'
@@ -30,7 +31,9 @@ import { latLngOf, type LatLng } from '@/lib/geo'
 import { logger } from '@/lib/log/logger'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
 import { buildCustomerInquiry, buildWhatsAppUrl } from '@/lib/orders/whatsapp'
+import { reconcileMercadoPagoPayment } from '@/lib/payments/mercadopago/reconcile'
 import { reconcileWompiTransaction } from '@/lib/payments/wompi/reconcile'
+import { REVIEW_ANCHOR } from '@/lib/push/messages'
 import { estimateRoute } from '@/lib/routing'
 import { createClient } from '@/lib/supabase/server'
 import type { OrderStatus } from '@/types/app'
@@ -109,7 +112,12 @@ export const dynamic = 'force-dynamic'
 
 interface OrderPageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ id?: string }>
+  /** `id`: Wompi's transaction; `payment_id`/`collection_id`: Mercado Pago's. */
+  searchParams: Promise<{
+    id?: string
+    payment_id?: string
+    collection_id?: string
+  }>
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -151,13 +159,30 @@ export default async function OrderPage({
 
   // Wompi redirects back with `?id=<transaction_id>`; reconcile it here in
   // case the webhook has not arrived yet (e.g. local dev with no public URL).
-  const { id: transactionId } = await searchParams
+  const {
+    id: transactionId,
+    payment_id: mpPaymentId,
+    collection_id: mpCollectionId,
+  } = await searchParams
   if (
     transactionId &&
     order.payment_method === 'wompi' &&
     order.payment_status === 'pending'
   ) {
     await reconcileWompiTransaction(order.id, transactionId)
+    order = (await fetchOrder(id)) ?? order
+  }
+
+  // Mercado Pago comes back with `?payment_id=` (older flows send
+  // `collection_id`). The webhook used to be the only way the order learned
+  // it was paid; when it did not arrive the order stayed pending forever.
+  const mercadoPagoPaymentId = mpPaymentId ?? mpCollectionId
+  if (
+    mercadoPagoPaymentId &&
+    order.payment_method === 'mercadopago' &&
+    order.payment_status === 'pending'
+  ) {
+    await reconcileMercadoPagoPayment(order.id, mercadoPagoPaymentId)
     order = (await fetchOrder(id)) ?? order
   }
 
@@ -267,30 +292,30 @@ export default async function OrderPage({
               </Button>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              {store?.slug ? (
-                <Button asChild variant="outline" className="rounded-pill">
-                  <Link href={`/t/${store.slug}`}>
-                    <StoreIcon aria-hidden="true" />
-                    Volver a pedir
-                  </Link>
-                </Button>
-              ) : null}
+              {store?.slug ? <RepeatOrderButton orderId={order.id} /> : null}
               {order.status === 'pending' ? (
                 <CancelOrderButton orderId={order.id} />
               ) : null}
             </div>
           </div>
 
-          {order.status === 'delivered' && !reviewed ? (
-            <ReviewForm
-              orderId={order.id}
-              storeName={store?.name ?? 'el restaurante'}
-            />
-          ) : null}
-          {reviewed ? (
-            <p className="rounded-card bg-muted/60 text-muted-foreground p-4 text-sm">
-              Gracias por valorar este pedido.
-            </p>
+          {/* The "delivered" push opens this page on this block. */}
+          {order.status === 'delivered' || reviewed ? (
+            <div
+              id={REVIEW_ANCHOR}
+              className="scroll-mt-[calc(var(--app-header-h)+1rem)]"
+            >
+              {reviewed ? (
+                <p className="rounded-card bg-muted/60 text-muted-foreground p-4 text-sm">
+                  Gracias por valorar este pedido.
+                </p>
+              ) : (
+                <ReviewForm
+                  orderId={order.id}
+                  storeName={store?.name ?? 'el restaurante'}
+                />
+              )}
+            </div>
           ) : null}
         </div>
 
@@ -334,6 +359,8 @@ export default async function OrderPage({
             deliveryFee={Number(order.delivery_fee)}
             tip={Number(order.tip)}
             total={Number(order.total)}
+            merchantDiscount={Number(order.merchant_discount ?? 0)}
+            platformDiscount={Number(order.platform_discount ?? 0)}
             notes={order.notes}
             footer={
               <p className="text-muted-foreground text-xs">

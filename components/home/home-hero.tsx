@@ -1,7 +1,6 @@
 import {
   ArrowRightIcon,
   BikeIcon,
-  MapPinIcon,
   QrCodeIcon,
   ShoppingBagIcon,
   StoreIcon,
@@ -10,7 +9,6 @@ import Link from 'next/link'
 import { AddressPicker } from '@/components/home/address-picker'
 import { HeroVisual } from '@/components/home/hero-visual'
 import { SearchBox } from '@/components/home/search-box'
-import { FadeIn } from '@/components/motion/fade-in'
 import { Button } from '@/components/ui/button'
 import type { VisitorLocation } from '@/lib/location'
 
@@ -20,11 +18,16 @@ import type { VisitorLocation } from '@/lib/location'
  * The diner still gets the search field first — someone who arrives knowing
  * what they want should not scroll past an advert for the product they are
  * already using. Around it, a first-time visitor learns in one glance that
- * this is the city's local marketplace, the three ways to order, and that a
- * business can join from the same screen.
+ * these are the neighbourhood's own businesses, the three ways to order, and
+ * that a business can join from the same screen.
  *
- * The owner's way in is a real button now, but the secondary one: they are
- * not the majority of visits, and the primary colour belongs to ordering.
+ * The owner's way in is a real button, but the secondary one: they are not
+ * the majority of visits, and the primary colour belongs to ordering.
+ *
+ * Deliberately still. The headline is the page's largest paint, so it is in
+ * the server HTML at full opacity instead of waiting for a fade-in to hydrate,
+ * and the background is the plain page colour: on a phone, the store cards
+ * right below are the picture.
  */
 
 const MODES = [
@@ -35,31 +38,21 @@ const MODES = [
 
 export function HomeHero({ location }: { location: VisitorLocation | null }) {
   return (
-    <section className="border-border/60 relative isolate overflow-hidden border-b">
-      {/* Warm wash in the brand colours plus a hairline grid. Painted with the
-          platform tokens, so it follows the dark ramp and never competes with
-          a store's theme. */}
-      <div aria-hidden="true" className="brand-mesh absolute inset-0 -z-20" />
-      <div aria-hidden="true" className="brand-grid absolute inset-0 -z-10" />
-
+    <section className="border-border/60 border-b">
       <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14 lg:py-20">
-        <FadeIn className="space-y-6 lg:space-y-7">
-          <p className="rounded-pill bg-card/80 text-foreground shadow-1 ring-foreground/5 inline-flex items-center gap-2 py-1 pr-3 pl-1 text-xs font-medium ring-1 backdrop-blur-sm">
-            <span className="rounded-pill bg-primary text-primary-foreground inline-flex items-center gap-1 px-2 py-0.5">
-              <MapPinIcon aria-hidden="true" className="size-3" />
-              Barranquilla
-            </span>
-            El marketplace del comercio local
+        <div className="space-y-6 lg:space-y-7">
+          <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
+            Hecho en Barranquilla
           </p>
 
           <h1 className="text-display font-display font-display-soft font-semibold">
-            Todo <span className="text-primary">Barranquilla</span> en una sola
-            plataforma.
+            Pide a los negocios de{' '}
+            <span className="text-primary">tu barrio</span>.
           </h1>
 
           <p className="text-muted-foreground text-lead max-w-xl">
-            Pide a los restaurantes y negocios de tu barrio en dos toques, sigue
-            tu pedido en vivo y apoya a la gente de aquí.
+            Restaurantes, panaderías y tiendas de Barranquilla. A domicilio,
+            para recoger o desde la mesa, y lo sigues en vivo.
           </p>
 
           <div className="max-w-xl space-y-3">
@@ -74,18 +67,20 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
             <Button
               asChild
               size="lg"
-              className="rounded-pill shadow-2 hover:shadow-3 h-12 px-6 text-base transition-[box-shadow,transform] active:scale-[0.98]"
+              className="rounded-pill h-12 px-6 text-base active:scale-[0.98]"
             >
               <Link href="#restaurantes">
                 Pedir ahora
                 <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
               </Link>
             </Button>
+            {/* On a phone the owner's way in is the merchant band and the
+                footer; the first screen stays the diner's. */}
             <Button
               asChild
               size="lg"
               variant="outline"
-              className="rounded-pill bg-card/70 h-12 px-6 text-base backdrop-blur-sm active:scale-[0.98]"
+              className="rounded-pill hidden h-12 px-6 text-base active:scale-[0.98] sm:inline-flex"
             >
               <Link href="/register?role=merchant">
                 <StoreIcon aria-hidden="true" data-icon="inline-start" />
@@ -101,20 +96,20 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
             {MODES.map(({ icon: Icon, label }) => (
               <li
                 key={label}
-                className="rounded-pill bg-card/80 border-border/60 text-foreground inline-flex items-center gap-2 border px-3 py-1.5 text-sm backdrop-blur-sm"
+                className="rounded-pill border-border text-foreground inline-flex items-center gap-2 border px-3 py-1.5 text-sm"
               >
                 <Icon aria-hidden="true" className="text-primary size-4" />
                 {label}
               </li>
             ))}
           </ul>
-        </FadeIn>
+        </div>
 
         {/* The picture only earns its space beside the copy; on a phone the
             search box is the hero and the categories below do this job. */}
-        <FadeIn delay={0.15} className="hidden lg:block">
+        <div className="hidden lg:block">
           <HeroVisual />
-        </FadeIn>
+        </div>
       </div>
     </section>
   )

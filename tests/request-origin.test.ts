@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { requestOrigin } from '@/lib/http/request-origin'
+import { isSecureRequest, requestOrigin } from '@/lib/http/request-origin'
 
 const FALLBACK = 'https://tienda.app'
 
@@ -158,5 +158,32 @@ describe('requestOrigin', () => {
         FALLBACK,
       ),
     ).toBe('http://localhost:3000')
+  })
+})
+
+describe('isSecureRequest', () => {
+  // A `Secure` cookie sent over http is dropped by the browser: on
+  // http://<IP> the store switcher and the guest's table orders did nothing.
+  it('is false over plain http, even with an https site URL', () => {
+    expect(
+      isSecureRequest(
+        headersOf({ 'x-forwarded-proto': 'http' }),
+        'https://tienda.app',
+      ),
+    ).toBe(false)
+  })
+
+  it('is true behind an https proxy', () => {
+    expect(
+      isSecureRequest(
+        headersOf({ 'x-forwarded-proto': 'https, http' }),
+        'http://3.85.1.2',
+      ),
+    ).toBe(true)
+  })
+
+  it('falls back to the site URL scheme without the header', () => {
+    expect(isSecureRequest(headersOf({}), 'https://tienda.app')).toBe(true)
+    expect(isSecureRequest(headersOf({}), 'http://3.85.1.2')).toBe(false)
   })
 })

@@ -1,7 +1,6 @@
 import { QuoteIcon, StoreIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FadeIn } from '@/components/motion/fade-in'
 import { StarRating } from '@/components/store/star-rating'
 import { initialsOf } from '@/lib/format'
 import {
@@ -125,7 +124,7 @@ export async function SocialProof() {
       className="border-border/60 border-t"
     >
       <div className="container-page py-section space-y-12">
-        <FadeIn inView className="max-w-2xl space-y-3">
+        <div className="max-w-2xl space-y-3">
           <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
             Comunidad
           </p>
@@ -135,16 +134,14 @@ export async function SocialProof() {
           >
             Barranquilla ya está pidiendo aquí
           </h2>
-        </FadeIn>
+        </div>
 
         {stats.length > 0 ? (
-          <FadeIn inView>
-            <dl className="gap-card grid sm:grid-cols-3">
-              {stats.map((stat) => (
-                <Stat key={stat.key} stat={stat} />
-              ))}
-            </dl>
-          </FadeIn>
+          <dl className="gap-card grid sm:grid-cols-3">
+            {stats.map((stat) => (
+              <Stat key={stat.key} stat={stat} />
+            ))}
+          </dl>
         ) : null}
 
         {showTestimonials ? (
@@ -152,41 +149,39 @@ export async function SocialProof() {
             aria-label="Opiniones de clientes"
             className="rail -mx-gutter px-gutter gap-card pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 lg:grid-cols-3"
           >
-            {testimonials.map((testimonial, index) => (
+            {testimonials.map((testimonial) => (
               <li
                 key={testimonial.id}
                 className="w-[82vw] max-w-sm md:w-auto md:max-w-none"
               >
-                <FadeIn inView delay={(index % 3) * 0.08} className="h-full">
-                  <figure className="rounded-card bg-card shadow-1 ring-foreground/5 p-card flex h-full flex-col gap-4 ring-1">
-                    <div className="flex items-center justify-between">
-                      <StarRating value={testimonial.rating} />
-                      <QuoteIcon
-                        aria-hidden="true"
-                        className="text-primary/25 size-6"
-                      />
-                    </div>
-                    <blockquote className="text-foreground flex-1 text-pretty">
-                      “{testimonial.comment}”
-                    </blockquote>
-                    <figcaption className="text-muted-foreground text-sm">
-                      Cliente de{' '}
-                      <Link
-                        href={`/t/${testimonial.store.slug}`}
-                        className="text-foreground font-medium underline-offset-4 hover:underline"
-                      >
-                        {testimonial.store.name}
-                      </Link>
-                    </figcaption>
-                  </figure>
-                </FadeIn>
+                <figure className="rounded-card bg-card shadow-1 ring-foreground/5 p-card flex h-full flex-col gap-4 ring-1">
+                  <div className="flex items-center justify-between">
+                    <StarRating value={testimonial.rating} />
+                    <QuoteIcon
+                      aria-hidden="true"
+                      className="text-primary/25 size-6"
+                    />
+                  </div>
+                  <blockquote className="text-foreground flex-1 text-pretty">
+                    “{testimonial.comment}”
+                  </blockquote>
+                  <figcaption className="text-muted-foreground text-sm">
+                    Cliente de{' '}
+                    <Link
+                      href={`/t/${testimonial.store.slug}`}
+                      className="text-foreground font-medium underline-offset-4 hover:underline"
+                    >
+                      {testimonial.store.name}
+                    </Link>
+                  </figcaption>
+                </figure>
               </li>
             ))}
           </ul>
         ) : null}
 
         {showAffiliates ? (
-          <FadeIn inView className="space-y-4">
+          <div className="space-y-4">
             <h3 className="text-muted-foreground text-sm font-medium">
               Negocios que ya venden con nosotros
             </h3>
@@ -215,7 +210,7 @@ export async function SocialProof() {
                 </li>
               ))}
             </ul>
-          </FadeIn>
+          </div>
         ) : null}
       </div>
     </section>

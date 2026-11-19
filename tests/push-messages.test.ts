@@ -30,12 +30,23 @@ describe('orderStatusMessage', () => {
     })
     expect(orderStatusMessage('delivered', 'A1B2', ORDER_ID)).toMatchObject({
       title: 'Pedido entregado',
-      body: 'Tu pedido #A1B2 fue entregado. ¡Buen provecho!',
+      body: 'Tu pedido #A1B2 fue entregado. ¡Buen provecho! Cuéntanos cómo estuvo.',
     })
     expect(orderStatusMessage('cancelled', 'A1B2', ORDER_ID)).toMatchObject({
       title: 'Pedido cancelado',
       body: 'Tu pedido #A1B2 fue cancelado.',
     })
+  })
+
+  // The delivered push is the moment a review is most likely, so it opens the
+  // order straight on the review form instead of at the top of the page.
+  it('links the delivered push to the review form, and only that one', () => {
+    expect(orderStatusMessage('delivered', 'A1B2', ORDER_ID)?.url).toBe(
+      `/orders/${ORDER_ID}#calificar`,
+    )
+    expect(orderStatusMessage('picked_up', 'A1B2', ORDER_ID)?.url).toBe(
+      `/orders/${ORDER_ID}`,
+    )
   })
 
   it('returns null for pending: order creation has no status-change push', () => {

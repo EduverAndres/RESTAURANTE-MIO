@@ -32,6 +32,7 @@
 // the migration: change the rule, run the test, paste the new output in.
 //
 // Pure: no React, no Supabase, safe on client and server.
+import { BILLABLE_DAYS_RULE } from '@/lib/plans-sql'
 import type { PayoutOrderInput } from '@/lib/payouts/compute'
 import { REFUND_REVERSES_PLATFORM_FEE } from '@/lib/payouts/reversal'
 
@@ -105,11 +106,43 @@ export function reversalCommissionSql(): string {
   return REFUND_REVERSES_PLATFORM_FEE ? '-o.platform_fee' : '0'
 }
 
-/** The blocks the migration embeds, by `codegen:` marker name. */
+/**
+ * Mirror of `isCollectedByMerchant` in `lib/payouts/compute.ts`, against
+ * `orders o`: a cash sale handed over by the merchant (counter, table, or a
+ * delivery without a platform courier) is money already in their till.
+ */
+export const MERCHANT_COLLECTED_RULE = {
+  sql: "o.payment_method = 'cash' and (o.type <> 'delivery' or o.courier_id is null)",
+  matches: (
+    order: Pick<PayoutOrderInput, 'payment_method' | 'type' | 'courier_id'>,
+  ): boolean =>
+    order.payment_method === 'cash' &&
+    (order.type !== 'delivery' || order.courier_id === null),
+}
+
+/** Mirror of `settledGross` in `lib/payouts/compute.ts`, against `orders o`. */
+export const SETTLED_GROSS_SQL = '(o.subtotal - o.merchant_discount)'
+
+/** Mirror of `collectedAmount` in `lib/payouts/compute.ts`. */
+export const COLLECTED_AMOUNT_SQL =
+  '(o.subtotal - o.merchant_discount - o.platform_discount)'
+
+/**
+ * The blocks the settlement migration embeds, by `codegen:` marker name.
+ * `merchant_collected` appears twice in `generate_payouts` (the sale and
+ * its reversal), so it is emitted under two marker names.
+ */
 export function payoutSqlBlocks(): Record<string, string> {
   return {
     eligible: PAYOUT_ELIGIBLE_RULE.sql,
     reversal_needed: REVERSAL_NEEDED_RULE.sql,
     reversal_commission: reversalCommissionSql(),
+    merchant_collected: MERCHANT_COLLECTED_RULE.sql,
+    reversal_merchant_collected: MERCHANT_COLLECTED_RULE.sql,
+    billable_days: BILLABLE_DAYS_RULE.sql,
+    settled_gross: SETTLED_GROSS_SQL,
+    reversal_settled_gross: SETTLED_GROSS_SQL,
+    collected_amount: COLLECTED_AMOUNT_SQL,
+    reversal_collected_amount: COLLECTED_AMOUNT_SQL,
   }
 }

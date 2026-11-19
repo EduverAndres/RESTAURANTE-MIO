@@ -13,6 +13,7 @@ import { requireRole } from '@/lib/auth'
 import { formatDateCO } from '@/lib/format-date'
 import { ROLE_LABELS } from '@/lib/orders/status'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const metadata: Metadata = { title: 'Usuarios' }
 export const dynamic = 'force-dynamic'
@@ -21,13 +22,18 @@ export default async function AdminUsersPage() {
   const { user: currentUser } = await requireRole(['admin'], '/admin/users')
   const admin = createAdminClient()
 
-  const [{ data: profiles }, { data: authUsers }] = await Promise.all([
+  const [
+    { data: profiles, error: profilesError },
+    { data: authUsers, error: authError },
+  ] = await Promise.all([
     admin
       .from('profiles')
       .select('id, full_name, phone, role, created_at')
       .order('created_at', { ascending: false }),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ])
+  throwOnQueryError(profilesError, 'admin users profiles')
+  throwOnQueryError(authError, 'admin users auth list')
 
   const emailById = new Map(
     (authUsers?.users ?? []).map((user) => [user.id, user.email ?? '—']),

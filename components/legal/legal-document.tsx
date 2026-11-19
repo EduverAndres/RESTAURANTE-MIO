@@ -123,7 +123,7 @@ export function LegalDocument({
             >
               <AlertTriangleIcon
                 aria-hidden="true"
-                className="text-accent mt-0.5 size-5 shrink-0"
+                className="text-accent-strong mt-0.5 size-5 shrink-0"
               />
               <span>
                 <strong>Datos de la empresa pendientes.</strong> Este documento

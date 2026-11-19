@@ -49,6 +49,10 @@ export const checkoutSchema = z
       .max(300, 'Las notas son demasiado largas.')
       .default(''),
     items: z.array(cartItemSchema).min(1, 'Tu carrito está vacío.'),
+    /** A store coupon; validated and priced on the server. */
+    couponCode: z.string().trim().max(30).default(''),
+    /** Spend a completed loyalty card on this order. */
+    useReward: z.boolean().default(false),
   })
   .superRefine((value, ctx) => {
     if (value.type === 'delivery' && !value.addressId) {

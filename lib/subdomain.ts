@@ -89,27 +89,49 @@ export interface StorePublicUrlInput {
   slug: string
   siteUrl: string
   rootDomain: string
+  /**
+   * Link to `https://<slug>.<rootDomain>` instead of the path form. Only
+   * turn it on once wildcard DNS and a wildcard TLS certificate exist for
+   * the root domain: without them the subdomain opens nothing.
+   */
+  subdomains?: boolean
+}
+
+/** True for a dotted IPv4 host (with or without port): it has no subdomains. */
+function isIpv4Host(host: string): boolean {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(hostWithoutPort(host))
+}
+
+/** A root that can carry `<slug>.` in front of it: a named, public domain. */
+function isSubdomainCapable(rootDomain: string): boolean {
+  const root = hostWithoutPort(rootDomain.toLowerCase())
+  return (
+    root.includes('.') &&
+    !root.includes('/') &&
+    !root.endsWith('.localhost') &&
+    !isIpv4Host(root)
+  )
 }
 
 /**
- * Public link to a store's page. Subdomains only make sense once a real
- * domain is wired up (DNS + `rootDomain` containing a dot); local
- * development keeps the `/t/<slug>` path so QR codes and share links keep
- * working without wildcard DNS.
+ * Public link to a store's page.
+ *
+ * The path form `<siteUrl>/t/<slug>` is the default because it opens on any
+ * host that serves the app: an IP, a domain without wildcard DNS, plain
+ * http. The subdomain form used to be picked whenever the root domain had a
+ * dot, which with an IP root produced `https://<slug>.3.85.1.2`, an invalid
+ * URL the browser blocks (`about:blank#blocked`), and with a domain lacking
+ * wildcard DNS a link that never resolved. It is now opt-in, and never for
+ * an IP or localhost.
  */
 export function storePublicUrl({
   slug,
   siteUrl,
   rootDomain,
+  subdomains = false,
 }: StorePublicUrlInput): string {
-  const root = rootDomain.toLowerCase()
-  const isRealDomain =
-    root.includes('.') &&
-    root !== 'localhost' &&
-    !hostWithoutPort(root).endsWith('.localhost')
-
-  if (isRealDomain) {
-    return `https://${slug}.${hostWithoutPort(root)}`
+  if (subdomains && isSubdomainCapable(rootDomain)) {
+    return `https://${slug}.${hostWithoutPort(rootDomain.toLowerCase())}`
   }
 
   return `${siteUrl.replace(/\/+$/, '')}/t/${slug}`

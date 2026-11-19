@@ -9,8 +9,9 @@ name: Keep alive
 # counts as database activity. Every 6 hours is far inside the 7-day window
 # and costs about 30 seconds of Actions time per month.
 #
-# Set the repository variable HEALTH_URL to the deployed origin, e.g.
-#   gh variable set HEALTH_URL --body https://your-project.vercel.app
+# Set the repository variable HEALTH_URL to the production origin (the AWS
+# Lightsail deployment), e.g.
+#   gh variable set HEALTH_URL --body https://your-domain.com
 # The job is skipped while it is unset, so this workflow is harmless before
 # the first deploy.
 #

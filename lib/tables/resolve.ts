@@ -49,3 +49,29 @@ export async function resolveTableWithClient(
     table: { id: match.id, number: match.number, token },
   }
 }
+
+/**
+ * The current slug of the active store that owns `token`, or null. Lets a
+ * QR printed before the store renamed its link find the store again instead
+ * of reading as an invalid code. Any failure, including a database without
+ * the function yet, means "no other store": the page then 404s as before.
+ */
+export async function currentSlugForTableWithClient(
+  supabase: SupabaseClient<Database>,
+  token: string,
+): Promise<string | null> {
+  if (!isTableToken(token)) return null
+  try {
+    const { data, error } = await supabase.rpc('table_token_store_slug', {
+      token,
+    })
+    if (error) {
+      console.error('Failed to look up the store of a table token', error)
+      return null
+    }
+    return typeof data === 'string' && data.length > 0 ? data : null
+  } catch (error) {
+    console.error('Failed to look up the store of a table token', error)
+    return null
+  }
+}

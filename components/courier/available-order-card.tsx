@@ -20,7 +20,13 @@ const timeFormatter = new Intl.DateTimeFormat('es-CO', {
   minute: '2-digit',
 })
 
-export function AvailableOrderCard({ order }: { order: CourierOrderSummary }) {
+export function AvailableOrderCard({
+  order,
+  canClaim = true,
+}: {
+  order: CourierOrderSummary
+  canClaim?: boolean
+}) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
@@ -86,17 +92,19 @@ export function AvailableOrderCard({ order }: { order: CourierOrderSummary }) {
         </div>
       </dl>
 
-      <Button
-        type="button"
-        onClick={claim}
-        disabled={pending}
-        className="rounded-pill w-full"
-      >
-        {pending ? (
-          <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
-        ) : null}
-        Tomar pedido
-      </Button>
+      {canClaim ? (
+        <Button
+          type="button"
+          onClick={claim}
+          disabled={pending}
+          className="rounded-pill w-full"
+        >
+          {pending ? (
+            <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
+          ) : null}
+          Tomar pedido
+        </Button>
+      ) : null}
     </article>
   )
 }

@@ -12,6 +12,7 @@ import { AccessibilityAttributes } from '@/components/a11y/accessibility-attribu
 import { CookieBanner } from '@/components/legal/cookie-banner'
 import { RealtimeProvider } from '@/components/providers/realtime-provider'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { ReferralClaimer } from '@/components/referrals/referral-claimer'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
 import { SoundUnlock } from '@/components/sound/sound-unlock'
 import { ThemeProvider } from '@/components/theme/theme-provider'
@@ -86,12 +87,17 @@ const THEME_FONT_VARIABLES = [
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
   title: {
-    default: `${APP_NAME} · Pide a tu restaurante favorito`,
+    default: `${APP_NAME} · Pide a los negocios de tu barrio en Barranquilla`,
     template: `%s · ${APP_NAME}`,
   },
   description:
-    'Pide a domicilio, recoge en el local o desde la mesa. Cada restaurante con su propia identidad, en una sola plataforma.',
+    'Restaurantes, panaderías y tiendas de Barranquilla, con su propia marca. Pide a domicilio, para recoger o desde la mesa, y sigue tu pedido en vivo.',
   applicationName: APP_NAME,
+  openGraph: {
+    siteName: APP_NAME,
+    locale: 'es_CO',
+    type: 'website',
+  },
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
@@ -155,6 +161,7 @@ export default function RootLayout({
           <InstallPrompt />
           <ServiceWorkerRegister />
           <SoundUnlock />
+          <ReferralClaimer />
         </ThemeProvider>
       </body>
     </html>

@@ -3,14 +3,30 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { getCheckoutStore, placeOrder, type CheckoutStore } from './actions'
+import {
+  checkCoupon,
+  getCheckoutPerks,
+  getCheckoutStore,
+  placeOrder,
+  type CheckoutPerks,
+  type CheckoutStore,
+} from './actions'
 import {
   nextQuarterHour,
   type DeliveryType,
   type Schedule,
   type Step,
 } from './steps'
+import {
+  clampDiscounts,
+  couponDiscount,
+  creditDiscount,
+  rewardDiscount,
+  type CouponRule,
+  type CouponUsage,
+} from '@/lib/discounts'
 import { markOrderJustPlaced } from '@/lib/orders/just-placed'
+import { bogotaDate } from '@/lib/plans'
 import { estimateEtaMinutes, haversineKm } from '@/lib/geo'
 import type { PaymentOption } from '@/lib/payments'
 import {
@@ -64,6 +80,17 @@ export function useCheckout({
   const [notes, setNotes] = useState('')
   const [step, setStep] = useState<Step>('entrega')
   const [pending, startTransition] = useTransition()
+  const [perks, setPerks] = useState<CheckoutPerks>({
+    loyalty: null,
+    credits: [],
+  })
+  const [coupon, setCoupon] = useState<{
+    code: string
+    rule: CouponRule
+    usage: CouponUsage
+  } | null>(null)
+  const [checkingCoupon, startCouponCheck] = useTransition()
+  const [useReward, setUseRewardState] = useState(false)
 
   useEffect(() => setHydrated(true), [])
 
@@ -102,6 +129,19 @@ export function useCheckout({
   const selectedAddress =
     addresses.find((address) => address.id === addressId) ?? null
   const resolvedStore = store === 'loading' ? null : store
+  const storeId = resolvedStore?.id ?? null
+
+  // Stamp card and referral credits for this store, once it is known.
+  useEffect(() => {
+    if (!storeId) return
+    let cancelled = false
+    getCheckoutPerks(storeId).then((result) => {
+      if (!cancelled) setPerks(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [storeId])
 
   const distanceKm = useMemo(() => {
     if (!resolvedStore || !selectedAddress) return null
@@ -138,6 +178,57 @@ export function useCheckout({
   const minimumOk = resolvedStore
     ? meetsMinOrder(subtotal, resolvedStore.minOrder)
     : true
+
+  // The same rules the server applies on submit (lib/discounts.ts), so the
+  // total shown is the total charged. One store discount per order: a
+  // coupon or the loyalty reward. A referral credit stacks on top.
+  const couponCheck = coupon
+    ? couponDiscount(
+        coupon.rule,
+        subtotal,
+        bogotaDate(new Date()),
+        coupon.usage,
+      )
+    : null
+  const rewardAvailable = (perks.loyalty?.available ?? 0) > 0
+  const merchantDiscount =
+    useReward && rewardAvailable && perks.loyalty
+      ? rewardDiscount(perks.loyalty.rewardValue, subtotal)
+      : couponCheck?.ok
+        ? couponCheck.amount
+        : 0
+  const credit = perks.credits.find(
+    (entry) => creditDiscount(entry, subtotal - merchantDiscount) > 0,
+  )
+  const discounts = clampDiscounts(
+    subtotal,
+    merchantDiscount,
+    credit ? creditDiscount(credit, subtotal - merchantDiscount) : 0,
+  )
+  const payable =
+    totals.total - discounts.merchantDiscount - discounts.platformDiscount
+
+  function applyCoupon(code: string) {
+    if (!storeId || code.trim() === '') return
+    startCouponCheck(async () => {
+      const result = await checkCoupon(storeId, code)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      setUseRewardState(false)
+      setCoupon(result)
+    })
+  }
+
+  function removeCoupon() {
+    setCoupon(null)
+  }
+
+  function setUseReward(value: boolean) {
+    if (value) setCoupon(null)
+    setUseRewardState(value)
+  }
   const eta = resolvedStore
     ? estimateEtaMinutes({
         distanceKm: distanceKm ?? 0,
@@ -184,6 +275,8 @@ export function useCheckout({
       paymentMethod,
       tipPercent,
       notes,
+      couponCode: couponCheck?.ok ? (coupon?.code ?? '') : '',
+      useReward: useReward && rewardAvailable,
       items: cart.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -263,6 +356,18 @@ export function useCheckout({
     totals,
     minimumOk,
     submit,
+    // discounts
+    perks,
+    coupon,
+    couponError: couponCheck && !couponCheck.ok ? couponCheck.error : null,
+    checkingCoupon,
+    applyCoupon,
+    removeCoupon,
+    rewardAvailable,
+    useReward: useReward && rewardAvailable,
+    setUseReward,
+    discounts,
+    payable,
   }
 }
 

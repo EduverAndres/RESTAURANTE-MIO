@@ -2,7 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { isUuid } from '@/lib/dashboard/active-store'
+import { planOfStore } from '@/lib/plans'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeTheme } from '@/lib/theme'
+import { checkThemeForPlan } from '@/lib/theme/plan-gate'
 import { storeThemeSchema, type StoreThemeInput } from '@/lib/validations/theme'
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -29,9 +32,25 @@ export async function updateStoreTheme(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: SESSION_EXPIRED }
 
+  // What the plan allows is decided here, on the server: the editor only
+  // locks controls, and a request can skip the editor.
+  const { data: store } = await supabase
+    .from('stores')
+    .select('theme, plan, founder_until')
+    .eq('id', storeId)
+    .eq('owner_id', user.id)
+    .maybeSingle()
+  if (!store) return { ok: false, error: 'No encontramos la tienda.' }
+  const check = checkThemeForPlan(
+    normalizeTheme(parsed.data),
+    normalizeTheme(store.theme),
+    planOfStore(store),
+  )
+  if (!check.ok) return { ok: false, error: check.error }
+
   const { data, error } = await supabase
     .from('stores')
-    .update({ theme: parsed.data })
+    .update({ theme: storeThemeSchema.parse(check.theme) })
     .eq('id', storeId)
     .eq('owner_id', user.id)
     .select('slug')

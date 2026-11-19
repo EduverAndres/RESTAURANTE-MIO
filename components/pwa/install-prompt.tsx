@@ -4,6 +4,7 @@ import { XIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { APP_NAME } from '@/lib/env'
 
 const DISMISS_KEY = 'tienda:install-prompt-dismissed'
 const DISMISS_DAYS = 7
@@ -66,7 +67,7 @@ export function InstallPrompt() {
     <div className="fixed inset-x-4 bottom-4 z-50 sm:inset-x-auto sm:right-4 sm:w-80">
       <div className="rounded-card border-border bg-card shadow-lift flex items-center gap-3 border p-4">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Instala Tienda</p>
+          <p className="text-sm font-medium">Instala {APP_NAME}</p>
           <p className="text-muted-foreground text-xs">
             Agrégala a tu pantalla de inicio para pedir más rápido.
           </p>

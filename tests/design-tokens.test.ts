@@ -54,6 +54,16 @@ describe('light palette (:root)', () => {
       contrastRatio(t['primary-foreground'], t.primary),
     ).toBeGreaterThanOrEqual(AA)
   })
+
+  // The plain amber is a fill, not an ink: as text on cream it measures about
+  // 2:1. Stars and warning glyphs on light surfaces use the strong variant.
+  it('keeps the plain accent off light text and the strong one above AA', () => {
+    expect(contrastRatio(t.accent, t.background)).toBeLessThan(AA)
+    expect(
+      contrastRatio(t['accent-strong'], t.background),
+    ).toBeGreaterThanOrEqual(AA)
+    expect(contrastRatio(t['accent-strong'], t.card)).toBeGreaterThanOrEqual(AA)
+  })
 })
 
 describe('dark palette (.dark)', () => {
@@ -87,6 +97,13 @@ describe('dark palette (.dark)', () => {
     expect(
       contrastRatio(t['primary-foreground'], t.primary),
     ).toBeGreaterThanOrEqual(AA)
+  })
+
+  it('meets AA for the strong accent on background and cards', () => {
+    expect(
+      contrastRatio(t['accent-strong'], t.background),
+    ).toBeGreaterThanOrEqual(AA)
+    expect(contrastRatio(t['accent-strong'], t.card)).toBeGreaterThanOrEqual(AA)
   })
 })
 

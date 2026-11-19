@@ -59,13 +59,13 @@ function AppFooterNav() {
   return (
     <div className="px-gutter mx-auto grid w-full max-w-6xl gap-10 pt-12 pb-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
       <div className="space-y-3">
-        <p className="font-display font-display-soft text-2xl font-semibold tracking-tight">
+        <p className="font-display font-display-soft text-2xl font-semibold tracking-tight lowercase">
           {APP_NAME}
           <span className="text-primary">.</span>
         </p>
         <p className="text-muted-foreground max-w-xs text-sm text-pretty">
-          La plataforma del comercio local: restaurantes y negocios de aquí, a
-          un toque de distancia.
+          Lo bueno queda cerquita. Restaurantes y negocios de Barranquilla, cada
+          uno con su propia marca.
         </p>
         <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
           <MapPinIcon aria-hidden="true" className="text-primary size-4" />
