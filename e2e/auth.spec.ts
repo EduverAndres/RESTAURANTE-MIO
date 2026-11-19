@@ -34,6 +34,13 @@ interface MailpitSummary {
   Created: string
 }
 
+/** Origin every public link must use: the app's NEXT_PUBLIC_SITE_URL. */
+const SITE = new URL(
+  process.env.E2E_SITE_URL ??
+    process.env.PLAYWRIGHT_BASE_URL ??
+    'http://localhost:3000',
+).origin
+
 /** Waits for a new email to `to` whose subject matches, returns its link. */
 async function awaitEmailLink(
   to: string,
@@ -55,7 +62,12 @@ async function awaitEmailLink(
       ).json()) as { HTML: string }
       const href = /href="([^"]*\/auth\/callback\?[^"]*)"/.exec(detail.HTML)
       if (!href) throw new Error('Email without an auth link')
-      return { id: match.ID, link: href[1].replaceAll('&amp;', '&') }
+      const link = href[1].replaceAll('&amp;', '&')
+      // Every link in the email points at the official site.
+      for (const any of detail.HTML.matchAll(/href="(https?:[^"]+)"/g)) {
+        expect(new URL(any[1].replaceAll('&amp;', '&')).origin).toBe(SITE)
+      }
+      return { id: match.ID, link }
     }
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
@@ -174,6 +186,11 @@ test('3-7. login, sesión persistente, ruta privada y cierre de sesión', async 
   await page.goto('/account')
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
   await page.waitForURL((url) => url.pathname === '/')
+  // …lands on the site's own home page, never on another host…
+  expect(new URL(page.url()).origin).toBe(SITE)
+  // …and the Back button does not bring the private page back.
+  await page.goBack()
+  await expect(page).toHaveURL(/\/login\?next=%2Faccount/)
   expect(
     (await page.context().cookies()).filter((c) => c.name.includes('auth')),
   ).toHaveLength(0)
