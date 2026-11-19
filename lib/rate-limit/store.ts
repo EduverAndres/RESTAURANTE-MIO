@@ -41,10 +41,10 @@ interface ConsumeRow {
 /**
  * Postgres-backed store.
  *
- * In-memory counters are worthless here: every Vercel invocation may run on a
- * different instance, so an in-process map limits nothing. The counter has to
- * live where all instances can see it, and this app already has exactly one
- * such place.
+ * In-memory counters are not enough: a restart (every deploy) empties them,
+ * and the moment the app runs more than one process an in-process map limits
+ * nothing. The counter has to live where every process can see it, and this
+ * app already has exactly one such place.
  *
  * The whole check is a single `consume_rate_limit(...)` call. That is not a
  * round-trip optimisation, it is the correctness requirement: read-then-write
