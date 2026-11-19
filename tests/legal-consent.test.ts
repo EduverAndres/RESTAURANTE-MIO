@@ -89,6 +89,7 @@ describe('consent is express and unticked by default', () => {
       full_name: 'Ana Pérez',
       email: 'ana@correo.co',
       password: 'secreto123',
+      confirm_password: 'secreto123',
       role: 'customer' as const,
     }
     expect(

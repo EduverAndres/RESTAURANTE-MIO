@@ -2,13 +2,19 @@
 
 import { headers } from 'next/headers'
 import { buildAuthRedirectUrl } from '@/lib/auth/callback'
-import { mapAuthError } from '@/lib/auth/errors'
+import { AUTH_ERROR_MESSAGES, mapAuthError } from '@/lib/auth/errors'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { getRoleHome } from '@/lib/auth/roles'
 import { safeNextPath } from '@/lib/auth/safe-next'
 import { env } from '@/lib/env'
+import { clientIp } from '@/lib/http/client-ip'
 import { legalMetadata, type ConsentSource } from '@/lib/legal/consent'
 import { logConsent, recordLegalAcceptance } from '@/lib/legal/record'
+import { logger } from '@/lib/log/logger'
+import {
+  checkAuthRateLimit,
+  type AuthRateLimitAction,
+} from '@/lib/rate-limit/auth'
 import { createClient } from '@/lib/supabase/server'
 import {
   emailSchema,
@@ -33,12 +39,30 @@ function authRedirectUrl(next: string | null | undefined): string {
   return buildAuthRedirectUrl(env.NEXT_PUBLIC_SITE_URL, next)
 }
 
+/**
+ * Spends the per-account / per-address budget of an auth action. Returns the
+ * copy to show when the budget is exhausted, null when the action may run.
+ */
+async function rateLimitError(
+  action: AuthRateLimitAction,
+  email: string,
+): Promise<string | null> {
+  const decision = await checkAuthRateLimit(action, {
+    email,
+    ip: clientIp(await headers()),
+  })
+  return decision.allowed ? null : AUTH_ERROR_MESSAGES.rateLimit
+}
+
 export async function signInWithPassword(
   input: LoginInput,
   next?: string | null,
 ): Promise<ActionResult<{ redirectTo: string }>> {
   const parsed = loginSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
+
+  const limited = await rateLimitError('login', parsed.data.email)
+  if (limited) return { ok: false, error: limited }
 
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -78,6 +102,10 @@ export async function signUp(
   const { email, password, full_name, phone, role, marketing_opt_in } =
     parsed.data
   const landing = safeNextPath(next) ?? getRoleHome(role)
+
+  const limited = await rateLimitError('signup', email)
+  if (limited) return { ok: false, error: limited }
+
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -129,6 +157,9 @@ export async function resendConfirmation(
   const parsed = emailSchema.safeParse(email)
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
 
+  const limited = await rateLimitError('email', parsed.data)
+  if (limited) return { ok: false, error: limited }
+
   const supabase = await createClient()
   const { error } = await supabase.auth.resend({
     type: 'signup',
@@ -148,15 +179,28 @@ export async function requestPasswordReset(
   const parsed = forgotPasswordSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: INVALID_INPUT }
 
+  // The budget is spent for unknown addresses too, so being throttled says
+  // nothing about whether an account exists.
+  const limited = await rateLimitError('email', parsed.data.email)
+  if (limited) return { ok: false, error: limited }
+
   const supabase = await createClient()
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
     { redirectTo: authRedirectUrl('/account/reset-password') },
   )
   // Rate limits are surfaced; anything else stays silent to avoid leaking
-  // whether the address exists.
+  // whether the address exists. It is still logged (without the address) so
+  // a broken SMTP setup does not fail unnoticed.
   if (error && error.status === 429)
     return { ok: false, error: mapAuthError(error) }
+  if (error) {
+    logger.error(
+      'auth.recovery.send_failed',
+      { code: error.code, status: error.status },
+      error,
+    )
+  }
   return { ok: true }
 }
 
@@ -171,6 +215,8 @@ export async function updatePassword(
     password: parsed.data.password,
   })
   if (error) return { ok: false, error: mapAuthError(error) }
+  // GoTrue itself ends every other session of the user when the password
+  // changes (checked by e2e/auth.spec.ts), so nothing else to revoke here.
   return { ok: true }
 }
 
