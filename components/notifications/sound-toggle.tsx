@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { playSoundEvent, unlockAudio } from '@/lib/sound/player'
@@ -19,6 +19,8 @@ interface SoundToggleProps {
  * audio start, so the preview also unlocks the context.
  */
 export function SoundToggle({ className, compact = false }: SoundToggleProps) {
+  // Unique per instance: the header and the mobile menu can both render one.
+  const switchId = useId()
   const enabled = useSoundPreferences((state) => state.enabled)
   const setEnabled = useSoundPreferences((state) => state.setEnabled)
   // The store rehydrates from localStorage after mount; until then render
@@ -47,7 +49,7 @@ export function SoundToggle({ className, compact = false }: SoundToggleProps) {
     return (
       <div className={cn('flex items-center gap-2', className)}>
         <Label
-          htmlFor="sound-toggle"
+          htmlFor={switchId}
           className="text-muted-foreground flex items-center gap-2 text-sm"
         >
           Sonido
@@ -56,7 +58,7 @@ export function SoundToggle({ className, compact = false }: SoundToggleProps) {
           </span>
         </Label>
         <Switch
-          id="sound-toggle"
+          id={switchId}
           checked={checked}
           onCheckedChange={onCheckedChange}
           aria-label="Sonido en los cambios de estado"
@@ -68,7 +70,7 @@ export function SoundToggle({ className, compact = false }: SoundToggleProps) {
   return (
     <div className={cn('flex items-center justify-between gap-4', className)}>
       <div className="space-y-0.5">
-        <Label htmlFor="sound-toggle" className="text-sm font-medium">
+        <Label htmlFor={switchId} className="text-sm font-medium">
           Sonido en los cambios de estado
         </Label>
         <p className="text-muted-foreground text-xs">
@@ -76,7 +78,7 @@ export function SoundToggle({ className, compact = false }: SoundToggleProps) {
         </p>
       </div>
       <Switch
-        id="sound-toggle"
+        id={switchId}
         checked={checked}
         onCheckedChange={onCheckedChange}
         aria-label="Sonido en los cambios de estado"

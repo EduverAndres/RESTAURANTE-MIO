@@ -1,6 +1,6 @@
 /**
- * What a restaurant pays a marketplace versus what it pays for its own
- * channel.
+ * What a business pays its current delivery app versus what it would pay on
+ * Cerquita for the same sales.
  *
  * The whole sales argument is one number, and the number has to be the
  * merchant's own: they type the commission they are actually charged rather
@@ -8,49 +8,48 @@
  * more than a figure they have to take on faith — and it keeps the page from
  * making claims about a competitor's pricing that nobody here can verify.
  *
- * The comparison is deliberately allowed to come out negative. A flat
- * subscription costs more than a percentage below the break even, and a
- * calculator that hides that is one nobody believes the second time they use
- * it. `breakEvenRevenue` names the point exactly, so a small restaurant gets
- * an honest "not yet" instead of a sales pitch.
+ * Our side is the real plan rule (lib/plans.ts): the base commission on every
+ * delivery and pickup, plus the online-payment share on the part paid online,
+ * plus the plan's monthly fee. Table orders carry no commission, but they are
+ * not what a delivery app sells, so they are left out of the comparison
+ * rather than used to flatter it.
+ *
+ * The comparison is allowed to come out negative: a calculator that hides
+ * the case where the current app is cheaper is one nobody believes the
+ * second time they use it.
  *
  * Pure, in whole Colombian pesos, no `process.env` — so it runs identically in
  * the browser, on the server and in tests.
  */
 
 export interface ChannelCostInput {
-  /** Monthly revenue sold through the marketplace, in COP. */
+  /** Monthly revenue sold through the current app, in COP. */
   monthlyRevenue: number
-  /** Commission the marketplace charges, as a percentage of revenue. */
+  /** Commission the current app charges, as a percentage of revenue. */
   commissionPct: number
-  /** Our flat monthly subscription, in COP. */
-  subscription: number
+  /** Share of those sales paid online (card, PSE, Nequi), 0–100. */
+  onlineSharePct: number
+  /** Our base commission on delivery and pickup. */
+  ourCommissionPct: number
+  /** Our extra percentage on what is paid online. */
+  ourOnlinePct: number
+  /** The plan's monthly fee, in COP (0 on Normal). */
+  ourMonthlyFee: number
 }
 
 export interface ChannelCost {
-  /** What the marketplace takes this month. */
+  /** What the current app takes this month. */
   marketplaceCost: number
-  /** What we take this month. */
+  /** What we take this month, plan fee included. */
   ourCost: number
+  /** Our commission as one average percentage, for the copy. */
+  ourEffectivePct: number
   /** Positive when switching saves money, negative when it costs more. */
   monthlySaving: number
   yearlySaving: number
-  /**
-   * Revenue at which both channels cost the same. Depends only on the
-   * commission and the subscription, never on the revenue typed in.
-   */
-  breakEvenRevenue: number
   /** True only when there is a real saving; breaking even is not a reason. */
   worthIt: boolean
 }
-
-/**
- * Returned as `breakEvenRevenue` when no commission is charged: with a 0%
- * marketplace there is no revenue at which a flat fee wins, so there is no
- * number to show. A sentinel rather than `Infinity`, which formats badly and
- * serialises to `null` through JSON.
- */
-export const BREAK_EVEN_UNREACHABLE = -1
 
 /** Finite, non-negative, whole pesos. Anything else becomes 0. */
 function money(value: number): number {
@@ -66,22 +65,26 @@ function percentage(value: number): number {
 export function compareChannelCost(input: ChannelCostInput): ChannelCost {
   const revenue = money(input.monthlyRevenue)
   const rate = percentage(input.commissionPct)
-  const subscription = money(input.subscription)
+  const onlineShare = percentage(input.onlineSharePct)
+
+  const ourEffectivePct =
+    Math.round(
+      (percentage(input.ourCommissionPct) +
+        (percentage(input.ourOnlinePct) * onlineShare) / 100) *
+        100,
+    ) / 100
 
   const marketplaceCost = Math.round((revenue * rate) / 100)
-  const monthlySaving = marketplaceCost - subscription
-
-  const breakEvenRevenue =
-    rate === 0
-      ? BREAK_EVEN_UNREACHABLE
-      : Math.ceil((subscription * 100) / rate)
+  const ourCost =
+    Math.round((revenue * ourEffectivePct) / 100) + money(input.ourMonthlyFee)
+  const monthlySaving = marketplaceCost - ourCost
 
   return {
     marketplaceCost,
-    ourCost: subscription,
+    ourCost,
+    ourEffectivePct,
     monthlySaving,
     yearlySaving: monthlySaving * 12,
-    breakEvenRevenue,
     worthIt: monthlySaving > 0,
   }
 }

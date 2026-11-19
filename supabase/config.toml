@@ -255,27 +255,27 @@ otp_expiry = 86400
 # app's redirect is not allow-listed), so it works from any device.
 # Apply to the hosted project with `npm run db:config`.
 [auth.email.template.confirmation]
-subject = "Confirma tu cuenta en Tienda"
+subject = "Confirma tu cuenta en Cerquita"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Cambia tu contraseña de Tienda"
+subject = "Cambia tu contraseña de Cerquita"
 content_path = "./supabase/templates/recovery.html"
 
 [auth.email.template.magic_link]
-subject = "Tu enlace de acceso a Tienda"
+subject = "Tu enlace de acceso a Cerquita"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.email_change]
-subject = "Confirma tu nuevo correo en Tienda"
+subject = "Confirma tu nuevo correo en Cerquita"
 content_path = "./supabase/templates/email_change.html"
 
 [auth.email.template.invite]
-subject = "Te invitaron a Tienda"
+subject = "Te invitaron a Cerquita"
 content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.reauthentication]
-subject = "Tu código de verificación de Tienda"
+subject = "Tu código de verificación de Cerquita"
 content_path = "./supabase/templates/reauthentication.html"
 
 # Uncomment to customize notification email template

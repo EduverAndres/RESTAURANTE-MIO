@@ -1,11 +1,13 @@
 import { ChevronLeftIcon } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import { TableCheckoutForm } from './table-checkout-form'
 import { getCurrentUser } from '@/lib/auth'
 import { tableEntryPath } from '@/lib/tables/qr'
-import { fetchTableByToken, listTablePaymentOptions } from '@/lib/tables/server'
+import {
+  listTablePaymentOptions,
+  requireTableOrRedirect,
+} from '@/lib/tables/server'
 
 export const metadata: Metadata = { title: 'Pedido en mesa' }
 export const dynamic = 'force-dynamic'
@@ -19,8 +21,7 @@ export default async function TableCheckoutPage({
   params,
 }: TableCheckoutPageProps) {
   const { slug, token } = await params
-  const resolved = await fetchTableByToken(slug, token)
-  if (!resolved) notFound()
+  const resolved = await requireTableOrRedirect(slug, token, '/checkout')
   const { store, table } = resolved
   const current = await getCurrentUser()
 

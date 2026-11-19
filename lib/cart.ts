@@ -21,6 +21,36 @@ export interface CartItem {
 export interface CartTable {
   number: number
   token: string
+  /** Epoch ms of the last time a table page tagged the cart. */
+  taggedAt?: number
+}
+
+/**
+ * How long a scanned table keeps tagging the cart. A meal is well inside it;
+ * the next visit from home is not. Before this the tag never expired: someone
+ * who scanned a table and left without ordering opened the store days later
+ * and "Ir a pagar" sent them to that table's checkout.
+ */
+export const TABLE_CONTEXT_TTL_MS = 4 * 60 * 60 * 1000
+
+/**
+ * The table tag if it is still fresh, else null. A tag without a time comes
+ * from a cart saved before tags expired, so its age is unknown: dropped. A
+ * table page re-tags the cart as soon as it opens, so a guest still seated
+ * loses nothing.
+ */
+export function freshTable(
+  table: CartTable | null | undefined,
+  now: number,
+): CartTable | null {
+  if (!table || typeof table.taggedAt !== 'number') return null
+  return now - table.taggedAt <= TABLE_CONTEXT_TTL_MS ? table : null
+}
+
+/** Stamps a table that has no time yet (a new tag) with `now`. */
+export function stampTable(state: CartState, now: number): CartState {
+  if (!state.table || typeof state.table.taggedAt === 'number') return state
+  return { ...state, table: { ...state.table, taggedAt: now } }
 }
 
 export interface CartState {

@@ -7,7 +7,6 @@ import {
   WalletIcon,
 } from 'lucide-react'
 import Link from 'next/link'
-import { FadeIn } from '@/components/motion/fade-in'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -18,12 +17,15 @@ import { Button } from '@/components/ui/button'
  * and an owner reads it as the one part that is. Every promise points at
  * something the merchant dashboard already has; the pricing line repeats the
  * `/para-restaurantes` offer, whose calculator lets them check it.
+ *
+ * The inversion is the whole effect: no glow, no entrance animation. The band
+ * is in the HTML at rest, like the rest of the home.
  */
 const MERCHANT_BENEFITS = [
   {
-    title: 'Menores comisiones',
+    title: 'Sin mensualidad',
     description:
-      'Una mensualidad fija en lugar de un porcentaje de cada venta. Haz la cuenta con tus números.',
+      'Pagas solo cuando vendes: 0 % en la mesa y 6 % en domicilio y para recoger. Haz la cuenta con tus números.',
     icon: WalletIcon,
   },
   {
@@ -69,16 +71,10 @@ export function MerchantSection() {
     <section
       id="para-negocios"
       aria-labelledby="merchant-title"
-      className="bg-foreground text-background dark:bg-card dark:text-foreground relative isolate scroll-mt-24 overflow-hidden"
+      className="bg-foreground text-background dark:bg-card dark:text-foreground scroll-mt-24"
     >
-      {/* A single warm glow in the corner: the brand, at night. */}
-      <div
-        aria-hidden="true"
-        className="absolute -top-40 -right-40 -z-10 size-[36rem] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--primary)_35%,transparent),transparent)] opacity-70"
-      />
-
       <div className="container-page py-section grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
-        <FadeIn inView className="space-y-6 lg:sticky lg:top-28 lg:self-start">
+        <div className="space-y-6 lg:sticky lg:top-28 lg:self-start">
           <p className="text-accent text-xs font-semibold tracking-wide uppercase">
             Para negocios
           </p>
@@ -86,7 +82,7 @@ export function MerchantSection() {
             id="merchant-title"
             className="text-h1 font-display font-semibold"
           >
-            Gana más vendiendo con nosotros
+            Vende con tu marca. Quédate con tus clientes.
           </h2>
           <p className="text-lead text-background/75 dark:text-muted-foreground text-pretty">
             Abre tu tienda digital en una tarde y empieza a recibir pedidos de
@@ -127,7 +123,7 @@ export function MerchantSection() {
               <Link href="/para-restaurantes">Ver planes y calculadora</Link>
             </Button>
           </div>
-        </FadeIn>
+        </div>
 
         <ul className="grid gap-3 sm:grid-cols-2">
           {MERCHANT_BENEFITS.map(
@@ -136,19 +132,17 @@ export function MerchantSection() {
                 key={title}
                 className={index === 0 ? 'sm:col-span-2' : undefined}
               >
-                <FadeIn inView delay={index * 0.06} className="h-full">
-                  <div className="rounded-card bg-background/[0.06] dark:bg-foreground/[0.04] hover:bg-background/[0.1] dark:hover:bg-foreground/[0.07] p-card h-full ring-1 ring-current/10 transition-colors duration-300">
-                    <span className="bg-primary text-primary-foreground rounded-control mb-4 grid size-11 place-items-center">
-                      <Icon aria-hidden="true" className="size-5" />
-                    </span>
-                    <h3 className="font-display mb-1.5 text-xl font-semibold">
-                      {title}
-                    </h3>
-                    <p className="text-background/70 dark:text-muted-foreground text-sm text-pretty">
-                      {description}
-                    </p>
-                  </div>
-                </FadeIn>
+                <div className="rounded-card bg-background/[0.06] dark:bg-foreground/[0.04] p-card h-full ring-1 ring-current/10">
+                  <span className="bg-primary text-primary-foreground rounded-control mb-4 grid size-11 place-items-center">
+                    <Icon aria-hidden="true" className="size-5" />
+                  </span>
+                  <h3 className="font-display mb-1.5 text-xl font-semibold">
+                    {title}
+                  </h3>
+                  <p className="text-background/70 dark:text-muted-foreground text-sm text-pretty">
+                    {description}
+                  </p>
+                </div>
               </li>
             ),
           )}

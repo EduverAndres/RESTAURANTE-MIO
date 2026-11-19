@@ -6,6 +6,7 @@ import {
   type CourierPosition,
 } from '@/lib/courier/server'
 import { logger } from '@/lib/log/logger'
+import { rebuildCartFromOrder, type ReorderItem } from '@/lib/orders/reorder'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { reviewSchema, type ReviewInput } from '@/lib/validations/checkout'
@@ -178,4 +179,86 @@ export async function submitReview(input: ReviewInput): Promise<Result> {
   }
   revalidatePath(`/orders/${order.id}`)
   return { ok: true }
+}
+
+export type ReorderResponse =
+  | {
+      ok: true
+      storeId: string
+      storeSlug: string
+      items: ReorderItem[]
+      skipped: string[]
+    }
+  | { ok: false; error: string }
+
+const REORDER_CATALOGUE_SELECT =
+  'id, name, price, image_url, is_available, store_id, product_options(id, name, required, min, max, product_option_values(id, name, price_delta))'
+
+/**
+ * Loads a past order and rebuilds its cart against today's menu. Read-only:
+ * the cart lives in the browser, so this only returns the lines and the
+ * names that could not be brought back. Ownership is the RLS read
+ * (`customer_id = user.id`); the catalogue is public data of an active store.
+ */
+export async function prepareReorder(
+  orderId: string,
+): Promise<ReorderResponse> {
+  const parsed = orderIdSchema.safeParse(orderId)
+  if (!parsed.success) return { ok: false, error: 'Pedido inválido.' }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: SESSION_EXPIRED }
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select(
+      'store_id, stores(slug, status), order_items(product_id, name_snapshot, quantity, options)',
+    )
+    .eq('id', parsed.data)
+    .eq('customer_id', user.id)
+    .maybeSingle()
+  if (!order) return { ok: false, error: 'No encontramos el pedido.' }
+  if (!order.stores || order.stores.status !== 'active') {
+    return {
+      ok: false,
+      error: 'Este negocio no está recibiendo pedidos ahora.',
+    }
+  }
+
+  const lines = order.order_items ?? []
+  const productIds = [
+    ...new Set(
+      lines.flatMap((line) => (line.product_id ? [line.product_id] : [])),
+    ),
+  ]
+  const { data: catalogue, error } = productIds.length
+    ? await supabase
+        .from('products')
+        .select(REORDER_CATALOGUE_SELECT)
+        .in('id', productIds)
+    : { data: [], error: null }
+  if (error) {
+    logger.error(
+      'orders.reorder.catalogue_failed',
+      { orderId: parsed.data },
+      error,
+    )
+    return { ok: false, error: 'No pudimos cargar la carta del negocio.' }
+  }
+
+  const { items, skipped } = rebuildCartFromOrder(
+    lines,
+    catalogue ?? [],
+    order.store_id,
+  )
+  return {
+    ok: true,
+    storeId: order.store_id,
+    storeSlug: order.stores.slug,
+    items,
+    skipped,
+  }
 }

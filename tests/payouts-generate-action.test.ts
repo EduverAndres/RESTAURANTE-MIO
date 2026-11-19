@@ -133,4 +133,25 @@ describe('generatePayouts', () => {
     })
     expect(current.calls).toEqual([])
   })
+
+  // Settling the week in progress closed it: the row for that range already
+  // existed when the week ended, so its last days were never paid out.
+  it('refuses a period that has not ended yet in Bogotá', async () => {
+    current = fakeAdmin({ data: [RUN] })
+    vi.useFakeTimers()
+    // 2026-09-20 21:00 in Bogotá is already 2026-09-21 in UTC.
+    vi.setSystemTime(new Date('2026-09-21T02:00:00Z'))
+    try {
+      expect(await generate(PERIOD)).toEqual({
+        ok: false,
+        error: 'Ese periodo todavía no termina. Liquida periodos ya cerrados.',
+      })
+      expect(current.calls).toEqual([])
+
+      vi.setSystemTime(new Date('2026-09-21T05:00:00Z'))
+      expect((await generate(PERIOD)).ok).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

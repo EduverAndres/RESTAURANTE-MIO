@@ -205,7 +205,7 @@ export function StoreCard({
             <span className="inline-flex items-center gap-1.5">
               <StarIcon
                 aria-hidden="true"
-                className="fill-accent text-accent size-4"
+                className="fill-accent text-accent-strong size-4"
               />
               <span className="text-foreground font-medium">
                 {rating.toFixed(1)}

@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CourierOrderSummary } from '@/lib/courier/orders'
 
 interface CourierBoardProps {
+  /** False for an admin, who watches the pool but never takes deliveries. */
+  canClaim: boolean
   available: CourierOrderSummary[]
   active: CourierOrderSummary[]
   history: CourierOrderSummary[]
@@ -30,6 +32,7 @@ function Count({ value }: { value: number }) {
 }
 
 export function CourierBoard({
+  canClaim,
   available: initialAvailable,
   active,
   history,
@@ -44,7 +47,17 @@ export function CourierBoard({
 
   return (
     <div className="space-y-6">
-      <OnlineSwitch online={online} state={publisher} onChange={setOnline} />
+      {canClaim ? (
+        <OnlineSwitch online={online} state={publisher} onChange={setOnline} />
+      ) : (
+        <p
+          role="note"
+          className="rounded-card border-border bg-muted/40 text-muted-foreground border p-4 text-sm"
+        >
+          Vista de supervisión: ves los pedidos disponibles, pero solo los
+          domiciliarios pueden tomarlos.
+        </p>
+      )}
 
       <Tabs defaultValue={active.length > 0 ? 'entregas' : 'disponibles'}>
         <TabsList className="w-full sm:w-auto">
@@ -62,12 +75,13 @@ export function CourierBoard({
             <ul className="grid gap-3 sm:grid-cols-2">
               {available.map((order) => (
                 <li key={order.id}>
-                  <AvailableOrderCard order={order} />
+                  <AvailableOrderCard order={order} canClaim={canClaim} />
                 </li>
               ))}
             </ul>
           ) : (
             <EmptyState
+              illustration="rider"
               title="No hay pedidos disponibles"
               description="Cuando un restaurante marque un domicilio como listo aparecerá aquí al instante."
               className="py-10"
@@ -86,6 +100,7 @@ export function CourierBoard({
             </ul>
           ) : (
             <EmptyState
+              illustration="rider"
               title="No tienes entregas en curso"
               description="Toma un pedido disponible para empezar."
               className="py-10"
@@ -104,6 +119,7 @@ export function CourierBoard({
             </ul>
           ) : (
             <EmptyState
+              illustration="rider"
               title="Aún no hay entregas finalizadas"
               description="Tus entregas completadas y sus ganancias se listarán aquí."
               className="py-10"

@@ -24,9 +24,13 @@
 // `refunds.reversed_in_payout_id` records which payout carried which
 // reversal, so a refund is carried exactly once.
 import {
+  collectedAmount,
+  isCollectedByMerchant,
   periodEndExclusive,
+  settledGross,
   type PayoutPeriod,
 } from '@/lib/payouts/compute'
+import type { OrderType, PaymentMethod } from '@/types/app'
 
 // ---------------------------------------------------------------------------
 // THE DECISION POINT
@@ -57,6 +61,12 @@ export interface RefundedOrderInput {
   subtotal: number
   /** The commission the platform charged on that subtotal, in pesos. */
   platform_fee: number
+  merchant_discount: number
+  platform_discount: number
+  /** With `type` and `courier_id`: whether the merchant held the cash. */
+  payment_method: PaymentMethod
+  type: OrderType
+  courier_id: string | null
   /** Decides which settlement period the order belonged to. */
   delivered_at: string | null
   /** When the refund was recorded (`refunds.issued_at`). */
@@ -83,7 +93,9 @@ export interface PayoutAdjustment {
   gross: number
   /** Negative, or 0 when the platform keeps its commission. */
   commission: number
-  /** `gross - commission`: what the merchant has to give back. */
+  /** Negative when the merchant had collected the sale in cash, else 0. */
+  cash_collected: number
+  /** `gross - commission - cash_collected`: what the merchant gives back. */
   net: number
 }
 
@@ -98,15 +110,22 @@ export interface PayoutAdjustment {
 export function reverseRefundedOrder(
   order: RefundedOrderInput,
 ): PayoutAdjustment {
-  const gross = -order.subtotal
+  const gross = -settledGross(order)
   const commission = REFUND_REVERSES_PLATFORM_FEE ? -order.platform_fee : 0
+  // A cash sale the merchant held was never transferred, so its reversal
+  // only hands the commission back: the merchant returns the cash to the
+  // customer from the till, not to the platform.
+  const cash_collected = isCollectedByMerchant(order)
+    ? -collectedAmount(order)
+    : 0
   return {
     refund_id: order.refund_id,
     order_id: order.order_id,
     store_id: order.store_id,
     gross,
     commission,
-    net: gross - commission,
+    cash_collected,
+    net: gross - commission - cash_collected,
   }
 }
 

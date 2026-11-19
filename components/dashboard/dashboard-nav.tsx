@@ -29,12 +29,21 @@ export function DashboardNav({
   className,
 }: DashboardNavProps) {
   const pathname = usePathname()
+  // The deepest matching item wins: "/dashboard" is a prefix of every other
+  // section, so a plain prefix test lit "Pedidos" (and "Resumen" in /admin)
+  // on every page.
+  const activeHref = items
+    .filter(
+      ({ href, availableIn }) =>
+        !availableIn && (pathname === href || pathname.startsWith(`${href}/`)),
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   return (
     <nav aria-label="Secciones del panel" className={className}>
       <ul className="space-y-1">
         {items.map(({ label, href, icon: Icon, availableIn }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`)
+          const active = href === activeHref
 
           if (availableIn) {
             return (

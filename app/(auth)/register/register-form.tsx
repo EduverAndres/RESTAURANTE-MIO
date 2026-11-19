@@ -77,9 +77,11 @@ const RESEND_COOLDOWN_SECONDS = 60
 function ResendConfirmation({
   email,
   role,
+  next,
 }: {
   email: string
   role: RegisterRole
+  next: string | null
 }) {
   const [pending, startTransition] = useTransition()
   // The first email was just sent, so the cooldown starts immediately.
@@ -96,7 +98,7 @@ function ResendConfirmation({
 
   function resend() {
     startTransition(async () => {
-      const result = await resendConfirmation(email, getRoleHome(role))
+      const result = await resendConfirmation(email, next ?? getRoleHome(role))
       if (!result.ok) {
         toast.error(result.error)
         return
@@ -175,7 +177,7 @@ export function RegisterForm({
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
-      const result = await signUp(values)
+      const result = await signUp(values, next)
       if (!result.ok) {
         toast.error(result.error)
         return
@@ -212,6 +214,7 @@ export function RegisterForm({
         <ResendConfirmation
           email={confirmation.email}
           role={confirmation.role}
+          next={next}
         />
       </div>
     )

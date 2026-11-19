@@ -33,7 +33,10 @@ export function FavoriteButton({
       if (!result.ok) {
         if (result.error === 'unauthenticated') {
           toast('Inicia sesión para guardar favoritos.')
-          router.push('/login?next=%2F')
+          // Back to this page (a store, or a table the guest is ordering
+          // from) after signing in, not to the home page.
+          const here = window.location.pathname + window.location.search
+          router.push(`/login?next=${encodeURIComponent(here)}`)
         } else {
           toast.error('No pudimos guardar el favorito.')
         }

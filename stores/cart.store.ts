@@ -7,9 +7,11 @@ import {
   addItem,
   cartQuantity,
   cartSubtotal,
+  freshTable,
   removeItem,
   setItemQuantity,
   setTableContext,
+  stampTable,
   type CartItemInput,
   type CartState,
   type CartStoreRef,
@@ -40,15 +42,25 @@ export const useCartStore = create<CartStore>()(
       lastAddedAt: 0,
       add: (store, item, quantity) =>
         set((state) => ({
-          ...addItem(state, store, item, quantity),
+          ...stampTable(addItem(state, store, item, quantity), Date.now()),
           lastAddedAt: Date.now(),
         })),
       setQuantity: (key, quantity) =>
         set((state) => setItemQuantity(state, key, quantity)),
       remove: (key) => set((state) => removeItem(state, key)),
       clear: () => set({ ...EMPTY_CART }),
+      // A table page passes the table without a time: this is a new tag.
       setTable: (store, table) =>
-        set((state) => setTableContext(state, store, table)),
+        set((state) =>
+          stampTable(
+            setTableContext(
+              state,
+              store,
+              table && { number: table.number, token: table.token },
+            ),
+            Date.now(),
+          ),
+        ),
       setOpen: (isOpen) => set({ isOpen }),
     }),
     {
@@ -60,6 +72,15 @@ export const useCartStore = create<CartStore>()(
         table: state.table ?? null,
         items: state.items,
       }),
+      // A table tag older than TABLE_CONTEXT_TTL_MS is dropped on load.
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<CartState>
+        return {
+          ...current,
+          ...saved,
+          table: freshTable(saved.table, Date.now()),
+        }
+      },
     },
   ),
 )

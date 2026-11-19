@@ -16,6 +16,7 @@ import { formatCOP } from '@/lib/format'
 import { latLngOf, type LatLng } from '@/lib/geo'
 import { estimateRoute, type RouteEstimate } from '@/lib/routing'
 import { createClient } from '@/lib/supabase/server'
+import { throwOnQueryError } from '@/lib/supabase/query-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ export const metadata: Metadata = { title: 'Detalle de entrega' }
 async function fetchAssignedOrder(id: string, courierId: string) {
   if (!isUuid(id)) return null
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select(
       'id, short_code, status, type, notes, total, delivery_fee, estimated_at, payment_method, payment_status, address_id, customer_id, stores(name, address, lat, lng, whatsapp_phone), order_items(id, name_snapshot, quantity, options), customer:profiles!orders_customer_id_fkey(full_name, phone)',
@@ -36,6 +37,7 @@ async function fetchAssignedOrder(id: string, courierId: string) {
     .eq('id', id)
     .eq('courier_id', courierId)
     .maybeSingle()
+  throwOnQueryError(error, 'courier delivery')
   return data
 }
 

@@ -9,8 +9,7 @@ import { setStoreOpen } from './actions'
 import { StoreStatusBadge } from '@/components/orders/order-status-badge'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { env } from '@/lib/env'
-import { storePublicUrl } from '@/lib/subdomain'
+import { storeUrl } from '@/lib/env'
 import type { StoreStatus } from '@/types/app'
 
 interface StoreStatusCardProps {
@@ -86,11 +85,7 @@ export function StoreStatusCard({
       </div>
 
       <Link
-        href={storePublicUrl({
-          slug,
-          siteUrl: env.NEXT_PUBLIC_SITE_URL,
-          rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
-        })}
+        href={storeUrl(slug)}
         target="_blank"
         rel="noreferrer"
         className="text-primary inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"

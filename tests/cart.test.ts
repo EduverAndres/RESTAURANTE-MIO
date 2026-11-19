@@ -8,6 +8,9 @@ import {
   removeItem,
   setItemQuantity,
   setTableContext,
+  freshTable,
+  stampTable,
+  TABLE_CONTEXT_TTL_MS,
   type CartItem,
   type CartState,
 } from '@/lib/cart'
@@ -192,5 +195,42 @@ describe('table context', () => {
     expect(
       setTableContext(cart, { storeId: 's1', storeSlug: 'x' }, null).table,
     ).toBeNull()
+  })
+})
+
+// Someone scanned a table, left without ordering and opened the store from
+// home days later: the cart still said "Mesa 4" and checked out at the table.
+describe('table context expiry', () => {
+  const NOW = Date.UTC(2026, 10, 5, 20, 0, 0)
+  const mesa = { number: 4, token: 'a'.repeat(24) }
+
+  it('keeps a table tagged within the last four hours', () => {
+    const tagged = { ...mesa, taggedAt: NOW - TABLE_CONTEXT_TTL_MS }
+    expect(freshTable(tagged, NOW)).toEqual(tagged)
+  })
+
+  it('drops a table tagged longer ago', () => {
+    expect(
+      freshTable({ ...mesa, taggedAt: NOW - TABLE_CONTEXT_TTL_MS - 1 }, NOW),
+    ).toBeNull()
+  })
+
+  it('drops a table saved before tags carried a time', () => {
+    expect(freshTable(mesa, NOW)).toBeNull()
+    expect(freshTable(null, NOW)).toBeNull()
+  })
+
+  it('stamps a new tag and leaves a stamped one alone', () => {
+    const cart: CartState = {
+      ...EMPTY_CART,
+      storeId: 's1',
+      storeSlug: 'x',
+      table: mesa,
+    }
+    expect(stampTable(cart, NOW).table).toEqual({ ...mesa, taggedAt: NOW })
+
+    const stamped = { ...cart, table: { ...mesa, taggedAt: NOW - 1000 } }
+    expect(stampTable(stamped, NOW)).toBe(stamped)
+    expect(stampTable(EMPTY_CART, NOW)).toBe(EMPTY_CART)
   })
 })
