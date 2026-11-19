@@ -2,6 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useVisitorLocation } from '@/hooks/use-visitor-location'
 import { GeolocationFailureError } from '@/lib/geo/geolocation-availability'
+import { logger } from '@/lib/log/logger'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -58,6 +59,40 @@ describe('useVisitorLocation', () => {
     if (originalSecureContext)
       Object.defineProperty(window, 'isSecureContext', originalSecureContext)
     else Reflect.deleteProperty(window, 'isSecureContext')
+  })
+
+  it('logs an insecure (http) origin so the missing HTTPS shows up', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
+    stubSecureContext(false)
+    stubGeolocation(() => {
+      throw new Error('should not be called')
+    })
+    const { result } = renderHook(() => useVisitorLocation())
+    await waitFor(() => expect(result.current.gpsSupport).toBe('insecure'))
+    expect(warn).toHaveBeenCalledWith(
+      'geolocation.insecure_context',
+      expect.objectContaining({ origin: expect.any(String) }),
+    )
+    warn.mockRestore()
+  })
+
+  it('asks the device for its position only when the user locates', async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) =>
+      success({ coords: { latitude: 10.98, longitude: -74.8 } }),
+    )
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition },
+    })
+    const { result } = renderHook(() => useVisitorLocation())
+    await waitFor(() => expect(result.current.gpsSupport).toBe('ok'))
+    // Opening the picker does not prompt; only the button does.
+    expect(getCurrentPosition).not.toHaveBeenCalled()
+    await expect(result.current.locate()).resolves.toEqual({
+      lat: 10.98,
+      lng: -74.8,
+    })
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1)
   })
 
   it('rejects with insecure on a plain http origin', async () => {

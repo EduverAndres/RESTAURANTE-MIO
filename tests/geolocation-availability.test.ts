@@ -58,17 +58,23 @@ describe('classifyPositionError', () => {
 })
 
 describe('geolocationFailureMessage', () => {
-  it('uses the same no-GPS copy for unsupported and insecure', () => {
-    const expected =
-      'No tienes acceso a GPS en este dispositivo. Te recomendamos hacer la compra desde un dispositivo con GPS, o busca tu dirección manualmente.'
-    expect(geolocationFailureMessage('unsupported')).toBe(expected)
-    expect(geolocationFailureMessage('insecure')).toBe(expected)
+  const NO_GPS =
+    'No tienes acceso a GPS en este dispositivo. Te recomendamos hacer la compra desde un dispositivo con GPS, o busca tu dirección manualmente.'
+
+  it('tells a device without geolocation to search manually', () => {
+    expect(geolocationFailureMessage('unsupported')).toBe(NO_GPS)
   })
 
-  it('explains a blocked permission', () => {
-    expect(geolocationFailureMessage('denied')).toBe(
-      'El permiso de ubicación está bloqueado. Actívalo en tu navegador o busca tu dirección manualmente.',
-    )
+  it('treats a denied permission like no GPS, with the manual way out', () => {
+    expect(geolocationFailureMessage('denied')).toBe(NO_GPS)
+  })
+
+  it('does not blame the device on an insecure (http) connection', () => {
+    const message = geolocationFailureMessage('insecure')
+    expect(message).not.toBe(NO_GPS)
+    expect(message).not.toMatch(/dispositivo/)
+    expect(message).toMatch(/conexión/)
+    expect(message).toMatch(/manualmente/)
   })
 
   it('explains an unavailable position', () => {

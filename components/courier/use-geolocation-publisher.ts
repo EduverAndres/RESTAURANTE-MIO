@@ -12,6 +12,7 @@ import {
   classifyPositionError,
   detectGeolocationSupport,
 } from '@/lib/geo/geolocation-availability'
+import { logger } from '@/lib/log/logger'
 
 export type GeolocationPublisherState =
   | 'idle'
@@ -56,6 +57,10 @@ export function useGeolocationPublisher(
       return
     }
     if (support === 'insecure') {
+      logger.warn('geolocation.insecure_context', {
+        origin: window.location.origin,
+        surface: 'courier',
+      })
       setState('insecure')
       toast.error(
         'El navegador bloquea la ubicación en conexiones sin https. Abre la app desde una dirección segura.',
