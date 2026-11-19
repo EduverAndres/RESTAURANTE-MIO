@@ -2,7 +2,7 @@ import 'server-only'
 
 import { networkInterfaces } from 'node:os'
 import { headers } from 'next/headers'
-import { env } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 import { requestOrigin } from '@/lib/http/request-origin'
 import { pickLanAddress, qrBaseFor, type QrBase } from '@/lib/tables/qr-reach'
 
@@ -24,8 +24,8 @@ export type { QrBase }
 export async function tableQrBase(): Promise<QrBase> {
   const production = process.env.NODE_ENV === 'production'
   const origin = production
-    ? env.NEXT_PUBLIC_SITE_URL
-    : requestOrigin(await headers(), env.NEXT_PUBLIC_SITE_URL)
+    ? siteUrl()
+    : requestOrigin(await headers(), siteUrl())
 
   const lan = production
     ? null

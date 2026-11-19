@@ -3,7 +3,7 @@ import 'server-only'
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import QRCode from 'qrcode'
-import { env } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 import {
   GUEST_ORDERS_COOKIE,
   parseGuestOrders,
@@ -105,7 +105,7 @@ export async function fetchOpenGuestOrders(
 
 /** Absolute base used for the printed QR codes. */
 export function siteBaseUrl(): string {
-  return env.NEXT_PUBLIC_SITE_URL
+  return siteUrl()
 }
 
 /**

@@ -9,12 +9,12 @@ import { setStoreOpen } from './actions'
 import { StoreStatusBadge } from '@/components/orders/order-status-badge'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { storeUrl } from '@/lib/env'
 import type { StoreStatus } from '@/types/app'
 
 interface StoreStatusCardProps {
   storeId: string
-  slug: string
+  /** Absolute public link, built on the server (see lib/site-url). */
+  publicUrl: string
   status: StoreStatus
   isOpen: boolean
 }
@@ -28,7 +28,7 @@ const STATUS_HELP: Record<StoreStatus, string> = {
 
 export function StoreStatusCard({
   storeId,
-  slug,
+  publicUrl,
   status,
   isOpen,
 }: StoreStatusCardProps) {
@@ -85,7 +85,7 @@ export function StoreStatusCard({
       </div>
 
       <Link
-        href={storeUrl(slug)}
+        href={publicUrl}
         target="_blank"
         rel="noreferrer"
         className="text-primary inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"

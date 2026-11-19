@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { mapCallbackErrorCode, resolveCallback } from '@/lib/auth/callback'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { getRoleHome } from '@/lib/auth/roles'
-import { env } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 import { requestOrigin } from '@/lib/http/request-origin'
 import { LEGAL_PENDING_COOKIE, LEGAL_VERSION } from '@/lib/legal/consent'
 import { recordLegalAcceptance } from '@/lib/legal/record'
@@ -18,7 +18,7 @@ import { createClient } from '@/lib/supabase/server'
 // Redirects are built from the origin the browser used, never from the
 // server bind address, so the session cookies land on the right host.
 export async function GET(request: NextRequest) {
-  const origin = requestOrigin(request.headers, env.NEXT_PUBLIC_SITE_URL)
+  const origin = requestOrigin(request.headers, siteUrl())
   const fail = (key: string) =>
     NextResponse.redirect(`${origin}/login?error=${key}`)
 

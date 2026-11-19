@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { after } from 'next/server'
-import { env } from '@/lib/env'
+import { absoluteUrl } from '@/lib/site-url'
 import { estimateEtaMinutes } from '@/lib/geo'
 import { clientIp } from '@/lib/http/client-ip'
 import { secureCookieFlag } from '@/lib/http/secure-cookie'
@@ -217,7 +217,7 @@ export async function placeTableOrder(
       email: user?.email ?? null,
       name: values.guestName,
     },
-    returnUrl: `${env.NEXT_PUBLIC_SITE_URL}${tableOrderPath(ref.slug, ref.token, orderId)}`,
+    returnUrl: absoluteUrl(tableOrderPath(ref.slug, ref.token, orderId)),
   })
 
   const recorded = await recordPaymentResult(admin, orderId, payment)

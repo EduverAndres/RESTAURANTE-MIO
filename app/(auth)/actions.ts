@@ -1,12 +1,13 @@
 'use server'
 
 import { headers } from 'next/headers'
+import { after } from 'next/server'
 import { buildAuthRedirectUrl } from '@/lib/auth/callback'
 import { AUTH_ERROR_MESSAGES, mapAuthError } from '@/lib/auth/errors'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { getRoleHome } from '@/lib/auth/roles'
 import { safeNextPath } from '@/lib/auth/safe-next'
-import { env } from '@/lib/env'
+import { siteUrl } from '@/lib/site-url'
 import { clientIp } from '@/lib/http/client-ip'
 import { legalMetadata, type ConsentSource } from '@/lib/legal/consent'
 import { logConsent, recordLegalAcceptance } from '@/lib/legal/record'
@@ -36,7 +37,7 @@ const INVALID_INPUT = 'Revisa los datos ingresados.'
 // Where Supabase sends the user after an email link. Always carries `?next=`
 // so the email templates can append `&token_hash=...&type=...`.
 function authRedirectUrl(next: string | null | undefined): string {
-  return buildAuthRedirectUrl(env.NEXT_PUBLIC_SITE_URL, next)
+  return buildAuthRedirectUrl(siteUrl(), next)
 }
 
 /**
@@ -131,12 +132,20 @@ export async function signUp(
   }
 
   if (data.user) {
-    await logConsent({
-      userId: data.user.id,
-      source: 'register',
-      headers: await headers(),
-      marketingOptIn: marketing_opt_in,
-    })
+    // The evidence row is written after the response is sent: the person
+    // waits only for Supabase (which sends the confirmation email inside
+    // that call), not for one more database round trip. The acceptance
+    // itself already travels in the account metadata above.
+    const userId = data.user.id
+    const requestHeaders = await headers()
+    after(() =>
+      logConsent({
+        userId,
+        source: 'register',
+        headers: requestHeaders,
+        marketingOptIn: marketing_opt_in,
+      }),
+    )
   }
 
   return {

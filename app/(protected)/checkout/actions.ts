@@ -24,7 +24,7 @@ import { newOrderMessage } from '@/lib/push/messages'
 import { sendPushToStoreOwner } from '@/lib/push/send'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { env } from '@/lib/env'
+import { absoluteUrl } from '@/lib/site-url'
 import { checkoutSchema, type CheckoutInput } from '@/lib/validations/checkout'
 import type { PaymentMethod } from '@/types/app'
 
@@ -387,7 +387,7 @@ export async function placeOrder(
       email: user.email ?? null,
       name: user.user_metadata?.full_name ?? null,
     },
-    returnUrl: `${env.NEXT_PUBLIC_SITE_URL}/orders/${order.id}`,
+    returnUrl: absoluteUrl(`/orders/${order.id}`),
   })
 
   const recorded = await recordPaymentResult(admin, order.id, payment)
