@@ -22,7 +22,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "emails": "node scripts/email-templates.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

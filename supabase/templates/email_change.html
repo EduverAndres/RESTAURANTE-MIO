@@ -1,66 +1,83 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="x-apple-disable-message-reformatting" />
-    <title>Confirma tu nuevo correo</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>Confirma tu nuevo correo en Cerquita</title>
+    <style>
+      @media only screen and (max-width: 600px) {
+        .outer { padding: 16px 8px !important; }
+        .px { padding-left: 20px !important; padding-right: 20px !important; }
+        .btn, .btn td, .btn a { display: block !important; width: 100% !important; box-sizing: border-box; }
+        h1 { font-size: 22px !important; line-height: 28px !important; }
+      }
+      @media (prefers-color-scheme: dark) {
+        .bg { background-color: #0c0a09 !important; }
+        .card { background-color: #1c1917 !important; border-color: #292524 !important; }
+        .card h1, .card .brand, .code { color: #fafaf9 !important; }
+        .card p, .notice { color: #d6d3d1 !important; }
+        .notice { background-color: #292524 !important; border-color: #44403c !important; }
+        .code { background-color: #292524 !important; border-color: #9a3412 !important; }
+      }
+    </style>
   </head>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <span style="display:none;max-height:0;overflow:hidden;color:transparent;">Confirma el cambio de correo de tu cuenta en Cerquita.</span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+  <body class="bg" style="margin:0;padding:0;background-color:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;">
+    <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:transparent;">Confirma el cambio de correo de tu cuenta.&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
+    <table role="presentation" class="bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f4;">
       <tr>
-        <td align="center" style="padding:32px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#ffffff;border-radius:16px;border:1px solid #e4e4e7;">
+        <td class="outer" align="center" style="padding:40px 16px;">
+          <table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#ffffff;border:1px solid #e7e5e4;border-radius:20px;">
             <tr>
-              <td style="padding:32px 32px 8px 32px;">
-                <p style="margin:0;font-size:20px;font-weight:700;color:#18181b;letter-spacing:-0.01em;">Cerquita</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:16px 32px 0 32px;">
-                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:600;color:#18181b;">Confirma tu nuevo correo</h1>
-                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#3f3f46;">
-                  Pediste cambiar el correo de tu cuenta:
-                </p>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;background-color:#f4f4f5;border-radius:12px;">
-                  <tr>
-                    <td style="padding:12px 16px;font-size:14px;line-height:22px;color:#3f3f46;word-break:break-all;">
-                      <span style="color:#71717a;">De:</span> {{ .Email }}<br />
-                      <span style="color:#71717a;">A:</span> <strong style="color:#18181b;">{{ .NewEmail }}</strong>
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#3f3f46;">
-                  Toca el botón para confirmar el cambio.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding:0 32px 24px 32px;">
+              <td class="px" style="padding:32px 40px 0 40px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td align="center" style="background-color:#e11d48;border-radius:999px;">
-                      <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change&next=%2Faccount" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">Confirmar cambio de correo</a>
+                    <td style="width:12px;height:12px;background-color:#c2410c;border-radius:999px;font-size:0;line-height:0;">&nbsp;</td>
+                    <td class="brand" style="padding-left:10px;font-size:20px;line-height:24px;font-weight:800;letter-spacing:-0.02em;color:#1c1917;">Cerquita</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="px" style="padding:28px 40px 8px 40px;">
+                <h1 style="margin:0 0 16px 0;font-size:26px;line-height:32px;font-weight:700;letter-spacing:-0.01em;color:#1c1917;">Confirma tu nuevo correo</h1>
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;font-weight:600;color:#1c1917;">{{ if .Data.full_name }}Hola, {{ .Data.full_name }}:{{ else }}Hola:{{ end }}</p>
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#57534e;">Pediste cambiar el correo de tu cuenta de <strong>{{ .Email }}</strong> a <strong>{{ .NewEmail }}</strong>. Toca el botón para confirmarlo.</p>
+              </td>
+            </tr>
+            <tr>
+              <td class="px" align="center" style="padding:8px 40px 8px 40px;">
+                <table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#c2410c" style="background-color:#c2410c;border-radius:999px;">
+                      <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=%2Faccount" target="_blank" style="display:inline-block;padding:15px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px;">Confirmar cambio de correo</a>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 32px 24px 32px;">
-                <p style="margin:0 0 8px 0;font-size:13px;line-height:20px;color:#71717a;">
-                  Si el botón no funciona, copia y pega este enlace en tu navegador:
-                </p>
-                <p style="margin:0;font-size:13px;line-height:20px;word-break:break-all;">
-                  <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change&next=%2Faccount" style="color:#e11d48;text-decoration:underline;">{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change&next=%2Faccount</a>
-                </p>
+              <td class="px" style="padding:24px 40px 0 40px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td class="notice" style="padding:14px 16px;background-color:#fafaf9;border:1px solid #e7e5e4;border-radius:12px;font-size:13px;line-height:20px;color:#57534e;">El enlace vence en <strong>24 horas</strong> y solo funciona una vez.<br /><br /><strong>¿No lo pediste?</strong> No abras el enlace y cambia tu contraseña: alguien podría tener acceso a tu cuenta.</td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 32px 32px 32px;border-top:1px solid #e4e4e7;">
-                <p style="margin:24px 0 0 0;font-size:13px;line-height:20px;color:#71717a;">
-                  El enlace vence en 24 horas. Si no solicitaste este correo, ignóralo: tu correo no cambiará.
+              <td class="px" style="padding:20px 40px 0 40px;">
+                <p style="margin:0 0 6px 0;font-size:13px;line-height:20px;color:#78716c;">¿El botón no funciona? Copia y pega este enlace en tu navegador:</p>
+                <p style="margin:0;font-size:13px;line-height:20px;word-break:break-all;"><a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=%2Faccount" target="_blank" style="color:#c2410c;text-decoration:underline;">{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=%2Faccount</a></p>
+              </td>
+            </tr>
+            <tr>
+              <td class="px" style="padding:32px 40px 32px 40px;">
+                <p style="margin:0;padding-top:20px;border-top:1px solid #e7e5e4;font-size:12px;line-height:18px;color:#78716c;">
+                  Cerquita · Pedidos a los restaurantes de tu barrio.<br />
+                  Recibes este correo porque esta dirección se usó en Cerquita. Es un mensaje automático: no lo respondas.
                 </p>
               </td>
             </tr>
