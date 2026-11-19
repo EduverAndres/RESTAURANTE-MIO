@@ -3,11 +3,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EyeIcon, EyeOffIcon, LoaderCircleIcon } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { acceptLegalTerms, signInWithPassword } from '../actions'
+import { useLoginSuccess } from '@/components/auth/login-success'
 import { OAuthButtons } from '@/components/auth/oauth-buttons'
 import { ConsentCheckbox } from '@/components/legal/consent-checkbox'
 import { Button } from '@/components/ui/button'
@@ -68,9 +68,9 @@ export function LoginForm({
   providers,
   showUnavailableProviders,
 }: LoginFormProps) {
-  const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [showPassword, setShowPassword] = useState(false)
+  const { celebrate } = useLoginSuccess()
 
   useEffect(() => {
     const message = callbackErrorMessage(
@@ -100,9 +100,7 @@ export function LoginForm({
         toast.error(result.error)
         return
       }
-      toast.success('Bienvenido de nuevo.')
-      router.push(result.redirectTo)
-      router.refresh()
+      celebrate(result.redirectTo)
     })
   })
 
@@ -225,7 +223,11 @@ export function LoginForm({
 
       {providers.phone ? (
         <TabsContent value="phone" className="pt-4">
-          <PhoneOtpForm next={next} ensureAccepted={ensureAccepted} />
+          <PhoneOtpForm
+            next={next}
+            ensureAccepted={ensureAccepted}
+            onSignedIn={celebrate}
+          />
         </TabsContent>
       ) : null}
     </Tabs>
@@ -235,11 +237,13 @@ export function LoginForm({
 function PhoneOtpForm({
   next,
   ensureAccepted,
+  onSignedIn,
 }: {
   next: string | null
   ensureAccepted: () => boolean
+  /** Plays the welcome and navigates (see useLoginSuccess). */
+  onSignedIn: (redirectTo: string) => void
 }) {
-  const router = useRouter()
   const [phone, setPhone] = useState('')
   const [token, setToken] = useState('')
   const [step, setStep] = useState<'phone' | 'code'>('phone')
@@ -302,14 +306,11 @@ function PhoneOtpForm({
       // The session was created in the browser; record the box ticked on
       // this form before the first navigation meets the legal gate.
       const accepted = await acceptLegalTerms('login-sms', next)
-      toast.success('Bienvenido.')
-      if (accepted.ok) {
-        router.push(accepted.redirectTo)
-        router.refresh()
-        return
-      }
-      router.push(next ?? getRoleHome(data.session.user.app_metadata?.role))
-      router.refresh()
+      onSignedIn(
+        accepted.ok
+          ? accepted.redirectTo
+          : (next ?? getRoleHome(data.session.user.app_metadata?.role)),
+      )
     })
   }
 

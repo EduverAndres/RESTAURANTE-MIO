@@ -16,6 +16,7 @@ import { ReferralClaimer } from '@/components/referrals/referral-claimer'
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register'
 import { SoundUnlock } from '@/components/sound/sound-unlock'
 import { ThemeProvider } from '@/components/theme/theme-provider'
+import { LoginSuccessHost } from '@/components/auth/login-success'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { accessibilityPreferencesScript } from '@/lib/a11y/preferences'
@@ -158,6 +159,7 @@ export default function RootLayout({
             <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
           </RealtimeProvider>
           <Toaster />
+          <LoginSuccessHost />
           <CookieBanner />
           <InstallPrompt />
           <ServiceWorkerRegister />

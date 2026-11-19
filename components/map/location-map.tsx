@@ -2,8 +2,14 @@
 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import type { LatLng } from '@/lib/geo'
+import {
+  LUMINANCE_MATRIX,
+  mapToneFor,
+  toneTables,
+  type Rgb,
+} from '@/lib/map/tone'
 import { easeOut, interpolate } from '@/lib/tracking/interpolate'
 
 export interface MapMarker extends LatLng {
@@ -45,7 +51,9 @@ const FIT_PADDING: [number, number] = [40, 40]
 const FIT_MAX_ZOOM = 16
 /** How long the courier marker glides from one fix to the next. */
 const GLIDE_MS = 800
-const ROUTE_COLOR = '#2563EB'
+// Fallbacks only: the real colours come from the theme through the
+// `map-route*` / `map-accuracy` classes in globals.css.
+const ROUTE_COLOR = '#c2410c'
 const DONE_COLOR = '#9CA3AF'
 
 const GLYPHS: Record<MapMarker['kind'], string> = {
@@ -95,6 +103,89 @@ function prefersReducedMotion(): boolean {
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   )
+}
+
+type ToneTables = ReturnType<typeof toneTables>
+
+/**
+ * Resolves a CSS custom property, whatever its syntax (hex, rgb, oklch,
+ * color-mix), to sRGB bytes by painting one pixel with it. Null when unset.
+ */
+function readColour(
+  element: HTMLElement,
+  token: string,
+  context: CanvasRenderingContext2D,
+): Rgb | null {
+  const raw = getComputedStyle(element).getPropertyValue(token).trim()
+  if (!raw) return null
+  context.clearRect(0, 0, 1, 1)
+  context.fillStyle = raw
+  context.fillRect(0, 0, 1, 1)
+  const [r, g, b, alpha] = context.getImageData(0, 0, 1, 1).data
+  return alpha === 0 ? null : [r!, g!, b!]
+}
+
+/**
+ * The duotone tables for the theme the map is shown in, kept current: the
+ * colours are read where the map lives (so a storefront's palette wins over
+ * the app's) and re-read when the theme switches — next-themes flips a class
+ * on <html>, the OS can change its colour scheme, the accessibility menu sets
+ * data attributes.
+ */
+function useMapTone(
+  containerRef: RefObject<HTMLDivElement | null>,
+): ToneTables | null {
+  const [tables, setTables] = useState<ToneTables | null>(null)
+
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element) return
+    const canvas = document.createElement('canvas')
+    canvas.width = 1
+    canvas.height = 1
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    if (!context) return
+
+    let frame = 0
+    const update = () => {
+      cancelAnimationFrame(frame)
+      // After the theme's new styles are applied, not mid-mutation.
+      frame = requestAnimationFrame(() => {
+        const foreground = readColour(element, '--foreground', context)
+        const background = readColour(element, '--background', context)
+        const primary = readColour(element, '--primary', context)
+        if (!foreground || !background || !primary) {
+          setTables(null)
+          return
+        }
+        const next = toneTables(mapToneFor({ foreground, background, primary }))
+        setTables((previous) =>
+          previous &&
+          previous.r === next.r &&
+          previous.g === next.g &&
+          previous.b === next.b
+            ? previous
+            : next,
+        )
+      })
+    }
+
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-theme', 'data-contrast'],
+    })
+    const scheme = window.matchMedia('(prefers-color-scheme: dark)')
+    scheme.addEventListener('change', update)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+      scheme.removeEventListener('change', update)
+    }
+  }, [containerRef])
+
+  return tables
 }
 
 interface ManagedMarker {
@@ -151,6 +242,9 @@ export function LocationMap({
   const onPinChangeRef = useRef(onPinChange)
   onPinChangeRef.current = onPinChange
   const fittedCountRef = useRef<number | null>(null)
+  // useId gives ":r1:"; colons would have to be escaped inside url(#…).
+  const filterId = `map-tone-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const tone = useMapTone(containerRef)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -189,6 +283,14 @@ export function LocationMap({
     // The map is created once; later prop changes are applied by the effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Only the tiles are recoloured: markers, the route and their labels sit in
+  // other panes and keep the theme's exact colours on top of the toned map.
+  useEffect(() => {
+    const tilePane = mapRef.current?.getPane('tilePane')
+    if (!tilePane) return
+    tilePane.style.filter = tone ? `url(#${filterId})` : ''
+  }, [tone, filterId])
 
   // A string key keeps the effect stable when callers pass a fresh array
   // with the same coordinates on every render.
@@ -283,6 +385,7 @@ export function LocationMap({
       } else if (!entry.circle) {
         entry.circle = L.circle([target.lat, target.lng], {
           radius,
+          className: 'map-accuracy',
           color: ROUTE_COLOR,
           weight: 1,
           opacity: 0.35,
@@ -313,6 +416,7 @@ export function LocationMap({
     layer.clearLayers()
     if (pathDone.length > 1) {
       L.polyline(toLatLngs(pathDone), {
+        className: 'map-route map-route--done',
         color: DONE_COLOR,
         weight: 4,
         opacity: 0.7,
@@ -323,6 +427,7 @@ export function LocationMap({
     }
     if (path.length > 1) {
       L.polyline(toLatLngs(path), {
+        className: 'map-route',
         color: ROUTE_COLOR,
         weight: 4,
         opacity: 0.85,
@@ -360,12 +465,34 @@ export function LocationMap({
   }, [pin])
 
   return (
-    <div
-      ref={containerRef}
-      role="application"
-      aria-label="Mapa"
-      className={className ?? 'h-64 w-full'}
-    />
+    <>
+      {tone ? (
+        // The duotone the tile pane points at. Zero-sized and out of flow;
+        // not display:none, which would disable the filter in some engines.
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          width="0"
+          height="0"
+          style={{ position: 'absolute', width: 0, height: 0 }}
+        >
+          <filter id={filterId} colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values={LUMINANCE_MATRIX} />
+            <feComponentTransfer>
+              <feFuncR type="table" tableValues={tone.r} />
+              <feFuncG type="table" tableValues={tone.g} />
+              <feFuncB type="table" tableValues={tone.b} />
+            </feComponentTransfer>
+          </filter>
+        </svg>
+      ) : null}
+      <div
+        ref={containerRef}
+        role="application"
+        aria-label="Mapa"
+        className={`cerquita-map ${className ?? 'h-64 w-full'}`}
+      />
+    </>
   )
 }
 
