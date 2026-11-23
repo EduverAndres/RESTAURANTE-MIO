@@ -30,7 +30,7 @@ export default async function AdminPayoutsPage() {
   const { data: payouts, error } = await supabase
     .from('payouts')
     .select(
-      'id, store_id, period_start, period_end, gross, commission, cash_collected, plan_fee, delivery_and_tips, carried_in, carried_into_payout_id, net, status, paid_at, stores(name, slug)',
+      'id, store_id, period_start, period_end, gross, commission, cash_collected, plan_fee, ads_fee, delivery_and_tips, carried_in, carried_into_payout_id, net, status, paid_at, stores(name, slug)',
     )
     .order('period_start', { ascending: false })
     .limit(200)
@@ -85,6 +85,7 @@ export default async function AdminPayoutsPage() {
                   Efectivo del negocio
                 </TableHead>
                 <TableHead className="text-right">Plan</TableHead>
+                <TableHead className="text-right">Publicidad</TableHead>
                 <TableHead className="text-right">
                   Domicilios y propinas
                 </TableHead>
@@ -120,6 +121,9 @@ export default async function AdminPayoutsPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCOP(Number(payout.plan_fee))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCOP(Number(payout.ads_fee))}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCOP(Number(payout.delivery_and_tips))}

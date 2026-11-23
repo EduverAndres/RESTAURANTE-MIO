@@ -194,3 +194,24 @@ export function reservationCancelledMessage(input: {
     tag: 'reservation-cancelled',
   }
 }
+
+/** To the store owner, when an admin decides on a sponsored campaign. */
+export function adCampaignReviewMessage(input: {
+  decision: 'approved' | 'rejected'
+  placement: string
+  dates: string
+  reason?: string | null
+}): PushPayload {
+  return {
+    title:
+      input.decision === 'approved'
+        ? 'Tu campaña fue aprobada'
+        : 'Tu campaña no fue aprobada',
+    body:
+      input.decision === 'approved'
+        ? `${input.placement}, ${input.dates}. Se mostrará como «Patrocinado».`
+        : `${input.placement}, ${input.dates}${input.reason ? `: ${input.reason}` : '.'}`,
+    url: '/dashboard/publicidad',
+    tag: 'ad-campaign-review',
+  }
+}

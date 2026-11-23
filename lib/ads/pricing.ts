@@ -175,3 +175,35 @@ export function quoteAdCampaign(input: {
     total: adTotalPrice(settings.daily_price, startsOn, endsOn),
   }
 }
+
+// A calendar date is formatted at UTC midnight in UTC, so no zone can move
+// it to the day before. Only the day and month parts are kept, without
+// ICU's literals ("de", dots, no-break spaces), which differ between Node
+// and browsers: the server HTML and the client render the same text.
+const dayFormatter = new Intl.DateTimeFormat('es-CO', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+})
+
+/** "23 nov" for a `YYYY-MM-DD` date. */
+export function formatAdDay(date: string): string {
+  const parts = dayFormatter.formatToParts(new Date(`${date}T00:00:00.000Z`))
+  const day = parts.find((part) => part.type === 'day')?.value ?? ''
+  const month = (
+    parts.find((part) => part.type === 'month')?.value ?? ''
+  ).replace(/\.$/, '')
+  return `${day} ${month}`
+}
+
+/** "23 nov – 29 nov" (or a single day). */
+export function formatAdRange(startsOn: string, endsOn: string): string {
+  return startsOn === endsOn
+    ? formatAdDay(startsOn)
+    : `${formatAdDay(startsOn)} – ${formatAdDay(endsOn)}`
+}
+
+/** "1 día" / "7 días". */
+export function daysLabel(days: number): string {
+  return `${days} ${days === 1 ? 'día' : 'días'}`
+}

@@ -4,6 +4,9 @@ import {
   MAX_START_AHEAD_DAYS,
   adDays,
   adTotalPrice,
+  daysLabel,
+  formatAdDay,
+  formatAdRange,
   isDateOnly,
   quoteAdCampaign,
 } from '@/lib/ads/pricing'
@@ -116,5 +119,16 @@ describe('quoteAdCampaign', () => {
     expect(DEFAULT_AD_PLACEMENTS.home_featured.daily_price).toBe(15000)
     expect(DEFAULT_AD_PLACEMENTS.category_top.daily_price).toBe(8000)
     expect(DEFAULT_AD_PLACEMENTS.search_top.daily_price).toBe(6000)
+  })
+})
+
+describe('formatAdDay and formatAdRange', () => {
+  it('reads the calendar date in Spanish, the same on any ICU build', () => {
+    expect(formatAdDay('2026-11-23')).toBe('23 nov')
+    expect(formatAdDay('2027-01-02')).toBe('2 ene')
+    expect(formatAdRange('2026-11-23', '2026-11-29')).toBe('23 nov – 29 nov')
+    expect(formatAdRange('2026-11-23', '2026-11-23')).toBe('23 nov')
+    expect(daysLabel(1)).toBe('1 día')
+    expect(daysLabel(7)).toBe('7 días')
   })
 })

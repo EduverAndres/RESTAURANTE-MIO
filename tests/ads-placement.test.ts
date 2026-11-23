@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   freeSlots,
   hasCapacity,
+  overlapsOwn,
   peakOccupancy,
   sharesSlotPool,
   type SlotCampaign,
@@ -275,5 +276,63 @@ describe('capacity', () => {
         ends_on: '2026-11-30',
       }),
     ).toBe(0)
+  })
+})
+
+describe('overlapsOwn', () => {
+  const request = {
+    placement: 'home_featured' as const,
+    starts_on: '2026-11-24',
+    ends_on: '2026-11-26',
+    category_snapshot: null,
+  }
+
+  it('catches a waiting or approved campaign of the store on any requested day', () => {
+    for (const status of ['requested', 'active', 'paused'] as const) {
+      expect(
+        overlapsOwn(
+          [
+            campaign({
+              status,
+              starts_on: '2026-11-26',
+              ends_on: '2026-11-30',
+            }),
+          ],
+          request,
+        ),
+        status,
+      ).toBe(true)
+    }
+  })
+
+  it('ignores other placements, other dates and campaigns that are over', () => {
+    expect(
+      overlapsOwn(
+        [
+          campaign({
+            placement: 'search_top',
+            starts_on: '2026-11-24',
+            ends_on: '2026-11-26',
+          }),
+          campaign({ starts_on: '2026-11-27', ends_on: '2026-11-30' }),
+          campaign({
+            status: 'ended',
+            starts_on: '2026-11-24',
+            ends_on: '2026-11-26',
+          }),
+          campaign({
+            status: 'rejected',
+            starts_on: '2026-11-24',
+            ends_on: '2026-11-26',
+          }),
+          campaign({
+            status: 'cancelled',
+            starts_on: '2026-11-24',
+            ends_on: '2026-11-26',
+          }),
+        ],
+        request,
+      ),
+    ).toBe(false)
   })
 })

@@ -95,3 +95,22 @@ export function hasCapacity(
 ): boolean {
   return freeSlots(campaigns, request, maxSlots) > 0
 }
+
+/**
+ * Whether the store already has a campaign in the same placement on any of
+ * the requested days, waiting or approved: one campaign per store, placement
+ * and day (approve_ad_campaign refuses a second one as `duplicate`).
+ */
+export function overlapsOwn(
+  own: readonly SlotCampaign[],
+  request: SlotRequest,
+): boolean {
+  return own.some(
+    (campaign) =>
+      campaign.placement === request.placement &&
+      (campaign.status === 'requested' ||
+        AD_HOLDING_STATUSES.includes(campaign.status)) &&
+      campaign.starts_on <= request.ends_on &&
+      campaign.ends_on >= request.starts_on,
+  )
+}

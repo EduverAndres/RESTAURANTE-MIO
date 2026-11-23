@@ -9,6 +9,7 @@ import {
   LandmarkIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  MegaphoneIcon,
   MenuIcon,
   PaletteIcon,
   PanelLeftCloseIcon,
@@ -60,6 +61,7 @@ const MERCHANT_ITEMS: DashboardNavItem[] = [
   { label: 'Fidelidad', href: '/dashboard/fidelidad', icon: GiftIcon },
   { label: 'Métricas', href: '/dashboard/metrics', icon: BarChart3Icon },
   { label: 'Mesas', href: '/dashboard/tables', icon: QrCodeIcon },
+  { label: 'Publicidad', href: '/dashboard/publicidad', icon: MegaphoneIcon },
   { label: 'Liquidaciones', href: '/dashboard/payouts', icon: LandmarkIcon },
   { label: 'Configuración', href: '/dashboard/settings', icon: SettingsIcon },
 ]
@@ -71,6 +73,7 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
   { label: 'Pedidos', href: '/admin/orders', icon: ReceiptTextIcon },
   { label: 'Domiciliarios', href: '/admin/domiciliarios', icon: BikeIcon },
   { label: 'Liquidaciones', href: '/admin/payouts', icon: LandmarkIcon },
+  { label: 'Publicidad', href: '/admin/publicidad', icon: MegaphoneIcon },
   {
     label: 'Pagos sin aplicar',
     href: '/admin/payments',
@@ -302,7 +305,9 @@ export function DashboardShell({
         </div>
       </aside>
 
-      <div className="flex min-h-dvh flex-col">
+      {/* min-w-0: a wide table scrolls inside its card instead of pushing
+          the whole column past the viewport. */}
+      <div className="flex min-h-dvh min-w-0 flex-col">
         <header className="border-border/60 bg-background/80 sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b px-4 backdrop-blur-md sm:px-6 print:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <Sheet open={open} onOpenChange={setOpen}>
