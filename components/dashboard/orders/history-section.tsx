@@ -1,6 +1,10 @@
 'use client'
 
 import { ChevronDownIcon } from 'lucide-react'
+import {
+  CorporateBadge,
+  CorporateBillingDialog,
+} from '@/components/dashboard/orders/corporate-billing-dialog'
 import { RecordRefundDialog } from '@/components/refunds/record-refund-dialog'
 import {
   OrderStatusBadge,
@@ -8,7 +12,12 @@ import {
 } from '@/components/orders/order-status-badge'
 import { Badge } from '@/components/ui/badge'
 import { formatCOP } from '@/lib/format'
-import { itemsSummary, type BoardOrder } from '@/lib/orders/kanban'
+import { formatTimeCO } from '@/lib/format-date'
+import {
+  isCorporateOrder,
+  itemsSummary,
+  type BoardOrder,
+} from '@/lib/orders/kanban'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
 import { supportWhatsAppUrl } from '@/lib/marketplace/support'
 import { canRecordRefund, isRefundable } from '@/lib/refunds/plan'
@@ -16,11 +25,6 @@ import { canRecordRefund, isRefundable } from '@/lib/refunds/plan'
 interface HistorySectionProps {
   orders: BoardOrder[]
 }
-
-const timeFormatter = new Intl.DateTimeFormat('es-CO', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
 
 /**
  * Delivered and cancelled orders from today, collapsed by default.
@@ -65,8 +69,9 @@ export function HistorySection({ orders }: HistorySectionProps) {
                     {ORDER_TYPE_LABELS[order.type]}
                   </Badge>
                   <span className="text-muted-foreground text-xs">
-                    {timeFormatter.format(new Date(order.created_at))}
+                    {formatTimeCO(order.created_at)}
                   </span>
+                  {isCorporateOrder(order) ? <CorporateBadge /> : null}
                 </p>
                 <p className="text-muted-foreground truncate text-xs">
                   {order.customer_name ?? 'Cliente'} ·{' '}
@@ -81,6 +86,13 @@ export function HistorySection({ orders }: HistorySectionProps) {
                 <span className="text-sm font-semibold tabular-nums">
                   {formatCOP(order.total)}
                 </span>
+                {isCorporateOrder(order) && order.status !== 'cancelled' ? (
+                  <CorporateBillingDialog
+                    orderId={order.id}
+                    shortCode={order.short_code}
+                    size="xs"
+                  />
+                ) : null}
                 {canRecordRefund(order, 'merchant') ? (
                   <RecordRefundDialog
                     orderId={order.id}

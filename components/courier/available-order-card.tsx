@@ -92,7 +92,9 @@ export function AvailableOrderCard({
           >
             {order.cashToCollect !== null
               ? `Efectivo: cobra ${formatCOP(order.cashToCollect)}`
-              : 'Pagado en línea: no cobres nada'}
+              : order.corporate
+                ? 'Cuenta de empresa: no cobres nada'
+                : 'Pagado en línea: no cobres nada'}
           </dd>
         </div>
         <div className="flex items-start gap-1.5">

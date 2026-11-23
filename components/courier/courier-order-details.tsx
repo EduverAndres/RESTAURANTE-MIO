@@ -1,5 +1,6 @@
 import {
   BanknoteIcon,
+  Building2Icon,
   MapPinIcon,
   MessageCircleIcon,
   PhoneIcon,
@@ -67,6 +68,11 @@ export function CourierOrderDetails({
         <p className="rounded-card bg-accent/20 flex items-center gap-2 p-4 text-sm font-medium text-amber-900 dark:text-amber-200">
           <BanknoteIcon aria-hidden="true" className="size-5 shrink-0" />
           Cobrar en efectivo al entregar: {formatCOP(total)}
+        </p>
+      ) : paymentMethod === 'corporate' ? (
+        <p className="rounded-card bg-primary/10 text-primary-on-tint flex items-center gap-2 p-4 text-sm font-medium">
+          <Building2Icon aria-hidden="true" className="size-5 shrink-0" />
+          Cuenta de empresa: no cobres nada al entregar.
         </p>
       ) : null}
 

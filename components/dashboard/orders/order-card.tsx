@@ -2,6 +2,10 @@
 
 import { ClockIcon, StickyNoteIcon, UserRoundIcon } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
+import {
+  CorporateBadge,
+  CorporateBillingDialog,
+} from '@/components/dashboard/orders/corporate-billing-dialog'
 import { OrderActions } from '@/components/dashboard/orders/order-actions'
 import { OrderCardMenu } from '@/components/dashboard/orders/order-card-menu'
 import {
@@ -28,6 +32,7 @@ import {
 } from '@/lib/orders/elapsed-tone'
 import {
   elapsedLabel,
+  isCorporateOrder,
   itemsSummary,
   type BoardOrder,
 } from '@/lib/orders/kanban'
@@ -169,10 +174,15 @@ export function OrderCard({
                 {ELAPSED_TONE_LABELS[tone]}
               </Badge>
             )}
+            {isCorporateOrder(order) ? <CorporateBadge /> : null}
           </div>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1">
+          {/* Relative to the clock: the server's "ahora" can be the browser's
+              "hace 1 min" by the time it hydrates. The board's own tick
+              corrects it, so the first paint may differ by a minute. */}
           <p
+            suppressHydrationWarning
             className={cn(
               'flex items-center gap-1 text-xs whitespace-nowrap',
               CLOCK_TONES[tone],
@@ -211,6 +221,13 @@ export function OrderCard({
         >
           {formatCOP(order.total)}
         </p>
+        {isCorporateOrder(order) ? (
+          <CorporateBillingDialog
+            orderId={order.id}
+            shortCode={order.short_code}
+            size="xs"
+          />
+        ) : null}
       </div>
 
       <OrderActions actions={actions} pending={pending} onAction={run} />

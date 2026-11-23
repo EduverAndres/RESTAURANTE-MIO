@@ -84,4 +84,13 @@ describe('what the courier sees about money', () => {
     )
     expect(summary.cashToCollect).toBe(30500)
   })
+
+  it('marks an order paid with a company account: nothing to collect', () => {
+    const summary = toCourierOrderSummary(
+      { ...row, payment_method: 'corporate' },
+      null,
+    )
+    expect(summary.cashToCollect).toBeNull()
+    expect(summary.corporate).toBe(true)
+  })
 })

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CORPORATE_BADGE_LABEL,
   KANBAN_COLUMNS,
   elapsedLabel,
   groupOrdersForBoard,
+  isCorporateOrder,
   itemsSummary,
   startOfLocalDay,
   type BoardOrder,
@@ -105,5 +107,22 @@ describe('startOfLocalDay', () => {
     expect(start.getHours()).toBe(0)
     expect(start.getMinutes()).toBe(0)
     expect(start.getDate()).toBe(11)
+  })
+})
+
+describe('corporate orders on the board', () => {
+  it('flags only orders paid with a company account', () => {
+    expect(
+      isCorporateOrder(order({ id: 'a', payment_method: 'corporate' })),
+    ).toBe(true)
+    for (const method of ['cash', 'wompi', 'mercadopago', 'mock'] as const) {
+      expect(isCorporateOrder(order({ id: 'b', payment_method: method }))).toBe(
+        false,
+      )
+    }
+  })
+
+  it('tells the kitchen not to collect', () => {
+    expect(CORPORATE_BADGE_LABEL).toBe('Empresa · no cobrar')
   })
 })
