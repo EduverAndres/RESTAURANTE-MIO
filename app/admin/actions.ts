@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
+import { syncStoreCampaigns } from '@/lib/ads/server'
 import {
   MISSING_FIELD_LABELS,
   missingForApproval,
@@ -61,9 +62,14 @@ export async function setStoreStatus(
     console.error('Failed to update store status', error)
     return { ok: false, error: 'No pudimos actualizar el estado de la tienda.' }
   }
+  // A suspended store's sponsored placements pause (and stop being charged);
+  // reactivating it resumes the ones the suspension paused.
+  await syncStoreCampaigns(admin, storeId, parsed.data)
 
   revalidatePath('/admin/stores')
   revalidatePath('/admin')
+  revalidatePath('/admin/publicidad')
+  revalidatePath('/')
   return { ok: true }
 }
 
