@@ -97,6 +97,12 @@
   --duration-base: 220ms;
   --duration-slow: 300ms;
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Marketing motion: scroll reveals, demo loops and marquees. */
+  --reveal-shift: 1.5rem;
+  --reveal-range: 30vh;
+  --demo-loop: 12s;
+  --marquee-duration: 40s;
+  --marquee-gap: 0.75rem;
 
   --container-page: 1200px;
 
@@ -1383,4 +1389,521 @@ html[data-text-size='xlarge'] {
 
 @theme inline {
   --animate-float: float 6s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------------------
+ * Marketing motion  (Cerquita 2.0 · Fase 3)
+ *
+ * One rule for the whole block: an animation only exists inside
+ * `prefers-reduced-motion: no-preference` AND under
+ * `:root:not([data-motion='reduce'])`, so both the system setting and the
+ * in-app "Reducir animaciones" switch it off. The base rules draw the
+ * finished state — the revealed block, the delivered order, the still list —
+ * so nothing depends on an animation running, and the server HTML is
+ * complete and visible without JavaScript.
+ * ------------------------------------------------------------------------- */
+
+/* Scroll reveal (components/motion/reveal.tsx). Scroll-driven, so there is
+   no observer, no script and nothing to hydrate; a browser without
+   `animation-timeline` never sees the animation and shows the block as it
+   is. The range is a fixed distance into the viewport rather than the
+   element's own height, so a tall block is fully opaque long before its top
+   reaches the top of the screen. */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-shift));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.reveal-line {
+  transform-origin: left center;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-motion='reduce']) .reveal,
+    :root:not([data-motion='reduce']) .reveal-line {
+      animation-name: reveal-in;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-timeline: view();
+      animation-range: cover 0% cover var(--reveal-range);
+    }
+
+    :root:not([data-motion='reduce']) .reveal-line {
+      animation-name: reveal-line;
+    }
+  }
+}
+
+/* Marquee (components/motion/marquee.tsx). The track holds the list twice
+   and slides by half its width, so the copy takes the original's place and
+   the loop has no seam. Hover or focus inside stops it. */
+.marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+
+.marquee-group {
+  display: flex;
+  flex: none;
+  gap: var(--marquee-gap);
+  padding-inline-end: var(--marquee-gap);
+}
+
+@keyframes marquee-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduce']) .marquee-track {
+    animation: marquee-scroll var(--marquee-duration) linear infinite;
+  }
+
+  .marquee:is(:hover, :focus-within) .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+/* Still: no animation, no tail, and the one real list wraps onto lines. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    mask-image: none;
+  }
+
+  .marquee-track {
+    animation: none;
+    width: auto;
+  }
+
+  .marquee-group {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    padding-inline-end: 0;
+  }
+
+  .marquee [data-marquee-copy] {
+    display: none;
+  }
+}
+
+[data-motion='reduce'] .marquee {
+  mask-image: none;
+}
+
+[data-motion='reduce'] .marquee-track {
+  animation: none;
+  width: auto;
+}
+
+[data-motion='reduce'] .marquee-group {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  padding-inline-end: 0;
+}
+
+[data-motion='reduce'] .marquee [data-marquee-copy] {
+  display: none;
+}
+
+/* Live order demo (components/marketing/live-order-demo.tsx). One loop of
+   `--demo-loop`: Recibido 0–25 %, Preparando 25–50 %, En camino 50–80 %,
+   Entregado 80–100 %. The markup is the last frame — every step reached, the
+   route drawn, the courier at the door — so with motion off that is what
+   stays on screen. The courier moves along the same polyline the route
+   draws; its keyframes are the polyline's corners, timed by segment length,
+   so dot and line stay together. */
+@keyframes order-demo-label-1 {
+  0%,
+  23% {
+    opacity: 1;
+    transform: none;
+  }
+  25%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes order-demo-label-2 {
+  0%,
+  23% {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  25%,
+  48% {
+    opacity: 1;
+    transform: none;
+  }
+  50%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes order-demo-label-3 {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  50%,
+  78% {
+    opacity: 1;
+    transform: none;
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes order-demo-label-4 {
+  0%,
+  78% {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  80%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes order-demo-row-2 {
+  0%,
+  24% {
+    opacity: 0.45;
+  }
+  26%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes order-demo-row-3 {
+  0%,
+  49% {
+    opacity: 0.45;
+  }
+  51%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes order-demo-row-4 {
+  0%,
+  79% {
+    opacity: 0.45;
+  }
+  81%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes order-demo-mark-2 {
+  0%,
+  24% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  27%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes order-demo-mark-3 {
+  0%,
+  49% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  52%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes order-demo-mark-4 {
+  0%,
+  79% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  82%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes order-demo-progress {
+  0%,
+  23% {
+    transform: scaleX(0.25);
+  }
+  26%,
+  49% {
+    transform: scaleX(0.5);
+  }
+  80%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes order-demo-route {
+  0%,
+  50% {
+    stroke-dashoffset: 1;
+  }
+  80%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes order-demo-courier {
+  0%,
+  49% {
+    opacity: 0;
+    transform: translate(36px, 124px);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(36px, 124px);
+  }
+  54.5% {
+    transform: translate(36px, 84px);
+  }
+  65.3% {
+    transform: translate(132px, 84px);
+  }
+  69.8% {
+    transform: translate(132px, 44px);
+  }
+  80%,
+  100% {
+    opacity: 1;
+    transform: translate(222px, 44px);
+  }
+}
+
+@keyframes order-demo-cooking {
+  0%,
+  25% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 0.55;
+  }
+  37% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+  38% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  43% {
+    opacity: 0.55;
+  }
+  50%,
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* Board demo (components/marketing/board-demo.tsx): an order crosses the
+   kitchen board — Nuevos, En cocina, Listos — while a reservation goes from
+   "Por confirmar" to "Confirmada". The markup is the last frame. */
+@keyframes board-demo-mover {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  6%,
+  30% {
+    opacity: 1;
+    transform: none;
+  }
+  36%,
+  62% {
+    opacity: 1;
+    transform: translateX(calc(100% + var(--board-gap)));
+  }
+  68%,
+  100% {
+    opacity: 1;
+    transform: translateX(calc(200% + 2 * var(--board-gap)));
+  }
+}
+
+@keyframes board-demo-ping {
+  0%,
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  20%,
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes board-demo-pending {
+  0%,
+  54% {
+    opacity: 1;
+  }
+  58%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes board-demo-confirmed {
+  0%,
+  54% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  58%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* SVG parts move in the drawing's own units. */
+.order-demo-courier {
+  transform-box: view-box;
+}
+
+.order-demo-cooking,
+.order-demo-mark {
+  transform-origin: center;
+}
+
+.order-demo-progress {
+  transform-origin: left center;
+}
+
+/* The mover's resting place is the last column. */
+.board-demo-mover {
+  transform: translateX(calc(200% + 2 * var(--board-gap)));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduce']) .order-demo-label-1 {
+    animation: order-demo-label-1 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-label-2 {
+    animation: order-demo-label-2 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-label-3 {
+    animation: order-demo-label-3 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-label-4 {
+    animation: order-demo-label-4 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-row-2 {
+    animation: order-demo-row-2 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-row-3 {
+    animation: order-demo-row-3 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-row-4 {
+    animation: order-demo-row-4 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-row-2 .order-demo-mark {
+    animation: order-demo-mark-2 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-row-3 .order-demo-mark {
+    animation: order-demo-mark-3 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-row-4 .order-demo-mark {
+    animation: order-demo-mark-4 var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-progress {
+    animation: order-demo-progress var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-route {
+    animation: order-demo-route var(--demo-loop) linear infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-courier {
+    animation: order-demo-courier var(--demo-loop) linear infinite;
+  }
+
+  :root:not([data-motion='reduce']) .order-demo-cooking {
+    animation: order-demo-cooking var(--demo-loop) ease-out infinite;
+  }
+
+  :root:not([data-motion='reduce']) .board-demo-mover {
+    animation: board-demo-mover var(--demo-loop) var(--ease-out-soft) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .board-demo-ping {
+    animation: board-demo-ping var(--demo-loop) ease-out infinite;
+  }
+
+  :root:not([data-motion='reduce']) .board-demo-pending {
+    animation: board-demo-pending var(--demo-loop) infinite;
+  }
+
+  :root:not([data-motion='reduce']) .board-demo-confirmed {
+    animation: board-demo-confirmed var(--demo-loop) infinite;
+  }
 }
