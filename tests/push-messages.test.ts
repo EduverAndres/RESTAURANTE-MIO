@@ -3,6 +3,7 @@ import {
   newReservationMessage,
   reservationCancelledMessage,
   reservationStatusMessage,
+  companyReviewMessage,
   courierReviewMessage,
   courierAssignedMessage,
   deliveryCodeMessage,
@@ -143,5 +144,23 @@ describe('reservation messages', () => {
     expect(
       reservationCancelledMessage({ partySize: 1, when: 'hoy' }).body,
     ).toContain('1 persona')
+  })
+})
+
+describe('companyReviewMessage', () => {
+  it('sends the admins to invite their team once approved', () => {
+    expect(companyReviewMessage('active', 'Constructora')).toMatchObject({
+      url: '/empresa/equipo',
+      tag: 'company-review',
+    })
+    expect(companyReviewMessage('active', 'Constructora').body).toContain(
+      'Constructora',
+    )
+  })
+
+  it('says a suspended account cannot be charged', () => {
+    expect(companyReviewMessage('suspended', 'Constructora').body).toMatch(
+      /nadie puede pagar/,
+    )
   })
 })

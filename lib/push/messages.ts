@@ -116,6 +116,26 @@ export function deliveryCodeMessage(orderId: string): PushPayload {
 }
 
 /** To a courier, when an admin reviews their profile. */
+/** To a company's admins when Cerquita approves or suspends the account. */
+export function companyReviewMessage(
+  status: 'active' | 'suspended',
+  companyName: string,
+): PushPayload {
+  return status === 'active'
+    ? {
+        title: '¡Cuenta de empresa aprobada!',
+        body: `${companyName} ya puede pedir con su cuenta. Invita a tu equipo.`,
+        url: '/empresa/equipo',
+        tag: 'company-review',
+      }
+    : {
+        title: 'Cuenta de empresa suspendida',
+        body: `Por ahora nadie puede pagar con la cuenta de ${companyName}. Escríbenos para revisarla.`,
+        url: '/empresa',
+        tag: 'company-review',
+      }
+}
+
 export function courierReviewMessage(
   status: 'pending' | 'approved' | 'suspended',
   note: string | null,

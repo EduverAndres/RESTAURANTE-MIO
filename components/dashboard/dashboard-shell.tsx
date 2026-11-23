@@ -3,8 +3,10 @@
 import {
   BarChart3Icon,
   BikeIcon,
+  Building2Icon,
   CalendarClockIcon,
   ClipboardListIcon,
+  FileSpreadsheetIcon,
   GiftIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
@@ -71,6 +73,12 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
   { label: 'Pedidos', href: '/admin/orders', icon: ReceiptTextIcon },
   { label: 'Domiciliarios', href: '/admin/domiciliarios', icon: BikeIcon },
   { label: 'Liquidaciones', href: '/admin/payouts', icon: LandmarkIcon },
+  { label: 'Empresas', href: '/admin/companies', icon: Building2Icon },
+  {
+    label: 'Estados de cuenta',
+    href: '/admin/companies/statements',
+    icon: FileSpreadsheetIcon,
+  },
   {
     label: 'Pagos sin aplicar',
     href: '/admin/payments',
