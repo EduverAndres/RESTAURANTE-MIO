@@ -30,6 +30,7 @@ export type Address = Tables<'addresses'>
 export type Order = Tables<'orders'>
 export type OrderItem = Tables<'order_items'>
 export type CourierLocation = Tables<'courier_locations'>
+export type CourierProfileRow = Tables<'courier_profiles'>
 export type Review = Tables<'reviews'>
 export type Favorite = Tables<'favorites'>
 export type StoreTable = Tables<'store_tables'>

@@ -114,3 +114,30 @@ export function deliveryCodeMessage(orderId: string): PushPayload {
     tag: `${orderTag(orderId)}-code`,
   }
 }
+
+/** To a courier, when an admin reviews their profile. */
+export function courierReviewMessage(
+  status: 'pending' | 'approved' | 'suspended',
+  note: string | null,
+): PushPayload {
+  const bodies = {
+    approved: 'Tu perfil fue aprobado. Ya puedes tomar pedidos de la bolsa.',
+    suspended: note
+      ? `Tu cuenta de domiciliario fue suspendida: ${note}`
+      : 'Tu cuenta de domiciliario fue suspendida.',
+    pending: note
+      ? `Revisa tu perfil: ${note}`
+      : 'Revisa tu perfil: necesitamos que actualices algunos datos.',
+  } as const
+  return {
+    title:
+      status === 'approved'
+        ? '¡Ya puedes repartir!'
+        : status === 'suspended'
+          ? 'Cuenta suspendida'
+          : 'Tu perfil necesita cambios',
+    body: bodies[status],
+    url: status === 'approved' ? '/courier' : '/courier/perfil',
+    tag: 'courier-review',
+  }
+}

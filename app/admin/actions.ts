@@ -1,9 +1,17 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
+import {
+  MISSING_FIELD_LABELS,
+  missingForApproval,
+} from '@/lib/couriers/profile'
+import type { VehicleType } from '@/lib/couriers/vocabulary'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { logger } from '@/lib/log/logger'
 import { bogotaDate } from '@/lib/plans'
+import { courierReviewMessage } from '@/lib/push/messages'
+import { sendPushToUsers } from '@/lib/push/send'
 import { recordRefund } from '@/lib/refunds/record'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -14,6 +22,10 @@ import {
   userRoleSchema,
   type StorePlanInput,
 } from '@/lib/validations/admin'
+import {
+  courierReviewSchema,
+  type CourierReviewInput,
+} from '@/lib/validations/courier'
 import {
   refundInputSchema,
   type RefundFormInput,
@@ -418,5 +430,81 @@ export async function setProductReviewHidden(
   }
   revalidatePath('/admin/reviews')
   if (data.stores?.slug) revalidatePath(`/t/${data.stores.slug}`)
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Couriers
+// ---------------------------------------------------------------------------
+
+/**
+ * Approves, suspends or sends back a courier's profile. Approval opens the
+ * order pool (`is_active_courier()`); the database also refuses to approve an
+ * incomplete profile (`courier_profiles_approved_complete`), this says which
+ * field is missing first.
+ */
+export async function setCourierStatus(
+  input: CourierReviewInput,
+): Promise<AdminActionResult> {
+  const parsed = courierReviewSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Datos inválidos.',
+    }
+  }
+  const { userId, status, note } = parsed.data
+
+  const { user } = await requireRole(['admin'])
+  const admin = createAdminClient()
+  const { data: profile, error: readError } = await admin
+    .from('courier_profiles')
+    .select(
+      'vehicle_type, plate, document_number, city, license_expires_on, soat_expires_on',
+    )
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (readError) {
+    logger.error('admin.courier.read_failed', { userId }, readError)
+    return { ok: false, error: GENERIC_ERROR }
+  }
+  if (!profile) {
+    return {
+      ok: false,
+      error: 'Este domiciliario todavía no ha enviado su perfil.',
+    }
+  }
+
+  if (status === 'approved') {
+    const missing = missingForApproval({
+      ...profile,
+      vehicle_type: profile.vehicle_type as VehicleType | null,
+    })
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        error: `Falta ${missing.map((field) => MISSING_FIELD_LABELS[field]).join(', ')}.`,
+      }
+    }
+  }
+
+  const { error } = await admin
+    .from('courier_profiles')
+    .update({
+      status,
+      status_note: note,
+      ...(status === 'approved'
+        ? { approved_by: user.id, approved_at: new Date().toISOString() }
+        : { approved_by: null, approved_at: null }),
+    })
+    .eq('user_id', userId)
+  if (error) {
+    logger.error('admin.courier.update_failed', { userId, status }, error)
+    return { ok: false, error: GENERIC_ERROR }
+  }
+
+  after(() => sendPushToUsers([userId], courierReviewMessage(status, note)))
+
+  revalidatePath('/admin/domiciliarios')
   return { ok: true }
 }

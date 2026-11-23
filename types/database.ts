@@ -141,6 +141,75 @@ export type Database = {
           },
         ]
       }
+      courier_profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          city: string | null
+          created_at: string
+          document_number: string | null
+          license_expires_on: string | null
+          plate: string | null
+          soat_expires_on: string | null
+          status: string
+          status_note: string | null
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+          vehicle_type: string | null
+          zone: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          created_at?: string
+          document_number?: string | null
+          license_expires_on?: string | null
+          plate?: string | null
+          soat_expires_on?: string | null
+          status?: string
+          status_note?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_type?: string | null
+          zone?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          created_at?: string
+          document_number?: string | null
+          license_expires_on?: string | null
+          plate?: string | null
+          soat_expires_on?: string | null
+          status?: string
+          status_note?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_type?: string | null
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_credits: {
         Row: {
           amount: number
@@ -1428,6 +1497,7 @@ export type Database = {
           refunds_reversed: number
         }[]
       }
+      is_active_courier: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       next_short_code: { Args: never; Returns: string }
       option_store_id: { Args: { option_id: string }; Returns: string }

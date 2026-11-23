@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import {
+  COURIER_STATUSES,
+  VEHICLE_TYPES,
+  isMotorized,
+} from '@/lib/couriers/vocabulary'
 import { deliveryCodeSchema } from '@/lib/tracking/delivery-code'
 
 const finite = z.number().refine(Number.isFinite, 'Coordenada inválida.')
@@ -47,3 +52,97 @@ export const advanceOrderInputSchema = z
   .optional()
 
 export type AdvanceOrderInput = z.input<typeof advanceOrderInputSchema>
+
+/** `YYYY-MM-DD` or empty, as `<input type="date">` sends it. */
+const optionalDate = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value),
+    'Fecha inválida.',
+  )
+  .transform((value) => (value === '' ? null : value))
+
+/**
+ * The courier's own profile form. Motorised vehicles need a plate, a licence
+ * and SOAT (mirrors `missingForApproval` in `lib/couriers/profile.ts` and
+ * the `courier_profiles_approved_complete` check), so the form asks for them
+ * up front rather than letting the courier submit something an admin can
+ * never approve.
+ */
+export const courierProfileSchema = z
+  .object({
+    vehicleType: z.enum(VEHICLE_TYPES, { error: 'Elige tu vehículo.' }),
+    plate: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .transform((value) => value.replace(/[\s-]/g, ''))
+      .refine(
+        (value) => value === '' || /^[A-Z]{3}[0-9]{2}[0-9A-Z]$/.test(value),
+        'Escribe la placa como ABC123 o ABC12D.',
+      )
+      .transform((value) => (value === '' ? null : value)),
+    documentNumber: z
+      .string()
+      .trim()
+      .transform((value) => value.replace(/[.\s]/g, ''))
+      .refine(
+        (value) => /^[0-9]{5,12}$/.test(value),
+        'Escribe tu número de documento, solo números.',
+      ),
+    city: z
+      .string()
+      .trim()
+      .min(2, 'Escribe tu ciudad.')
+      .max(60, 'Máximo 60 caracteres.'),
+    zone: z
+      .string()
+      .trim()
+      .max(80, 'Máximo 80 caracteres.')
+      .transform((value) => (value === '' ? null : value)),
+    licenseExpiresOn: optionalDate,
+    soatExpiresOn: optionalDate,
+  })
+  .superRefine((value, ctx) => {
+    if (!isMotorized(value.vehicleType)) return
+    if (!value.plate)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['plate'],
+        message: 'La placa es obligatoria para moto o carro.',
+      })
+    if (!value.licenseExpiresOn)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['licenseExpiresOn'],
+        message: 'Indica cuándo vence tu licencia.',
+      })
+    if (!value.soatExpiresOn)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['soatExpiresOn'],
+        message: 'Indica cuándo vence tu SOAT.',
+      })
+  })
+
+export type CourierProfileInput = z.input<typeof courierProfileSchema>
+export type CourierProfileValues = z.output<typeof courierProfileSchema>
+
+/** The admin's review of a courier. Suspending always says why. */
+export const courierReviewSchema = z
+  .object({
+    userId: z.uuid('Domiciliario inválido.'),
+    status: z.enum(COURIER_STATUSES),
+    note: z
+      .string()
+      .trim()
+      .max(300, 'Máximo 300 caracteres.')
+      .transform((value) => (value === '' ? null : value)),
+  })
+  .refine((value) => value.status !== 'suspended' || value.note !== null, {
+    path: ['note'],
+    message: 'Explica por qué se suspende.',
+  })
+
+export type CourierReviewInput = z.input<typeof courierReviewSchema>

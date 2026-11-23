@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  courierReviewMessage,
   courierAssignedMessage,
   deliveryCodeMessage,
   newOrderMessage,
@@ -94,5 +95,21 @@ describe('deliveryCodeMessage', () => {
     expect(deliveryCodeMessage(ORDER_ID).tag).not.toBe(
       orderStatusMessage('picked_up', 'A1B2', ORDER_ID)?.tag,
     )
+  })
+})
+
+describe('courierReviewMessage', () => {
+  it('sends an approved courier to the pool', () => {
+    expect(courierReviewMessage('approved', null)).toMatchObject({
+      url: '/courier',
+      tag: 'courier-review',
+    })
+  })
+
+  it('sends the other outcomes to the profile, with the reason', () => {
+    const suspended = courierReviewMessage('suspended', 'Documento ilegible')
+    expect(suspended.url).toBe('/courier/perfil')
+    expect(suspended.body).toContain('Documento ilegible')
+    expect(courierReviewMessage('pending', null).url).toBe('/courier/perfil')
   })
 })

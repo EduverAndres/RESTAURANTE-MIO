@@ -2,6 +2,7 @@
 
 import {
   BarChart3Icon,
+  BikeIcon,
   ClipboardListIcon,
   GiftIcon,
   LandmarkIcon,
@@ -65,6 +66,7 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
   { label: 'Tiendas', href: '/admin/stores', icon: StoreIcon },
   { label: 'Usuarios', href: '/admin/users', icon: UsersIcon },
   { label: 'Pedidos', href: '/admin/orders', icon: ReceiptTextIcon },
+  { label: 'Domiciliarios', href: '/admin/domiciliarios', icon: BikeIcon },
   { label: 'Liquidaciones', href: '/admin/payouts', icon: LandmarkIcon },
   {
     label: 'Pagos sin aplicar',
