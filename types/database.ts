@@ -9,6 +9,183 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ad_campaign_pauses: {
+        Row: {
+          campaign_id: string
+          id: string
+          paused_at: string
+          reason: string
+          resumed_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          id?: string
+          paused_at?: string
+          reason: string
+          resumed_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          id?: string
+          paused_at?: string
+          reason?: string
+          resumed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaign_pauses_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_campaigns: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          category_snapshot: string | null
+          created_at: string
+          daily_price: number
+          ended_at: string | null
+          ends_on: string
+          id: string
+          pause_reason: string | null
+          placement: string
+          rejection_reason: string | null
+          requested_by: string | null
+          starts_on: string
+          status: string
+          store_id: string
+          total_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category_snapshot?: string | null
+          created_at?: string
+          daily_price: number
+          ended_at?: string | null
+          ends_on: string
+          id?: string
+          pause_reason?: string | null
+          placement: string
+          rejection_reason?: string | null
+          requested_by?: string | null
+          starts_on: string
+          status?: string
+          store_id: string
+          total_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category_snapshot?: string | null
+          created_at?: string
+          daily_price?: number
+          ended_at?: string | null
+          ends_on?: string
+          id?: string
+          pause_reason?: string | null
+          placement?: string
+          rejection_reason?: string | null
+          requested_by?: string | null
+          starts_on?: string
+          status?: string
+          store_id?: string
+          total_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_placement_fkey"
+            columns: ["placement"]
+            isOneToOne: false
+            referencedRelation: "ad_placements"
+            referencedColumns: ["placement"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_daily_stats: {
+        Row: {
+          campaign_id: string
+          clicks: number
+          day: string
+        }
+        Insert: {
+          campaign_id: string
+          clicks?: number
+          day: string
+        }
+        Update: {
+          campaign_id?: string
+          clicks?: number
+          day?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_daily_stats_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_placements: {
+        Row: {
+          active: boolean
+          daily_price: number
+          max_days: number
+          max_slots: number
+          min_days: number
+          placement: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          daily_price: number
+          max_days: number
+          max_slots: number
+          min_days: number
+          placement: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          daily_price?: number
+          max_days?: number
+          max_slots?: number
+          min_days?: number
+          placement?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       addresses: {
         Row: {
           created_at: string
@@ -1304,6 +1481,7 @@ export type Database = {
       }
       payouts: {
         Row: {
+          ads_fee: number
           carried_in: number
           carried_into_payout_id: string | null
           cash_collected: number
@@ -1322,6 +1500,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ads_fee?: number
           carried_in?: number
           carried_into_payout_id?: string | null
           cash_collected?: number
@@ -1340,6 +1519,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ads_fee?: number
           carried_in?: number
           carried_into_payout_id?: string | null
           cash_collected?: number
@@ -2229,6 +2409,10 @@ export type Database = {
           outcome: string
         }[]
       }
+      approve_ad_campaign: {
+        Args: { p_admin: string; p_id: string }
+        Returns: string
+      }
       authorize_corporate_payment: {
         Args: { p_order_id: string }
         Returns: {
@@ -2414,6 +2598,7 @@ export type Database = {
         }[]
       }
       product_store_id: { Args: { product_id: string }; Returns: string }
+      record_ad_click: { Args: { p_id: string }; Returns: string }
       record_refund: {
         Args: {
           p_amount: number
@@ -2467,6 +2652,16 @@ export type Database = {
           p_role: string
         }
         Returns: string
+      }
+      sponsored_stores: {
+        Args: { p_placement: string }
+        Returns: {
+          campaign_id: string
+          category: string
+          name: string
+          slug: string
+          store_id: string
+        }[]
       }
       store_is_visible: { Args: { store_id: string }; Returns: boolean }
       stores_nearby: {

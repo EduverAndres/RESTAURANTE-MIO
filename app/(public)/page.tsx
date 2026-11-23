@@ -13,8 +13,10 @@ import {
   StoreGrid,
   categoriesOf,
   fetchFeaturedStoreIds,
+  fetchSponsored,
   fetchStores,
   readVisitorLocation,
+  withSponsoredStores,
 } from './store-grid'
 import { CategoryCarousel } from '@/components/home/category-carousel'
 import { HomeHero } from '@/components/home/home-hero'
@@ -29,6 +31,11 @@ import { AudienceSwitcher } from '@/components/motion/audience-switcher'
 import { type StoreCardData } from '@/components/store/store-card'
 import { StoreGridSkeleton } from '@/components/store/store-card-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  mergeFeatured,
+  sponsoredItems,
+  sponsorshipsForCategory,
+} from '@/lib/ads/placement'
 import { fetchReservableStores } from '@/lib/reservations/directory'
 import { getCurrentUser } from '@/lib/auth'
 import { etaOf, isFast, isPopular } from '@/lib/marketplace/highlights'
@@ -100,12 +107,28 @@ async function StoreSections({ category }: { category: string | null }) {
     readVisitorLocation(),
     getCurrentUser(),
   ])
-  const [stores, featuredIds, reservableStores] = await Promise.all([
-    fetchStores(location),
-    fetchFeaturedStoreIds(),
-    fetchReservableStores(),
-  ])
-  const featured = stores.filter((store) => featuredIds.has(store.id))
+  const [stores, featuredIds, reservableStores, sponsorships] =
+    await Promise.all([
+      fetchStores(location),
+      fetchFeaturedStoreIds(),
+      fetchReservableStores(),
+      // Paid placements: the home's "Destacados", or the category's top slot.
+      fetchSponsored(category ? 'category_top' : 'home_featured'),
+    ])
+  const relevant = category
+    ? sponsorshipsForCategory(sponsorships, category)
+    : sponsorships
+  const sponsored = sponsoredItems(
+    relevant,
+    await withSponsoredStores(stores, relevant),
+  )
+  // Sponsored first, then the VIP plan's placement (and founders), once each.
+  const featured = category
+    ? []
+    : mergeFeatured(
+        sponsored,
+        stores.filter((store) => featuredIds.has(store.id)),
+      )
   const categories = categoriesOf(stores)
   const favorites = stores.filter((store) => store.is_favorite)
   const reorder = current
@@ -137,8 +160,9 @@ async function StoreSections({ category }: { category: string | null }) {
         <CategoryCarousel categories={categories} />
       </div>
 
-      {/* The VIP plan's placement, first of the rails. Labelled as what it
-          is: a place the business pays for, not a ranking. */}
+      {/* Paid places, first of the rails: sponsored campaigns, then the VIP
+          plan's placement. Labelled as what they are, a place the business
+          pays for, not a ranking; each sponsored card says "Patrocinado". */}
       {!category && featured.length > 0 ? (
         <section aria-labelledby="destacados-title" className="mb-10">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
@@ -155,7 +179,7 @@ async function StoreSections({ category }: { category: string | null }) {
               </h2>
             </div>
             <p className="text-muted-foreground text-xs">
-              Negocios con plan VIP
+              Patrocinados y negocios con plan VIP
             </p>
           </div>
           <StoreRail stores={featured} label="Destacados" />
@@ -264,7 +288,11 @@ async function StoreSections({ category }: { category: string | null }) {
           {category ? category : 'Todos los negocios'}
         </h2>
       </div>
-      <StoreGrid stores={stores} category={category} />
+      <StoreGrid
+        stores={stores}
+        category={category}
+        sponsored={category ? sponsored : []}
+      />
     </>
   )
 }

@@ -52,6 +52,8 @@ const SELF_GUARDED_PAGES: Record<string, RegExp> = {
 
 /** Route handlers and how each one authenticates its caller. */
 const ROUTE_HANDLERS: Record<string, string> = {
+  '/api/ads/click/[campaignId]':
+    'public sponsored-click redirect; counts via record_ad_click (service role), skips bots, rate-limited per address; returns no data',
   '/api/health': 'public liveness probe; returns no data',
   '/api/webhooks/wompi': 'Wompi event signature (checksum) verified',
   '/api/webhooks/mercadopago': 'Mercado Pago x-signature verified',
