@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { formatEta } from '@/lib/courier/eta'
 import type { CourierOrderSummary } from '@/lib/courier/orders'
 import { formatCOP } from '@/lib/format'
+import { normalizeIcuSpaces } from '@/lib/format-date'
 
 const dateFormatter = new Intl.DateTimeFormat('es-CO', {
   day: 'numeric',
@@ -39,7 +40,9 @@ export function DeliveryCard({ order, compact = false }: DeliveryCardProps) {
         <div className="min-w-0">
           <p className="text-muted-foreground font-mono text-xs">
             #{order.shortCode} ·{' '}
-            {dateFormatter.format(new Date(order.createdAt))}
+            {normalizeIcuSpaces(
+              dateFormatter.format(new Date(order.createdAt)),
+            )}
           </p>
           <p className="truncate font-semibold">{order.storeName}</p>
         </div>

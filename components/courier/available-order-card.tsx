@@ -15,12 +15,8 @@ import { claimOrder } from '@/app/courier/actions'
 import { Button } from '@/components/ui/button'
 import type { CourierOrderSummary } from '@/lib/courier/orders'
 import { formatCOP } from '@/lib/format'
+import { formatTimeCO } from '@/lib/format-date'
 import { formatDistance } from '@/lib/geo'
-
-const timeFormatter = new Intl.DateTimeFormat('es-CO', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
 
 export function AvailableOrderCard({
   order,
@@ -53,8 +49,7 @@ export function AvailableOrderCard({
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-muted-foreground font-mono text-xs">
-            #{order.shortCode} ·{' '}
-            {timeFormatter.format(new Date(order.createdAt))}
+            #{order.shortCode} · {formatTimeCO(order.createdAt)}
           </p>
           <p className="flex items-center gap-1.5 font-semibold">
             <StoreIcon aria-hidden="true" className="text-primary size-4" />

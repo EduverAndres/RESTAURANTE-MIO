@@ -79,6 +79,7 @@ export default async function CourierPage() {
       ) : null}
       <CourierBoard
         canClaim={active}
+        supervising={role !== 'courier'}
         available={available}
         active={inProgress}
         history={history.slice(0, HISTORY_LIMIT)}

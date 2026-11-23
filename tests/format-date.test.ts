@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateCO } from '@/lib/format-date'
+import { formatDateCO, formatTimeCO } from '@/lib/format-date'
 
 describe('formatDateCO', () => {
   it('formats a date as day, abbreviated month and year in es-CO', () => {
@@ -13,5 +13,13 @@ describe('formatDateCO', () => {
 
   it('accepts an ISO string', () => {
     expect(formatDateCO('2026-01-05T12:00:00.000Z')).toMatch(/2026$/)
+  })
+})
+
+describe('formatTimeCO', () => {
+  it('formats in Bogotá time with plain spaces only, like the browser does', () => {
+    const text = formatTimeCO('2026-11-23T18:05:00.000Z')
+    expect(text).toMatch(/^01:05 p\. m\.$/)
+    expect(text).not.toMatch(/[  ]/)
   })
 })
