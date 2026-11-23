@@ -51,6 +51,7 @@ with intentional(name, reason) as (
     ('owns_store_folder',    'RLS predicate on storage objects'),
     ('product_store_id',     'RLS predicate, resolves a product to its store'),
     ('resolve_store_table',  'public QR table flow: slug + token is the credential'),
+    ('sponsored_stores',     'public pages list the sponsored stores on the air; returns only campaign id, store id, slug, name and category (20261124000900)'),
     ('store_is_visible',     'RLS predicate for anonymous storefront reads'),
     ('table_token_store_slug', 'public QR table flow: the token alone finds a renamed store (20261105000500)'),
     ('user_role_of',         'RLS predicate, resolves a uid to its role')

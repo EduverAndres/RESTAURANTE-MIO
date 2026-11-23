@@ -42,6 +42,10 @@ export type Payout = Tables<'payouts'>
 export type PaymentEvent = Tables<'payment_events'>
 export type Refund = Tables<'refunds'>
 export type PushSubscriptionRow = Tables<'push_subscriptions'>
+export type AdPlacementRow = Tables<'ad_placements'>
+export type AdCampaignRow = Tables<'ad_campaigns'>
+export type AdCampaignPauseRow = Tables<'ad_campaign_pauses'>
+export type AdDailyStatRow = Tables<'ad_daily_stats'>
 
 // ---------------------------------------------------------------------------
 // Inserts / updates
@@ -72,6 +76,8 @@ export type StoresNearbyArgs =
   Database['public']['Functions']['stores_nearby']['Args']
 export type NearbyStore =
   Database['public']['Functions']['stores_nearby']['Returns'][number]
+export type SponsoredStoreRow =
+  Database['public']['Functions']['sponsored_stores']['Returns'][number]
 
 // ---------------------------------------------------------------------------
 // JSON column shapes
