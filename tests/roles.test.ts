@@ -36,12 +36,16 @@ describe('requiredRolesFor', () => {
   it('returns an empty list for routes that only require authentication', () => {
     expect(requiredRolesFor('/account')).toEqual([])
     expect(requiredRolesFor('/account/reset-password')).toEqual([])
+    expect(requiredRolesFor('/empresa')).toEqual([])
+    expect(requiredRolesFor('/empresa/unirse/abc')).toEqual([])
   })
 
   it('does not match prefixes that merely share characters', () => {
     expect(requiredRolesFor('/dashboards')).toBeNull()
     expect(requiredRolesFor('/administration')).toBeNull()
     expect(requiredRolesFor('/accounting')).toBeNull()
+    // The public landing for companies is not the panel.
+    expect(requiredRolesFor('/empresas')).toBeNull()
   })
 })
 

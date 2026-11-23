@@ -63,17 +63,23 @@ export async function recordLegalAcceptance({
   return { ok: true }
 }
 
-/** The evidence row alone, for flows that already wrote the metadata. */
+/**
+ * The evidence row alone, for flows that already wrote the metadata. Pass
+ * `documentVersion` when the acceptance is of another document than the
+ * general Terms (the Términos para Empresas carry their own version).
+ */
 export async function logConsent({
   userId,
   source,
   headers,
   marketingOptIn,
+  documentVersion = LEGAL_VERSION,
 }: {
   userId: string
   source: ConsentSource
   headers: Headers
   marketingOptIn: boolean | null
+  documentVersion?: string
 }): Promise<void> {
   const ip = clientIp(headers)
   try {
@@ -81,7 +87,7 @@ export async function logConsent({
       .from('legal_consents')
       .insert({
         user_id: userId,
-        document_version: LEGAL_VERSION,
+        document_version: documentVersion,
         source,
         marketing_opt_in: marketingOptIn,
         // `inet` rejects anything that is not an address; a malformed proxy
