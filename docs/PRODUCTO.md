@@ -11,12 +11,12 @@ apps grandes, o más, y ser justa con el comercio.
 
 ## Públicos y promesa
 
-| Público | Qué obtiene |
-|---|---|
-| **Clientes** | Pedir a domicilio, para recoger o desde la mesa, y reservar mesa en segundos. Precio de la carta sin recargos ocultos, seguimiento en vivo, favoritos y repetir pedido con un toque. |
-| **Empresas** | Cuenta corporativa: empleados invitados, presupuesto por persona y por pedido, un solo estado de cuenta mensual a crédito y datos de facturación con NIT. |
-| **Restaurantes y comercios** | Canal propio con su marca; pedidos y **reservas** en un panel en tiempo real; clientes propios, fidelidad, pedidos de empresas y **anuncios destacados** opcionales; planes claros. |
-| **Domiciliarios** | Registro, aprobación con documentos, bolsa de entregas, ganancias claras (valor del domicilio + 100 % de la propina) y liquidación periódica. |
+| Público                      | Qué obtiene                                                                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Clientes**                 | Pedir a domicilio, para recoger o desde la mesa, y reservar mesa en segundos. Precio de la carta sin recargos ocultos, seguimiento en vivo, favoritos y repetir pedido con un toque. |
+| **Empresas**                 | Cuenta corporativa: empleados invitados, presupuesto por persona y por pedido, un solo estado de cuenta mensual a crédito y datos de facturación con NIT.                            |
+| **Restaurantes y comercios** | Canal propio con su marca; pedidos y **reservas** en un panel en tiempo real; clientes propios, fidelidad, pedidos de empresas y **anuncios destacados** opcionales; planes claros.  |
+| **Domiciliarios**            | Registro, aprobación con documentos, bolsa de entregas, ganancias claras (valor del domicilio + 100 % de la propina) y liquidación periódica.                                        |
 
 ## Experiencia
 
@@ -32,12 +32,12 @@ apps grandes, o más, y ser justa con el comercio.
 
 ## Modelo de negocio
 
-| Fuente | Cómo se cobra |
-|---|---|
+| Fuente              | Cómo se cobra                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------ |
 | Comisión por pedido | % del subtotal (0 % en mesa y para fundadores), descontado en la liquidación del comercio. |
-| Pago en línea | 5 % adicional cuando el pedido no es en efectivo, incluidos los corporativos. |
-| Planes | Mensualidad prorrateada por día en la liquidación. Reservas incluidas en Mediano y VIP. |
-| Anuncios destacados | Precio por día y ubicación, descontado en la liquidación. |
+| Pago en línea       | 5 % adicional cuando el pedido no es en efectivo, incluidos los corporativos.              |
+| Planes              | Mensualidad prorrateada por día en la liquidación. Reservas incluidas en Mediano y VIP.    |
+| Anuncios destacados | Precio por día y ubicación, descontado en la liquidación.                                  |
 
 Reglas que protegen el ingreso:
 
