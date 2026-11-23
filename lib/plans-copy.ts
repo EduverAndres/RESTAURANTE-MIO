@@ -21,6 +21,10 @@ export const PLAN_ROWS: readonly PlanRow[] = [
     feature: 'theme-editor',
   },
   { label: 'Estadísticas completas', feature: 'full-metrics' },
+  {
+    label: 'Reservas de mesa que confirmas desde tu panel',
+    feature: 'reservations',
+  },
   { label: 'CSS propio y video en la portada', feature: 'custom-css' },
   { label: 'Destacado en la página principal', feature: 'featured-home' },
   { label: 'Soporte prioritario por WhatsApp', feature: 'priority-support' },

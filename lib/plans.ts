@@ -43,6 +43,7 @@ export const PLAN_FEATURES = [
   'presets',
   'theme-editor',
   'full-metrics',
+  'reservations',
   'custom-css',
   'hero-video',
   'featured-home',
@@ -52,7 +53,7 @@ export type PlanFeature = (typeof PLAN_FEATURES)[number]
 
 const FEATURES: Record<PlanId, ReadonlySet<PlanFeature>> = {
   normal: new Set(['presets']),
-  mediano: new Set(['presets', 'theme-editor', 'full-metrics']),
+  mediano: new Set(['presets', 'theme-editor', 'full-metrics', 'reservations']),
   vip: new Set(PLAN_FEATURES),
 }
 

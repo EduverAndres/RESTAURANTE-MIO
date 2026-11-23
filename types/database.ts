@@ -1436,6 +1436,146 @@ export type Database = {
           },
         ]
       }
+      reservation_settings: {
+        Row: {
+          blocked_dates: string[]
+          covers_per_slot: number
+          duration_minutes: number
+          enabled: boolean
+          max_days_ahead: number
+          max_party_size: number
+          min_lead_minutes: number
+          policy_text: string
+          slot_minutes: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_dates?: string[]
+          covers_per_slot?: number
+          duration_minutes?: number
+          enabled?: boolean
+          max_days_ahead?: number
+          max_party_size?: number
+          min_lead_minutes?: number
+          policy_text?: string
+          slot_minutes?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_dates?: string[]
+          covers_per_slot?: number
+          duration_minutes?: number
+          enabled?: boolean
+          max_days_ahead?: number
+          max_party_size?: number
+          min_lead_minutes?: number
+          policy_text?: string
+          slot_minutes?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          code: string
+          confirmed_at: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          customer_id: string
+          decline_reason: string | null
+          declined_at: string | null
+          id: string
+          no_show_at: string | null
+          notes: string | null
+          occasion: string | null
+          party_size: number
+          seated_at: string | null
+          service_date: string
+          starts_at: string
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          code?: string
+          confirmed_at?: string | null
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          customer_id: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          id?: string
+          no_show_at?: string | null
+          notes?: string | null
+          occasion?: string | null
+          party_size: number
+          seated_at?: string | null
+          service_date: string
+          starts_at: string
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          code?: string
+          confirmed_at?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          customer_id?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          id?: string
+          no_show_at?: string | null
+          notes?: string | null
+          occasion?: string | null
+          party_size?: number
+          seated_at?: string | null
+          service_date?: string
+          starts_at?: string
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           comment: string | null
@@ -1650,6 +1790,25 @@ export type Database = {
       courier_cash_in_progress: {
         Args: { p_courier: string }
         Returns: number
+      }
+      create_reservation: {
+        Args: {
+          p_contact_name: string
+          p_contact_phone: string
+          p_customer_id: string
+          p_max_active: number
+          p_notes: string
+          p_occasion: string
+          p_party_size: number
+          p_service_date: string
+          p_starts_at: string
+          p_store_id: string
+        }
+        Returns: {
+          code: string
+          outcome: string
+          reservation_id: string
+        }[]
       }
       ensure_referral_code: { Args: never; Returns: string }
       generate_courier_payouts: {

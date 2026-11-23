@@ -231,3 +231,93 @@ export function storeHoursState(input: StoreHoursInput): StoreHoursState {
     today,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Bogotá-explicit helpers, for dates in the future (reservations).
+//
+// `storeHoursState` reads the runtime's local clock, which the server pins to
+// Bogotá (instrumentation.ts). Reservation slots are computed in the browser
+// too, where the clock may be anywhere, so these never call getHours() or
+// getDay(): Colombia is UTC-5 all year, and the offset is applied by hand.
+// ---------------------------------------------------------------------------
+
+/** Colombia has no daylight saving time. */
+export const BOGOTA_OFFSET_MIN = -300
+
+const MS_PER_MIN = 60_000
+
+/** The Bogotá calendar date, minute of day and weekday of an instant. */
+export function bogotaClock(at: Date): {
+  date: string
+  minutes: number
+  day: WeekDay
+} {
+  const shifted = new Date(at.getTime() + BOGOTA_OFFSET_MIN * MS_PER_MIN)
+  const date = shifted.toISOString().slice(0, 10)
+  return {
+    date,
+    minutes: shifted.getUTCHours() * 60 + shifted.getUTCMinutes(),
+    day: weekDayOfDate(date),
+  }
+}
+
+/**
+ * The instant at `minutes` past midnight (Bogotá) of `date`. Minutes of 1440
+ * or more land on the following day, which is how a window past midnight
+ * (18:00 → 02:00) is written.
+ */
+export function bogotaInstant(date: string, minutes: number): Date {
+  const midnightUtc = Date.parse(`${date}T00:00:00.000Z`)
+  return new Date(midnightUtc + (minutes - BOGOTA_OFFSET_MIN) * MS_PER_MIN)
+}
+
+/** `YYYY-MM-DD` plus `days` (negative goes back). */
+export function addDays(date: string, days: number): string {
+  const next = new Date(`${date}T00:00:00.000Z`)
+  next.setUTCDate(next.getUTCDate() + days)
+  return next.toISOString().slice(0, 10)
+}
+
+/** Weekday of a calendar date, independent of any time zone. */
+export function weekDayOfDate(date: string): WeekDay {
+  const day = new Date(`${date}T00:00:00.000Z`).getUTCDay()
+  return WEEK_DAY_ORDER[(day + 6) % 7]
+}
+
+/** Minutes past that date's midnight; `end` exceeds 1440 past midnight. */
+export interface OpeningWindow {
+  start: number
+  end: number
+}
+
+/** The opening window that starts on `date`, or null when closed that day. */
+export function openingWindowOn(
+  schedule: unknown,
+  date: string,
+): OpeningWindow | null {
+  const hours = parseSchedule(schedule)[weekDayOfDate(date)]
+  if (!hours) return null
+  const open = timeToMinutes(hours.open) ?? 0
+  const close = timeToMinutes(hours.close) ?? 0
+  return {
+    start: open,
+    end: close > open ? close : MINUTES_IN_DAY + close,
+  }
+}
+
+/**
+ * Whether the store's schedule covers the instant `at`, including the tail
+ * of the previous day's window past midnight. Ignores the master switch,
+ * which only means something for "now".
+ */
+export function isWithinOpeningHours(schedule: unknown, at: Date): boolean {
+  const { date, minutes } = bogotaClock(at)
+  const today = openingWindowOn(schedule, date)
+  if (today && minutes >= today.start && minutes < today.end) return true
+  const yesterday = openingWindowOn(schedule, addDays(date, -1))
+  return (
+    yesterday !== null &&
+    yesterday.end > MINUTES_IN_DAY &&
+    minutes + MINUTES_IN_DAY < yesterday.end
+  )
+}
