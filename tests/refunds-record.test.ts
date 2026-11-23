@@ -55,7 +55,11 @@ function order(overrides: Partial<RefundOrder> = {}): RefundOrder {
   }
 }
 
-const INPUT = { reason: 'customer_request', method: 'cash', note: null } as const
+const INPUT = {
+  reason: 'customer_request',
+  method: 'cash',
+  note: null,
+} as const
 
 beforeEach(() => {
   vi.resetModules()
@@ -99,8 +103,16 @@ describe('recordRefund', () => {
   it('pins the status the decision was made against', async () => {
     // FINDING 3's other half: the transaction refuses unless the order still
     // holds this status, so a plan decided on a stale read is never applied.
+    // A delivered cash order is the one case still `pending` when refunded,
+    // and only the platform records cash refunds.
     current = fakeAdmin({ data: 'ok' })
-    await record({ payment_status: 'pending', payment_method: 'cash' })
+    const { recordRefund } = await import('@/lib/refunds/record')
+    await recordRefund({
+      order: order({ payment_status: 'pending', payment_method: 'cash' }),
+      input: { ...INPUT },
+      issuedBy: '33333333-3333-4333-8333-333333333333',
+      actor: 'admin',
+    })
     expect(current.calls[0].args.p_expected_payment_status).toBe('pending')
   })
 
@@ -137,6 +149,33 @@ describe('recordRefund', () => {
     const result = await record()
 
     expect(result.ok).toBe(false)
+  })
+
+  it('never reaches the database for a merchant refund on a cash order', async () => {
+    current = fakeAdmin({ data: 'ok' })
+
+    expect(
+      await record({ payment_status: 'pending', payment_method: 'cash' }),
+    ).toEqual({
+      ok: false,
+      error: REFUND_REJECTION_MESSAGES.cash_admin_only,
+    })
+    expect(current.calls).toEqual([])
+  })
+
+  it('records the same cash refund when the platform issues it', async () => {
+    current = fakeAdmin({ data: 'ok' })
+    const { recordRefund } = await import('@/lib/refunds/record')
+
+    const result = await recordRefund({
+      order: order({ payment_status: 'pending', payment_method: 'cash' }),
+      input: { ...INPUT },
+      issuedBy: '33333333-3333-4333-8333-333333333333',
+      actor: 'admin',
+    })
+
+    expect(result).toEqual({ ok: true })
+    expect(current.calls).toHaveLength(1)
   })
 
   it('refuses an unrefundable order before reaching the database', async () => {

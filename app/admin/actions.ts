@@ -366,6 +366,7 @@ export async function recordRefundAsAdmin(
   if (!result.ok) return result
 
   revalidatePath('/admin/payments')
+  revalidatePath('/admin/orders')
   revalidatePath('/admin/payouts')
   revalidatePath(`/orders/${order.id}`)
   return { ok: true }

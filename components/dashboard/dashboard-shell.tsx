@@ -64,6 +64,7 @@ const ADMIN_ITEMS: DashboardNavItem[] = [
   { label: 'Resumen', href: '/admin', icon: LayoutDashboardIcon },
   { label: 'Tiendas', href: '/admin/stores', icon: StoreIcon },
   { label: 'Usuarios', href: '/admin/users', icon: UsersIcon },
+  { label: 'Pedidos', href: '/admin/orders', icon: ReceiptTextIcon },
   { label: 'Liquidaciones', href: '/admin/payouts', icon: LandmarkIcon },
   {
     label: 'Pagos sin aplicar',

@@ -3,6 +3,7 @@ import { canApplyPaymentStatus } from '@/lib/payments/transitions'
 import { refundThroughGateway } from '@/lib/refunds/gateway'
 import {
   REFUND_REJECTION_MESSAGES,
+  canRecordRefund,
   isRefundable,
   planRefund,
   type RefundOrder,
@@ -27,11 +28,15 @@ function order(overrides: Partial<RefundOrder> = {}): RefundOrder {
   }
 }
 
-const INPUT = { reason: 'customer_request', method: 'cash', note: null } as const
+const INPUT = {
+  reason: 'customer_request',
+  method: 'cash',
+  note: null,
+} as const
 
 describe('planRefund', () => {
   it('records the full order total, in the units orders.total uses', () => {
-    const result = planRefund(order({ total: 42500 }), INPUT)
+    const result = planRefund(order({ total: 42500 }), INPUT, 'admin')
     expect(result).toEqual({
       ok: true,
       refund: {
@@ -46,15 +51,23 @@ describe('planRefund', () => {
   })
 
   it('trims the note and stores an empty one as null', () => {
-    const withNote = planRefund(order(), { ...INPUT, note: '  Devuelto en caja  ' })
+    const withNote = planRefund(
+      order(),
+      { ...INPUT, note: '  Devuelto en caja  ' },
+      'admin',
+    )
     expect(withNote.ok && withNote.refund.note).toBe('Devuelto en caja')
 
-    const blank = planRefund(order(), { ...INPUT, note: '   ' })
+    const blank = planRefund(order(), { ...INPUT, note: '   ' }, 'admin')
     expect(blank.ok && blank.refund.note).toBeNull()
   })
 
   it('refuses an order that is already refunded', () => {
-    const result = planRefund(order({ payment_status: 'refunded' }), INPUT)
+    const result = planRefund(
+      order({ payment_status: 'refunded' }),
+      INPUT,
+      'admin',
+    )
     expect(result).toEqual({ ok: false, error: 'already_refunded' })
   })
 
@@ -64,7 +77,9 @@ describe('planRefund', () => {
     // if a future FORBIDDEN entry adds one, planRefund must refuse it.
     for (const from of ['pending', 'paid', 'failed'] as const) {
       expect(canApplyPaymentStatus(from, 'refunded')).toBe(true)
-      expect(planRefund(order({ payment_status: from }), INPUT).ok).toBe(true)
+      expect(
+        planRefund(order({ payment_status: from }), INPUT, 'admin').ok,
+      ).toBe(true)
     }
   })
 
@@ -77,25 +92,63 @@ describe('planRefund', () => {
   it('refuses an order that never took money', () => {
     expect(
       planRefund(
-        order({ status: 'cancelled', payment_status: 'pending', payment_method: 'wompi' }),
+        order({
+          status: 'cancelled',
+          payment_status: 'pending',
+          payment_method: 'wompi',
+        }),
         INPUT,
+        'admin',
       ),
     ).toEqual({ ok: false, error: 'not_refundable' })
   })
 
   it('refuses an order with nothing to give back', () => {
-    expect(planRefund(order({ total: 0 }), INPUT)).toEqual({
+    expect(planRefund(order({ total: 0 }), INPUT, 'admin')).toEqual({
       ok: false,
       error: 'nothing_to_refund',
     })
-    expect(planRefund(order({ total: -1 }), INPUT)).toEqual({
+    expect(planRefund(order({ total: -1 }), INPUT, 'admin')).toEqual({
       ok: false,
       error: 'nothing_to_refund',
     })
   })
 
+  // A cash refund is pure bookkeeping on money the merchant already holds:
+  // recording one takes the sale out of the payout and reverses the
+  // commission, and nothing moves. Only the platform may do that.
+  it('refuses a merchant refund on a cash order', () => {
+    const cash = order({ payment_status: 'pending', payment_method: 'cash' })
+    expect(planRefund(cash, INPUT, 'merchant')).toEqual({
+      ok: false,
+      error: 'cash_admin_only',
+    })
+  })
+
+  it('lets the platform refund that same cash order', () => {
+    const cash = order({ payment_status: 'pending', payment_method: 'cash' })
+    expect(planRefund(cash, INPUT, 'admin').ok).toBe(true)
+  })
+
+  it('still lets a merchant refund an order paid online', () => {
+    const online = order({ payment_status: 'paid', payment_method: 'wompi' })
+    expect(planRefund(online, INPUT, 'merchant').ok).toBe(true)
+  })
+
+  it('reports an existing refund before the cash rule', () => {
+    const refunded = order({
+      payment_status: 'refunded',
+      payment_method: 'cash',
+    })
+    expect(planRefund(refunded, INPUT, 'merchant')).toEqual({
+      ok: false,
+      error: 'already_refunded',
+    })
+  })
+
   it('has a Spanish message for every rejection', () => {
     const rejections: RefundRejection[] = [
+      'cash_admin_only',
       'already_refunded',
       'not_refundable',
       'transition_forbidden',
@@ -110,42 +163,99 @@ describe('planRefund', () => {
 describe('isRefundable', () => {
   it('offers a refund for an electronically paid order', () => {
     expect(
-      isRefundable({ payment_status: 'paid', payment_method: 'wompi', status: 'delivered' }),
+      isRefundable({
+        payment_status: 'paid',
+        payment_method: 'wompi',
+        status: 'delivered',
+      }),
     ).toBe(true)
   })
 
   it('offers a refund for a delivered cash order, which never turns paid', () => {
     expect(
-      isRefundable({ payment_status: 'pending', payment_method: 'cash', status: 'delivered' }),
+      isRefundable({
+        payment_status: 'pending',
+        payment_method: 'cash',
+        status: 'delivered',
+      }),
     ).toBe(true)
   })
 
   it('does not offer a refund for a cash order that was never delivered', () => {
     expect(
-      isRefundable({ payment_status: 'pending', payment_method: 'cash', status: 'cancelled' }),
+      isRefundable({
+        payment_status: 'pending',
+        payment_method: 'cash',
+        status: 'cancelled',
+      }),
     ).toBe(false)
   })
 
   it('does not offer a refund for an unpaid electronic order', () => {
     expect(
-      isRefundable({ payment_status: 'pending', payment_method: 'wompi', status: 'cancelled' }),
+      isRefundable({
+        payment_status: 'pending',
+        payment_method: 'wompi',
+        status: 'cancelled',
+      }),
     ).toBe(false)
     expect(
-      isRefundable({ payment_status: 'failed', payment_method: 'wompi', status: 'cancelled' }),
+      isRefundable({
+        payment_status: 'failed',
+        payment_method: 'wompi',
+        status: 'cancelled',
+      }),
     ).toBe(false)
   })
 
   it('does not offer a second refund', () => {
     expect(
-      isRefundable({ payment_status: 'refunded', payment_method: 'wompi', status: 'delivered' }),
+      isRefundable({
+        payment_status: 'refunded',
+        payment_method: 'wompi',
+        status: 'delivered',
+      }),
     ).toBe(false)
   })
 
   it('matches the payout eligibility rule it mirrors', () => {
     // An order the merchant is settled for is exactly an order that can be
     // reversed; if these two ever disagree, money is counted twice.
-    const settled = { status: 'delivered', payment_status: 'paid', payment_method: 'wompi' } as const
+    const settled = {
+      status: 'delivered',
+      payment_status: 'paid',
+      payment_method: 'wompi',
+    } as const
     expect(isRefundable(settled)).toBe(true)
+  })
+})
+
+describe('canRecordRefund', () => {
+  const deliveredCash = {
+    status: 'delivered',
+    payment_status: 'pending',
+    payment_method: 'cash',
+  } as const
+  const paidOnline = {
+    status: 'delivered',
+    payment_status: 'paid',
+    payment_method: 'wompi',
+  } as const
+
+  it('hides the button from a merchant on a cash order', () => {
+    expect(canRecordRefund(deliveredCash, 'merchant')).toBe(false)
+    expect(canRecordRefund(deliveredCash, 'admin')).toBe(true)
+  })
+
+  it('keeps it for an order paid online', () => {
+    expect(canRecordRefund(paidOnline, 'merchant')).toBe(true)
+    expect(canRecordRefund(paidOnline, 'admin')).toBe(true)
+  })
+
+  it('never offers what isRefundable refuses', () => {
+    const refunded = { ...paidOnline, payment_status: 'refunded' } as const
+    expect(canRecordRefund(refunded, 'admin')).toBe(false)
+    expect(canRecordRefund(refunded, 'merchant')).toBe(false)
   })
 })
 
