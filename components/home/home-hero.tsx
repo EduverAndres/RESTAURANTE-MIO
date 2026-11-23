@@ -52,11 +52,11 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
                   <Link
                     href="#restaurantes"
                     aria-current="true"
-                    className="rounded-pill bg-background text-foreground shadow-1 flex h-11 items-center justify-center gap-2 px-3 text-sm font-semibold"
+                    className="rounded-pill bg-background text-foreground shadow-1 flex h-11 items-center justify-center gap-2 px-2 text-sm font-semibold sm:px-3"
                   >
                     <BikeIcon
                       aria-hidden="true"
-                      className="text-primary size-4"
+                      className="text-primary size-4 max-[359px]:hidden"
                     />
                     Pedir domicilio
                   </Link>
@@ -64,9 +64,12 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
                 <li>
                   <Link
                     href="/reservas"
-                    className="rounded-pill text-foreground/75 hover:text-foreground hover:bg-background/60 flex h-11 items-center justify-center gap-2 px-3 text-sm font-medium transition-colors"
+                    className="rounded-pill text-foreground/75 hover:text-foreground hover:bg-background/60 flex h-11 items-center justify-center gap-2 px-2 text-sm font-medium transition-colors sm:px-3"
                   >
-                    <CalendarCheckIcon aria-hidden="true" className="size-4" />
+                    <CalendarCheckIcon
+                      aria-hidden="true"
+                      className="size-4 max-[359px]:hidden"
+                    />
                     Reservar mesa
                   </Link>
                 </li>
