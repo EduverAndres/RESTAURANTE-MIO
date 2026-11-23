@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { formatCOP } from '@/lib/format'
 import { itemsSummary, type BoardOrder } from '@/lib/orders/kanban'
 import { ORDER_TYPE_LABELS } from '@/lib/orders/status'
-import { isRefundable } from '@/lib/refunds/plan'
+import { supportWhatsAppUrl } from '@/lib/marketplace/support'
+import { canRecordRefund, isRefundable } from '@/lib/refunds/plan'
 
 interface HistorySectionProps {
   orders: BoardOrder[]
@@ -80,12 +81,14 @@ export function HistorySection({ orders }: HistorySectionProps) {
                 <span className="text-sm font-semibold tabular-nums">
                   {formatCOP(order.total)}
                 </span>
-                {isRefundable(order) ? (
+                {canRecordRefund(order, 'merchant') ? (
                   <RecordRefundDialog
                     orderId={order.id}
                     shortCode={order.short_code}
                     total={order.total}
                   />
+                ) : isRefundable(order) ? (
+                  <CashRefundHelp shortCode={order.short_code} />
                 ) : null}
               </div>
             </li>
@@ -93,5 +96,33 @@ export function HistorySection({ orders }: HistorySectionProps) {
         </ul>
       )}
     </details>
+  )
+}
+
+/**
+ * Where the refund button would be on a cash order. The merchant cannot
+ * record it themselves (see `canRecordRefund`), so the closed order says who
+ * can, and links to them when the support line is configured.
+ */
+function CashRefundHelp({ shortCode }: { shortCode: string }) {
+  const url = supportWhatsAppUrl(
+    `Hola, necesito registrar el reembolso del pedido en efectivo #${shortCode}.`,
+  )
+  if (!url) {
+    return (
+      <span className="text-muted-foreground text-xs">
+        Reembolso en efectivo: lo registra Cerquita
+      </span>
+    )
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary-on-tint text-xs font-medium underline underline-offset-2"
+    >
+      Pedir reembolso a Cerquita
+    </a>
   )
 }

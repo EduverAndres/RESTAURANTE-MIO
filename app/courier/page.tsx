@@ -1,5 +1,8 @@
 import { CourierBoard } from '@/components/courier/courier-board'
+import { CourierStatusBanner } from '@/components/courier/courier-status-banner'
 import { requireRole } from '@/lib/auth'
+import { bogotaToday, isCourierActive } from '@/lib/couriers/profile'
+import { fetchOwnCourierProfile } from '@/lib/couriers/server'
 import {
   splitCourierOrders,
   toCourierOrderSummary,
@@ -12,12 +15,16 @@ import { throwOnQueryError } from '@/lib/supabase/query-error'
 export const dynamic = 'force-dynamic'
 
 const ORDER_COLUMNS =
-  'id, short_code, status, created_at, delivery_fee, estimated_at, address_id, stores(name, lat, lng)'
+  'id, short_code, status, created_at, delivery_fee, tip, total, payment_method, estimated_at, address_id, stores(name, lat, lng)'
 const HISTORY_LIMIT = 20
 
 export default async function CourierPage() {
   const { user, role } = await requireRole(['courier', 'admin'], '/courier')
   const supabase = await createClient()
+  const profile =
+    role === 'courier' ? await fetchOwnCourierProfile(supabase, user.id) : null
+  const today = bogotaToday()
+  const active = role === 'courier' && isCourierActive(profile, today)
 
   // RLS already limits the pool to unclaimed, ready deliveries; the filters
   // are repeated so admins (who see everything) get the same list.
@@ -52,7 +59,9 @@ export default async function CourierPage() {
     )
 
   const available = poolRows.map(summarize)
-  const { active, history } = splitCourierOrders(mineRows.map(summarize))
+  const { active: inProgress, history } = splitCourierOrders(
+    mineRows.map(summarize),
+  )
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -65,10 +74,14 @@ export default async function CourierPage() {
           vivo con los clientes.
         </p>
       </header>
+      {role === 'courier' ? (
+        <CourierStatusBanner profile={profile} today={today} />
+      ) : null}
       <CourierBoard
-        canClaim={role === 'courier'}
+        canClaim={active}
+        supervising={role !== 'courier'}
         available={available}
-        active={active}
+        active={inProgress}
         history={history.slice(0, HISTORY_LIMIT)}
       />
     </div>

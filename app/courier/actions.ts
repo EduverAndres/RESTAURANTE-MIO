@@ -3,6 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
+import {
+  bogotaToday,
+  courierBlockReason,
+  statusAfterEdit,
+} from '@/lib/couriers/profile'
+import type { CourierStatus, VehicleType } from '@/lib/couriers/vocabulary'
 import { etaFromRoute } from '@/lib/courier/eta'
 import {
   fetchAddressesById,
@@ -27,8 +33,10 @@ import { generateDeliveryCode } from '@/lib/tracking/delivery-code'
 import {
   advanceOrderInputSchema,
   courierPositionSchema,
+  courierProfileSchema,
   type AdvanceOrderInput,
   type CourierPositionInput,
+  type CourierProfileInput,
 } from '@/lib/validations/courier'
 import type { OrderStatus } from '@/types/app'
 
@@ -43,6 +51,8 @@ const CODE_LOCKED =
   'Demasiados intentos. El cliente puede confirmar la entrega desde su pedido o el restaurante desde su panel.'
 const CODE_CHECK_FAILED = 'No pudimos verificar el código. Inténtalo de nuevo.'
 const UPDATE_FAILED = 'No pudimos actualizar el pedido.'
+const CASH_CAP_REACHED =
+  'Tienes mucho efectivo pendiente por consignar. Consígnalo para seguir tomando pedidos en efectivo; los pagados en línea sí los puedes tomar.'
 const STATUS_CHANGED =
   'El pedido cambió de estado en otro dispositivo. Se actualizará.'
 
@@ -95,6 +105,30 @@ export async function claimOrder(
     return { ok: false, error: COURIERS_ONLY }
   }
 
+  // RLS already hides the pool from a courier who is not active
+  // (`is_active_courier()`), so the update below would simply match nothing.
+  // Reading their own profile first turns that into the actual reason.
+  const { data: profile, error: profileError } = await supabase
+    .from('courier_profiles')
+    .select('status, vehicle_type, license_expires_on, soat_expires_on')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (profileError) {
+    console.error('Failed to read courier profile', profileError)
+    return { ok: false, error: 'No pudimos verificar tu perfil.' }
+  }
+  const blocked = courierBlockReason(
+    profile
+      ? {
+          ...profile,
+          status: profile.status as CourierStatus,
+          vehicle_type: profile.vehicle_type as VehicleType | null,
+        }
+      : null,
+    bogotaToday(),
+  )
+  if (blocked) return { ok: false, error: blocked }
+
   const { data, error } = await supabase
     .from('orders')
     .update({ courier_id: user.id })
@@ -104,6 +138,11 @@ export async function claimOrder(
     .eq('type', 'delivery')
     .select('id, address_id, short_code, customer_id, stores(lat, lng)')
   if (error) {
+    // `guard_courier_cash_cap` refuses a cash order that would put the
+    // courier over their cash debt cap.
+    if (error.message?.includes('courier_cash_cap')) {
+      return { ok: false, error: CASH_CAP_REACHED }
+    }
     console.error('Failed to claim order', error)
     return {
       ok: false,
@@ -378,4 +417,108 @@ export async function publishLocation(
     return { ok: false, error: 'No pudimos compartir tu ubicación.' }
   }
   return { ok: true }
+}
+
+export type SaveCourierProfileResult =
+  | { ok: true; status: CourierStatus }
+  | { ok: false; error: string; field?: string }
+
+/**
+ * The courier's own profile: vehicle, plate, identity document and the
+ * expiry of their licence and SOAT.
+ *
+ * Written with the service role: `courier_profiles` has no write policy for
+ * browser sessions, so a courier can never set their own `status`. What the
+ * status becomes is decided here by `statusAfterEdit`: a new profile goes to
+ * review, renewing papers keeps an approval, changing vehicle, plate or
+ * document sends it back to review, and a suspension is never lifted.
+ */
+export async function saveCourierProfile(
+  input: CourierProfileInput,
+): Promise<SaveCourierProfileResult> {
+  const parsed = courierProfileSchema.safeParse(input)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    return {
+      ok: false,
+      error: issue?.message ?? 'Revisa los datos de tu perfil.',
+      field: String(issue?.path[0] ?? ''),
+    }
+  }
+  const values = parsed.data
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: SESSION_EXPIRED }
+  if ((await resolveUserRole(supabase, user)) !== 'courier') {
+    return { ok: false, error: 'Solo los domiciliarios tienen este perfil.' }
+  }
+
+  const admin = createAdminClient()
+  const { data: previous, error: readError } = await admin
+    .from('courier_profiles')
+    .select('status, vehicle_type, plate, document_number')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (readError) {
+    logger.error('courier.profile_read_failed', { userId: user.id }, readError)
+    return {
+      ok: false,
+      error: 'No pudimos guardar tu perfil. Inténtalo de nuevo.',
+    }
+  }
+
+  const next = {
+    vehicle_type: values.vehicleType,
+    // A bicycle or a courier on foot has no plate or road documents.
+    plate: values.plate,
+    document_number: values.documentNumber,
+  }
+  const status = statusAfterEdit(
+    previous
+      ? {
+          ...previous,
+          status: previous.status as CourierStatus,
+          vehicle_type: previous.vehicle_type as VehicleType | null,
+        }
+      : null,
+    next,
+  )
+  const backToReview = previous?.status === 'approved' && status === 'pending'
+
+  const { error } = await admin.from('courier_profiles').upsert(
+    {
+      user_id: user.id,
+      status,
+      ...next,
+      city: values.city,
+      zone: values.zone,
+      license_expires_on: values.licenseExpiresOn,
+      soat_expires_on: values.soatExpiresOn,
+      submitted_at: new Date().toISOString(),
+      ...(backToReview ? { approved_at: null, approved_by: null } : {}),
+    },
+    { onConflict: 'user_id' },
+  )
+  if (error) {
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        error: 'Ese número de documento ya está registrado con otra cuenta.',
+        field: 'documentNumber',
+      }
+    }
+    logger.error('courier.profile_save_failed', { userId: user.id }, error)
+    return {
+      ok: false,
+      error: 'No pudimos guardar tu perfil. Inténtalo de nuevo.',
+    }
+  }
+
+  revalidatePath('/courier')
+  revalidatePath('/courier/perfil')
+  revalidatePath('/admin/domiciliarios')
+  return { ok: true, status }
 }

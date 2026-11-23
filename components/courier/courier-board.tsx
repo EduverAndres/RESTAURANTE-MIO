@@ -12,8 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CourierOrderSummary } from '@/lib/courier/orders'
 
 interface CourierBoardProps {
-  /** False for an admin, who watches the pool but never takes deliveries. */
+  /**
+   * Whether the pool's orders can be taken: false for an admin, and for a
+   * courier whose profile is not approved or whose papers expired.
+   */
   canClaim: boolean
+  /** An admin watching the pool, who never delivers. */
+  supervising: boolean
   available: CourierOrderSummary[]
   active: CourierOrderSummary[]
   history: CourierOrderSummary[]
@@ -33,6 +38,7 @@ function Count({ value }: { value: number }) {
 
 export function CourierBoard({
   canClaim,
+  supervising,
   available: initialAvailable,
   active,
   history,
@@ -47,7 +53,9 @@ export function CourierBoard({
 
   return (
     <div className="space-y-6">
-      {canClaim ? (
+      {/* A courier who cannot claim right now may still be finishing a
+          delivery, so the location switch stays theirs. */}
+      {!supervising ? (
         <OnlineSwitch online={online} state={publisher} onChange={setOnline} />
       ) : (
         <p

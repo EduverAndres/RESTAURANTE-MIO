@@ -31,6 +31,9 @@ const UNTOUCHED_PREFIXES = [
   '/proteccion-al-consumidor',
   '/legal',
   '/register',
+  // Audience landings are app-wide, not pages of any one store.
+  '/repartidores',
+  '/reservas',
 ] as const
 
 function hostWithoutPort(host: string): string {

@@ -26,6 +26,8 @@
 import {
   collectedAmount,
   isCollectedByMerchant,
+  isPassedThroughToMerchant,
+  passthroughAmount,
   periodEndExclusive,
   settledGross,
   type PayoutPeriod,
@@ -63,6 +65,9 @@ export interface RefundedOrderInput {
   platform_fee: number
   merchant_discount: number
   platform_discount: number
+  /** Passed through to the merchant when they handed the order over. */
+  delivery_fee: number
+  tip: number
   /** With `type` and `courier_id`: whether the merchant held the cash. */
   payment_method: PaymentMethod
   type: OrderType
@@ -95,7 +100,16 @@ export interface PayoutAdjustment {
   commission: number
   /** Negative when the merchant had collected the sale in cash, else 0. */
   cash_collected: number
-  /** `gross - commission - cash_collected`: what the merchant gives back. */
+  /**
+   * Negative when the delivery fee and tip had been passed through to the
+   * merchant (`isPassedThroughToMerchant`), else 0: the customer got them
+   * back too.
+   */
+  delivery_and_tips: number
+  /**
+   * `gross - commission - cash_collected + delivery_and_tips`: what the
+   * merchant gives back.
+   */
   net: number
 }
 
@@ -118,6 +132,11 @@ export function reverseRefundedOrder(
   const cash_collected = isCollectedByMerchant(order)
     ? -collectedAmount(order)
     : 0
+  // A refund returns the whole total, delivery fee and tip included, so what
+  // was passed through to the merchant for that order comes back as well.
+  const delivery_and_tips = isPassedThroughToMerchant(order)
+    ? -passthroughAmount(order)
+    : 0
   return {
     refund_id: order.refund_id,
     order_id: order.order_id,
@@ -125,7 +144,8 @@ export function reverseRefundedOrder(
     gross,
     commission,
     cash_collected,
-    net: gross - commission - cash_collected,
+    delivery_and_tips,
+    net: gross - commission - cash_collected + delivery_and_tips,
   }
 }
 

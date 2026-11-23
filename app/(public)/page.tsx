@@ -1,4 +1,5 @@
 import {
+  CalendarDaysIcon,
   FlameIcon,
   HeartIcon,
   RotateCcwIcon,
@@ -24,9 +25,11 @@ import { MerchantSection } from '@/components/home/merchant-section'
 import { SocialProof } from '@/components/home/social-proof'
 import { StoreRail } from '@/components/home/store-rail'
 import { TrustBar } from '@/components/home/trust-bar'
+import { AudienceSwitcher } from '@/components/motion/audience-switcher'
 import { type StoreCardData } from '@/components/store/store-card'
 import { StoreGridSkeleton } from '@/components/store/store-card-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
+import { fetchReservableStores } from '@/lib/reservations/directory'
 import { getCurrentUser } from '@/lib/auth'
 import { etaOf, isFast, isPopular } from '@/lib/marketplace/highlights'
 import { summarizeVerticals } from '@/lib/marketplace/verticals'
@@ -97,9 +100,10 @@ async function StoreSections({ category }: { category: string | null }) {
     readVisitorLocation(),
     getCurrentUser(),
   ])
-  const [stores, featuredIds] = await Promise.all([
+  const [stores, featuredIds, reservableStores] = await Promise.all([
     fetchStores(location),
     fetchFeaturedStoreIds(),
+    fetchReservableStores(),
   ])
   const featured = stores.filter((store) => featuredIds.has(store.id))
   const categories = categoriesOf(stores)
@@ -116,6 +120,12 @@ async function StoreSections({ category }: { category: string | null }) {
     .sort((a, b) => etaOf(a) - etaOf(b))
     .slice(0, NEARBY_SHORTLIST)
   const popular = stores.filter(isPopular).slice(0, NEARBY_SHORTLIST)
+  // Stores near the visitor that take reservations, in the same order as the
+  // grid, so the rail never shows a store the grid hides.
+  const reservableIds = new Set(reservableStores.map((store) => store.id))
+  const reservable = stores
+    .filter((store) => reservableIds.has(store.id))
+    .slice(0, NEARBY_SHORTLIST)
 
   return (
     <>
@@ -150,6 +160,20 @@ async function StoreSections({ category }: { category: string | null }) {
           </div>
           <StoreRail stores={featured} label="Destacados" />
         </section>
+      ) : null}
+
+      {!category && reservable.length > 0 ? (
+        <ShortcutSection
+          id="reservas"
+          title="Reserva tu mesa"
+          icon={
+            <CalendarDaysIcon
+              aria-hidden="true"
+              className="text-primary size-4"
+            />
+          }
+          stores={reservable}
+        />
       ) : null}
 
       {!category && reorder.length > 0 ? (
@@ -291,15 +315,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </Suspense>
       </section>
 
-      <BenefitsSection />
+      {/* After the stores, for whoever is still deciding: who Cerquita is
+          for, how it works, what to expect, and the owner's band. */}
+      <AudienceSwitcher />
 
       <HowItWorks />
 
-      {/* Below the fold and optional by design: it renders nothing until
-          there is enough real proof, so it needs no placeholder either. */}
+      {/* Below the fold: real figures when they clear their floors, product
+          facts otherwise. It streams in without a placeholder. */}
       <Suspense fallback={null}>
         <SocialProof />
       </Suspense>
+
+      <BenefitsSection />
 
       <MerchantSection />
 

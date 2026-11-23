@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 // lib/env validates the public environment at import time, which is not
@@ -29,6 +29,28 @@ describe('SiteFooter', () => {
     const footer = container.querySelector('footer')
     expect(footer?.className).toContain('var(--store-surface)')
     expect(footer?.className).not.toContain('bg-surface')
+  })
+
+  it('groups the way forward by audience', () => {
+    render(<SiteFooter />)
+    const href = (nav: string, name: string) =>
+      within(screen.getByRole('navigation', { name: nav }))
+        .getByRole('link', { name })
+        .getAttribute('href')
+
+    expect(href('Clientes', 'Explorar')).toBe('/#restaurantes')
+    expect(href('Clientes', 'Reservar mesa')).toBe('/reservas')
+    expect(href('Clientes', 'Mis pedidos')).toBe('/account#pedidos')
+    expect(href('Empresas', 'Cuenta empresarial')).toBe('/empresas')
+    expect(href('Negocios', 'Vende con Tienda')).toBe('/para-restaurantes')
+    expect(href('Negocios', 'Planes')).toBe('/para-restaurantes#planes')
+    expect(href('Negocios', 'Publicidad')).toBe('/para-restaurantes#destacados')
+    expect(href('Trabaja con nosotros', 'Domiciliarios')).toBe('/repartidores')
+  })
+
+  it('keeps the storefront footer to the credit, without the audience columns', () => {
+    render(<SiteFooter tone="store" />)
+    expect(screen.queryByRole('navigation', { name: 'Clientes' })).toBeNull()
   })
 
   it('uses app tokens by default', () => {

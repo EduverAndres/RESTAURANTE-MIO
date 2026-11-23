@@ -16,6 +16,8 @@ import { ORDER_STATUS_SEQUENCE } from '@/lib/orders/status'
 
 const EVENTS: SoundEvent[] = [
   'new_order',
+  'new_reservation',
+  'reservation_cancelled',
   'pending',
   'accepted',
   'preparing',

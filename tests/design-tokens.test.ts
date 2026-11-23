@@ -197,3 +197,68 @@ describe('app surfaces (Phase 6)', () => {
     )
   })
 })
+
+describe('marketing motion (Fase 3)', () => {
+  const names = rootTokenNames()
+
+  /** The selector of the rule that contains `index`. */
+  function selectorAt(index: number): string {
+    const head = css.slice(0, index)
+    const open = head.lastIndexOf('{')
+    return head.slice(head.lastIndexOf('\n', open) + 1, open).trim()
+  }
+
+  /** The condition of the closest `@media` that opens before `index`. */
+  function mediaAt(index: number): string | undefined {
+    const head = css.slice(0, index)
+    return Array.from(head.matchAll(/@media [^{]*?\(([^)]+)\)/g)).pop()?.[1]
+  }
+
+  it.each([
+    'reveal-shift',
+    'reveal-range',
+    'demo-loop',
+    'marquee-duration',
+    'marquee-gap',
+  ])('declares --%s in :root', (name) => {
+    expect(names).toContain(name)
+  })
+
+  it('never hides a reveal block outside the animation itself', () => {
+    // No unconditional `.reveal { … }`: the resting state is the visible one,
+    // so the block shows without JavaScript and without support.
+    expect(css).not.toMatch(/^\.reveal\s*\{/m)
+    const timeline = css.indexOf('animation-timeline: view();')
+    expect(timeline).toBeGreaterThan(-1)
+    expect(css.slice(0, timeline)).toContain(
+      '@supports (animation-timeline: view())',
+    )
+    expect(mediaAt(timeline)).toBe('prefers-reduced-motion: no-preference')
+    expect(selectorAt(timeline)).toContain(
+      ":root:not([data-motion='reduce']) .reveal",
+    )
+  })
+
+  it('runs every demo and marquee loop only when both motion signals allow it', () => {
+    const loops = Array.from(
+      css.matchAll(/animation: (order-demo-|board-demo-|marquee-scroll)/g),
+    )
+    expect(loops.length).toBeGreaterThan(10)
+    for (const loop of loops) {
+      expect(mediaAt(loop.index)).toBe('prefers-reduced-motion: no-preference')
+      expect(selectorAt(loop.index)).toMatch(
+        /^:root:not\(\[data-motion='reduce'\]\) /,
+      )
+    }
+  })
+
+  it('stops the marquee outright with either reduced-motion signal', () => {
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.marquee-track \{\n\s*animation: none;/,
+    )
+    expect(css).toMatch(
+      /\[data-motion='reduce'\] \.marquee-track \{\n\s*animation: none;/,
+    )
+    expect(css).toMatch(/\.marquee:is\(:hover, :focus-within\) \.marquee-track/)
+  })
+})

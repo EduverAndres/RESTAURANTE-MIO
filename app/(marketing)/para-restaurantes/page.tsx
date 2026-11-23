@@ -2,16 +2,22 @@ import { ArrowRightIcon } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SiteFooter } from '@/components/layout/site-footer'
-import { ForRestaurants } from '@/components/marketing/for-restaurants'
+import {
+  ForRestaurants,
+  MERCHANT_REGISTER_HREF,
+} from '@/components/marketing/for-restaurants'
+import { MerchantFeatures } from '@/components/marketing/merchant-features'
 import { PlansSection } from '@/components/marketing/plans-section'
-import { FadeIn } from '@/components/motion/fade-in'
+import { SavingsCalculator } from '@/components/marketing/savings-calculator'
+import { Reveal } from '@/components/motion/reveal'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/env'
+import { fetchDemoStoreSlug } from '@/lib/marketing/public-data'
+import { BASE_COMMISSION_PCT } from '@/lib/plans'
 
 export const metadata: Metadata = {
   title: `${APP_NAME} · El canal propio de tu restaurante`,
-  description:
-    'Recibe pedidos a domicilio, para recoger y desde la mesa con tu propia marca. Sin mensualidad: 0 % en la mesa y 6 % en domicilio.',
+  description: `Recibe pedidos a domicilio, para recoger y desde la mesa, reservas y pedidos de empresas con tu propia marca. Empieza sin mensualidad: 0 % en la mesa y ${BASE_COMMISSION_PCT} % en domicilio.`,
 }
 
 /**
@@ -21,7 +27,8 @@ export const metadata: Metadata = {
  * A diner has no business reading a commission calculator, and an owner
  * reading it does not want a bottom tab bar inviting them to order sushi.
  * The two audiences still meet: "Ver una tienda de verdad" sends the owner
- * to a real storefront, which is the strongest argument the product has.
+ * to a real, active storefront — read from the database, hidden when there
+ * is none — which is the strongest argument the product has.
  */
 
 const STEPS = [
@@ -39,63 +46,116 @@ const STEPS = [
   },
 ] as const
 
-export default function OwnerLandingPage() {
+export default async function OwnerLandingPage() {
+  const demoSlug = await fetchDemoStoreSlug()
+
   return (
     <>
-      <ForRestaurants standalone />
+      <ForRestaurants standalone demoSlug={demoSlug} />
 
-      <PlansSection />
+      <MerchantFeatures />
 
-      <section className="border-border/60 border-t">
-        <div className="container-page py-section">
-          <FadeIn inView className="space-y-8">
-            <h2 className="text-h1 font-display font-semibold">
-              Empezar toma una tarde
+      <section
+        id="calculadora"
+        aria-labelledby="calculadora-title"
+        className="border-border/60 bg-secondary/40 scroll-mt-24 border-t"
+      >
+        <div className="container-page py-section space-y-8">
+          <Reveal className="max-w-2xl space-y-3">
+            <h2
+              id="calculadora-title"
+              className="text-h1 font-display font-semibold"
+            >
+              Haz la cuenta con tus números
             </h2>
-            <ol className="gap-card grid md:grid-cols-3">
-              {STEPS.map((step, index) => (
-                <li
-                  key={step.title}
-                  className="rounded-card bg-card shadow-1 p-card space-y-2"
-                >
-                  <span className="rounded-control bg-primary/10 font-display text-primary-on-tint flex size-10 items-center justify-center text-lg font-semibold tabular-nums">
-                    {index + 1}
-                  </span>
-                  <h3 className="font-display text-xl font-semibold">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm text-pretty">
-                    {step.body}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </FadeIn>
+            <p className="text-muted-foreground text-pretty">
+              No vamos a adivinar cuánto te cobran. Ponlo tú, que lo sabes mejor
+              que nadie.
+            </p>
+          </Reveal>
+          <SavingsCalculator />
         </div>
       </section>
 
-      <section className="border-border/60 bg-secondary/40 border-t">
+      <PlansSection />
+
+      <section
+        aria-labelledby="empezar-title"
+        className="border-border/60 border-t"
+      >
+        <div className="container-page py-section space-y-8">
+          <Reveal
+            as="h2"
+            id="empezar-title"
+            className="text-h1 font-display font-semibold"
+          >
+            Empezar toma una tarde
+          </Reveal>
+          <ol className="gap-card grid md:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <Reveal
+                as="li"
+                key={step.title}
+                className="rounded-card bg-card shadow-1 p-card space-y-2"
+              >
+                <span
+                  aria-hidden="true"
+                  className="rounded-control bg-primary/10 font-display text-primary-on-tint flex size-10 items-center justify-center text-lg font-semibold tabular-nums"
+                >
+                  {index + 1}
+                </span>
+                <h3 className="font-display text-xl font-semibold">
+                  <span className="sr-only">Paso {index + 1}: </span>
+                  {step.title}
+                </h3>
+                <p className="text-muted-foreground text-sm text-pretty">
+                  {step.body}
+                </p>
+              </Reveal>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="probar-title"
+        className="border-border/60 bg-secondary/40 border-t"
+      >
         <div className="container-page py-section">
-          <FadeIn inView className="mx-auto max-w-2xl space-y-4 text-center">
-            <h2 className="text-h1 font-display font-semibold text-balance">
+          <Reveal className="mx-auto max-w-2xl space-y-4 text-center">
+            <h2
+              id="probar-title"
+              className="text-h1 font-display font-semibold text-balance"
+            >
               ¿Lo probamos con tu carta?
             </h2>
             <p className="text-muted-foreground text-pretty">
               Arma tu tienda y mírala funcionando. Si no te convence, solo
               perdiste una tarde.
             </p>
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <Button asChild size="lg">
-                <Link href="/register">
+            <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="rounded-pill h-12 px-6 text-base"
+              >
+                <Link href={MERCHANT_REGISTER_HREF}>
                   Crear mi tienda
                   <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/t/sushi-nocturno">Ver una tienda de verdad</Link>
-              </Button>
+              {demoSlug ? (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="rounded-pill h-12 px-6 text-base"
+                >
+                  <Link href={`/t/${demoSlug}`}>Ver una tienda de verdad</Link>
+                </Button>
+              ) : null}
             </div>
-          </FadeIn>
+          </Reveal>
         </div>
       </section>
 

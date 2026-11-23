@@ -1,4 +1,4 @@
-import { ArrowRightIcon } from 'lucide-react'
+import { ArrowRightIcon, CalendarDaysIcon } from 'lucide-react'
 import { StoreImage } from '@/components/store/store-image'
 import type { StorefrontContext } from '@/components/store/storefront-context'
 import { cn } from '@/lib/utils'
@@ -83,7 +83,7 @@ export function HeroCta({
   className?: string
 }) {
   const label = context.theme.hero.ctaLabel ?? 'Ver el menú'
-  return (
+  const menu = (
     <a
       href={`#${MENU_ANCHOR}`}
       className={cn(
@@ -95,6 +95,23 @@ export function HeroCta({
       {label}
       <ArrowRightIcon aria-hidden="true" className="size-4" />
     </a>
+  )
+  if (!context.reservable) return menu
+  // Every hero renders this CTA, so the booking button reaches all five.
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      {menu}
+      <a
+        href={`/t/${context.store.slug}/reservar`}
+        className={cn(
+          'store-btn-outline h-11 px-5 text-[var(--text-small)]',
+          'transition-transform hover:-translate-y-0.5',
+        )}
+      >
+        <CalendarDaysIcon aria-hidden="true" className="size-4" />
+        Reservar mesa
+      </a>
+    </div>
   )
 }
 

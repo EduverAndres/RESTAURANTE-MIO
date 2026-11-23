@@ -1,81 +1,83 @@
-import { ArrowRightIcon } from 'lucide-react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import {
+  HowItWorksTabs,
+  type HowItWorksFlow,
+} from '@/components/home/how-it-works-tabs'
 import { listPaymentOptions } from '@/lib/payments'
 import { describeHowToPay } from '@/lib/payments/summary'
 
 /**
- * Three steps, because ordering is a sequence: the numbers are information.
+ * How ordering works, and how booking works, as two tabs over the same
+ * three steps.
  *
- * The payment step is built from the gateways that are switched on, so the
- * home never names a method the checkout does not offer. The subtitle is
- * where the table QR gets explained to someone who has never used one.
- *
- * Server-rendered and painted at rest, like the rest of the home.
+ * The payment step is built here, on the server, from the gateways that are
+ * switched on, so the home never names a method the checkout does not offer.
+ * The booking flow is the one the product implements: the restaurant
+ * confirms, and nothing is paid up front.
  */
 export function HowItWorks() {
-  const steps = [
+  const flows: HowItWorksFlow[] = [
     {
-      title: 'Elige un negocio',
-      text: 'Restaurantes y negocios de tu zona, con el tiempo estimado de entrega antes de pedir.',
+      value: 'pedir',
+      label: 'Pedir',
+      note: 'Sin descargar nada. Y si estás en el negocio, escanea el QR de tu mesa y pide sin crear cuenta.',
+      steps: [
+        {
+          title: 'Elige un negocio',
+          text: 'Restaurantes y negocios de tu zona, con el tiempo estimado de entrega antes de pedir.',
+        },
+        {
+          title: 'Pide y paga como prefieras',
+          text: `${describeHowToPay(listPaymentOptions().map((option) => option.method))} El precio es el de la carta.`,
+        },
+        {
+          title: 'Síguelo en vivo',
+          text: 'Ves cada paso, del fogón a tu puerta, y lo recibes con un código que solo tú tienes.',
+        },
+      ],
+      action: { href: '/#restaurantes', label: 'Pedir ahora' },
     },
     {
-      title: 'Pide y paga como prefieras',
-      text: `${describeHowToPay(listPaymentOptions().map((option) => option.method))} El precio es el de la carta.`,
-    },
-    {
-      title: 'Síguelo en vivo',
-      text: 'Ves cada paso, del fogón a tu puerta, y lo recibes con un código que solo tú tienes.',
+      value: 'reservar',
+      label: 'Reservar',
+      note: 'En los restaurantes que tienen reservas activas. No pagas nada por adelantado.',
+      steps: [
+        {
+          title: 'Elige día, hora y personas',
+          text: 'Ves las horas que el restaurante tiene libres y apartas la tuya.',
+        },
+        {
+          title: 'El restaurante confirma',
+          text: 'Te avisamos en cuanto acepte tu reserva, y la ves en tu cuenta.',
+        },
+        {
+          title: 'Llega y disfruta',
+          text: 'Tu reserva queda guardada con su código, por si te lo piden.',
+        },
+      ],
+      action: { href: '/reservas', label: 'Reservar mesa' },
     },
   ]
 
   return (
     <section
+      id="como-funciona"
       aria-labelledby="como-funciona-title"
-      className="border-border/60 border-t"
+      className="border-border/60 bg-secondary/40 scroll-mt-24 border-t"
     >
       <div className="container-page py-section space-y-8">
-        <div className="max-w-2xl space-y-2">
+        <div className="reveal max-w-2xl space-y-3">
+          <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
+            Así de fácil
+          </p>
           <h2
             id="como-funciona-title"
-            className="text-h2 font-display font-semibold"
+            className="text-h1 font-display font-semibold"
           >
             Cómo funciona
           </h2>
-          <p className="text-muted-foreground text-pretty">
-            Sin descargar nada. Y si estás en el negocio, escanea el QR de tu
-            mesa y pide sin crear cuenta.
-          </p>
         </div>
 
-        <ol className="gap-card grid sm:grid-cols-3">
-          {steps.map((step, index) => (
-            <li
-              key={step.title}
-              className="rounded-card bg-card shadow-1 p-card space-y-2"
-            >
-              <span
-                aria-hidden="true"
-                className="rounded-control bg-primary/10 font-display text-primary-on-tint flex size-10 items-center justify-center text-lg font-semibold tabular-nums"
-              >
-                {index + 1}
-              </span>
-              <h3 className="font-display text-xl font-semibold">
-                {step.title}
-              </h3>
-              <p className="text-muted-foreground text-sm text-pretty">
-                {step.text}
-              </p>
-            </li>
-          ))}
-        </ol>
-
-        <Button asChild size="lg" variant="outline" className="rounded-pill">
-          <Link href="/para-restaurantes">
-            Tengo un negocio
-            <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
-          </Link>
-        </Button>
+        <HowItWorksTabs flows={flows} />
       </div>
     </section>
   )

@@ -1,6 +1,8 @@
 'use client'
 
 import {
+  BanknoteIcon,
+  CreditCardIcon,
   LoaderCircleIcon,
   MapPinIcon,
   RouteIcon,
@@ -13,12 +15,8 @@ import { claimOrder } from '@/app/courier/actions'
 import { Button } from '@/components/ui/button'
 import type { CourierOrderSummary } from '@/lib/courier/orders'
 import { formatCOP } from '@/lib/format'
+import { formatTimeCO } from '@/lib/format-date'
 import { formatDistance } from '@/lib/geo'
-
-const timeFormatter = new Intl.DateTimeFormat('es-CO', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
 
 export function AvailableOrderCard({
   order,
@@ -51,8 +49,7 @@ export function AvailableOrderCard({
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-muted-foreground font-mono text-xs">
-            #{order.shortCode} ·{' '}
-            {timeFormatter.format(new Date(order.createdAt))}
+            #{order.shortCode} · {formatTimeCO(order.createdAt)}
           </p>
           <p className="flex items-center gap-1.5 font-semibold">
             <StoreIcon aria-hidden="true" className="text-primary size-4" />
@@ -62,12 +59,42 @@ export function AvailableOrderCard({
         <p className="text-right">
           <span className="text-muted-foreground block text-xs">Ganas</span>
           <span className="font-display text-lg font-semibold tabular-nums">
-            {formatCOP(order.deliveryFee)}
+            {formatCOP(order.earnings)}
           </span>
+          {order.earnings > order.deliveryFee ? (
+            <span className="text-muted-foreground block text-xs">
+              con propina
+            </span>
+          ) : null}
         </p>
       </header>
 
       <dl className="space-y-1 text-sm">
+        <div className="flex items-center gap-1.5">
+          <dt className="sr-only">Pago</dt>
+          {order.cashToCollect !== null ? (
+            <BanknoteIcon
+              aria-hidden="true"
+              className="text-accent-strong size-4 shrink-0"
+            />
+          ) : (
+            <CreditCardIcon
+              aria-hidden="true"
+              className="text-muted-foreground size-4 shrink-0"
+            />
+          )}
+          <dd
+            className={
+              order.cashToCollect !== null
+                ? 'font-medium'
+                : 'text-muted-foreground'
+            }
+          >
+            {order.cashToCollect !== null
+              ? `Efectivo: cobra ${formatCOP(order.cashToCollect)}`
+              : 'Pagado en línea: no cobres nada'}
+          </dd>
+        </div>
         <div className="flex items-start gap-1.5">
           <dt className="sr-only">Dirección</dt>
           <MapPinIcon

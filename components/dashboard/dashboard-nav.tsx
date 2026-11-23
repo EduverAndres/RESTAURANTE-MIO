@@ -12,6 +12,11 @@ export interface DashboardNavItem {
   icon: LucideIcon
   /** When set, the item is rendered as a muted, non-interactive entry. */
   availableIn?: string
+  /**
+   * A short pill after the label: a count that needs attention ("3") or the
+   * plan that unlocks the section ("Mediano") while it stays a link.
+   */
+  badge?: { label: string; kind: 'count' | 'plan' }
 }
 
 interface DashboardNavProps {
@@ -42,7 +47,7 @@ export function DashboardNav({
   return (
     <nav aria-label="Secciones del panel" className={className}>
       <ul className="space-y-1">
-        {items.map(({ label, href, icon: Icon, availableIn }) => {
+        {items.map(({ label, href, icon: Icon, availableIn, badge }) => {
           const active = href === activeHref
 
           if (availableIn) {
@@ -94,7 +99,24 @@ export function DashboardNav({
                 )}
               >
                 <Icon aria-hidden="true" className="size-4 shrink-0" />
-                <span className={cn(collapsed && 'sr-only')}>{label}</span>
+                <span className={cn('flex-1', collapsed && 'sr-only')}>
+                  {label}
+                </span>
+                {badge && !collapsed ? (
+                  <Badge
+                    variant={badge.kind === 'count' ? 'default' : 'outline'}
+                    className="rounded-pill px-1.5 text-[10px] tabular-nums"
+                  >
+                    {badge.kind === 'count' ? (
+                      <>
+                        {badge.label}
+                        <span className="sr-only"> por confirmar</span>
+                      </>
+                    ) : (
+                      badge.label
+                    )}
+                  </Badge>
+                ) : null}
               </Link>
             </li>
           )

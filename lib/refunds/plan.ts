@@ -54,7 +54,15 @@ export interface PlannedRefund {
   note: string | null
 }
 
+/**
+ * Who is recording the refund. It matters for one case only — see
+ * `isCashRefundForbidden` — but it is a required argument everywhere so no
+ * caller can forget to say which side of that rule it is on.
+ */
+export type RefundActor = 'merchant' | 'admin'
+
 export type RefundRejection =
+  | 'cash_admin_only'
   | 'already_refunded'
   | 'not_refundable'
   | 'transition_forbidden'
@@ -69,10 +77,11 @@ export type RefundRejection =
   | 'status_changed'
 
 export type RefundPlan =
-  | { ok: true; refund: PlannedRefund }
-  | { ok: false; error: RefundRejection }
+  { ok: true; refund: PlannedRefund } | { ok: false; error: RefundRejection }
 
 export const REFUND_REJECTION_MESSAGES: Record<RefundRejection, string> = {
+  cash_admin_only:
+    'Los reembolsos de pedidos en efectivo los registra el equipo de Cerquita. Escríbenos y lo revisamos contigo.',
   already_refunded: 'Este pedido ya tiene un reembolso registrado.',
   not_refundable: 'Este pedido no registró un pago que se pueda devolver.',
   transition_forbidden:
@@ -99,13 +108,48 @@ export function isRefundable(order: RefundableOrder): boolean {
   return order.payment_method === 'cash' && order.status === 'delivered'
 }
 
-export function planRefund(order: RefundOrder, input: RefundInput): RefundPlan {
+/**
+ * A merchant may not record a refund on a cash order.
+ *
+ * The cash is already in the merchant's hands, and recording a refund is pure
+ * bookkeeping: the sale leaves the payout and the platform's commission is
+ * reversed, while nothing actually moves. Left to the merchant, that is a
+ * button that cancels the commission on any cash sale with no evidence
+ * required. The platform still records genuine cash refunds from
+ * `/admin/orders` after looking at the case.
+ *
+ * Orders paid online stay with the merchant: there the platform holds the
+ * money, so a refund costs the merchant the sale and gains them nothing.
+ */
+function isCashRefundForbidden(
+  order: Pick<RefundableOrder, 'payment_method'>,
+  actor: RefundActor,
+): boolean {
+  return actor === 'merchant' && order.payment_method === 'cash'
+}
+
+/** Whether `actor` should be offered the "record a refund" control at all. */
+export function canRecordRefund(
+  order: RefundableOrder,
+  actor: RefundActor,
+): boolean {
+  return isRefundable(order) && !isCashRefundForbidden(order, actor)
+}
+
+export function planRefund(
+  order: RefundOrder,
+  input: RefundInput,
+  actor: RefundActor,
+): RefundPlan {
   // `canApplyPaymentStatus` allows same-to-same, so it would happily let a
   // refunded order be refunded again. The explicit check comes first; the
   // unique index on `refunds.order_id` is the second line of defence for two
   // clicks racing each other.
   if (order.payment_status === 'refunded') {
     return { ok: false, error: 'already_refunded' }
+  }
+  if (isCashRefundForbidden(order, actor)) {
+    return { ok: false, error: 'cash_admin_only' }
   }
   if (!isRefundable(order)) {
     return { ok: false, error: 'not_refundable' }

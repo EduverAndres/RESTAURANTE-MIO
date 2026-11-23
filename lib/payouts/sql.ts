@@ -33,6 +33,7 @@
 //
 // Pure: no React, no Supabase, safe on client and server.
 import { BILLABLE_DAYS_RULE } from '@/lib/plans-sql'
+import type { CarryCandidate } from '@/lib/payouts/carry'
 import type { PayoutOrderInput } from '@/lib/payouts/compute'
 import { REFUND_REVERSES_PLATFORM_FEE } from '@/lib/payouts/reversal'
 
@@ -120,6 +121,43 @@ export const MERCHANT_COLLECTED_RULE = {
     (order.type !== 'delivery' || order.courier_id === null),
 }
 
+/**
+ * Mirror of `isPassedThroughToMerchant` in `lib/payouts/compute.ts`, against
+ * `orders o`: an order paid online and handed over without a platform courier,
+ * whose delivery fee and tip the platform holds on the merchant's behalf.
+ */
+export const MERCHANT_PASSTHROUGH_RULE = {
+  sql: "o.payment_method <> 'cash' and (o.type <> 'delivery' or o.courier_id is null)",
+  matches: (
+    order: Pick<PayoutOrderInput, 'payment_method' | 'type' | 'courier_id'>,
+  ): boolean =>
+    order.payment_method !== 'cash' &&
+    (order.type !== 'delivery' || order.courier_id === null),
+}
+
+/** Mirror of `passthroughAmount` in `lib/payouts/compute.ts`. */
+export const PASSTHROUGH_AMOUNT_SQL = '(o.delivery_fee + o.tip)'
+
+/**
+ * Mirror of `isCarryable` in `lib/payouts/carry.ts`, against an earlier payout
+ * `prev`, for the period starting at `p_period_start`.
+ */
+export const CARRYABLE_RULE = {
+  sql: "prev.status = 'pending' and prev.net < 0 and prev.carried_into_payout_id is null and prev.period_end < p_period_start",
+  matches: (row: CarryCandidate, periodStart: string): boolean =>
+    row.status === 'pending' &&
+    row.net < 0 &&
+    row.carried_into_payout_id === null &&
+    row.period_end < periodStart,
+}
+
+/**
+ * Mirror of `payoutNet` in `lib/payouts/compute.ts`, against the per-store
+ * `totals t` and the carried debt `ct` of `generate_payouts`.
+ */
+export const PAYOUT_NET_SQL =
+  't.gross - t.commission - t.cash_collected - t.plan_fee + t.delivery_and_tips + coalesce(ct.carried_in, 0)'
+
 /** Mirror of `settledGross` in `lib/payouts/compute.ts`, against `orders o`. */
 export const SETTLED_GROSS_SQL = '(o.subtotal - o.merchant_discount)'
 
@@ -144,5 +182,13 @@ export function payoutSqlBlocks(): Record<string, string> {
     reversal_settled_gross: SETTLED_GROSS_SQL,
     collected_amount: COLLECTED_AMOUNT_SQL,
     reversal_collected_amount: COLLECTED_AMOUNT_SQL,
+    merchant_passthrough: MERCHANT_PASSTHROUGH_RULE.sql,
+    reversal_merchant_passthrough: MERCHANT_PASSTHROUGH_RULE.sql,
+    passthrough_amount: PASSTHROUGH_AMOUNT_SQL,
+    reversal_passthrough_amount: PASSTHROUGH_AMOUNT_SQL,
+    // Twice: once to lock the rows before the snapshot, once to read them.
+    carryable_lock: CARRYABLE_RULE.sql,
+    carryable: CARRYABLE_RULE.sql,
+    payout_net: PAYOUT_NET_SQL,
   }
 }

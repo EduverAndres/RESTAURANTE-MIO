@@ -1,5 +1,6 @@
 import { LogOutIcon } from 'lucide-react'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { BfcacheGuard } from '@/components/auth/bfcache-guard'
 import { Wordmark } from '@/components/layout/site-header'
 import { PushToggle } from '@/components/notifications/push-toggle'
@@ -16,6 +17,12 @@ export const metadata: Metadata = {
     template: `%s · Domiciliario · ${APP_NAME}`,
   },
 }
+
+const COURIER_LINKS = [
+  { href: '/courier', label: 'Entregas' },
+  { href: '/courier/ganancias', label: 'Ganancias' },
+  { href: '/courier/perfil', label: 'Mi perfil' },
+] as const
 
 export default async function CourierLayout({
   children,
@@ -63,6 +70,23 @@ export default async function CourierLayout({
             <SoundToggle compact />
           </div>
         </header>
+        <nav
+          aria-label="Secciones del domiciliario"
+          className="border-border/60 border-b"
+        >
+          <ul className="container-page flex gap-1 overflow-x-auto py-2 text-sm">
+            {COURIER_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="rounded-pill hover:bg-muted inline-flex h-10 items-center px-4 font-medium"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
         <main className="container-page flex-1 py-8">{children}</main>
       </div>
     </>

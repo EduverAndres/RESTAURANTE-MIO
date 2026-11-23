@@ -1,4 +1,11 @@
-import { MessageCircleIcon, ReceiptTextIcon, ZapIcon } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  MessageCircleIcon,
+  ReceiptTextIcon,
+  ZapIcon,
+} from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 /**
  * Why order here instead of calling the restaurant. Three promises, each one
@@ -11,8 +18,8 @@ import { MessageCircleIcon, ReceiptTextIcon, ZapIcon } from 'lucide-react'
  * saying them twice made the page longer without making it more convincing.
  *
  * Rendered on the server and painted at rest: the copy is the point of the
- * section, so it has to be in the HTML, visible, for search engines and for
- * anyone on a slow connection.
+ * section, so it is in the HTML, visible, for search engines and for anyone
+ * on a slow connection. The cards only fade up as they scroll in, in CSS.
  */
 const BENEFITS = [
   {
@@ -42,7 +49,7 @@ export function BenefitsSection() {
       className="border-border/60 bg-secondary/40 border-t"
     >
       <div className="container-page py-section">
-        <div className="mb-10 max-w-2xl space-y-3">
+        <div className="reveal mb-10 max-w-2xl space-y-3">
           <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
             Para ti
           </p>
@@ -62,7 +69,7 @@ export function BenefitsSection() {
           {BENEFITS.map(({ title, description, icon: Icon }) => (
             <li
               key={title}
-              className="rounded-card bg-card shadow-1 p-card h-full"
+              className="reveal rounded-card bg-card shadow-1 p-card h-full"
             >
               <span className="rounded-control bg-primary/10 text-primary-on-tint mb-4 grid size-12 place-items-center">
                 <Icon aria-hidden="true" className="size-6" />
@@ -76,6 +83,19 @@ export function BenefitsSection() {
             </li>
           ))}
         </ul>
+
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <Button
+            asChild
+            size="lg"
+            className="rounded-pill h-12 px-6 text-base"
+          >
+            <Link href="/#restaurantes">
+              Explorar negocios
+              <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </section>
   )

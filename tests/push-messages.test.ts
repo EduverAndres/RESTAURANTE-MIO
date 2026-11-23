@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  newReservationMessage,
+  reservationCancelledMessage,
+  reservationStatusMessage,
+  courierReviewMessage,
   courierAssignedMessage,
   deliveryCodeMessage,
   newOrderMessage,
@@ -94,5 +98,50 @@ describe('deliveryCodeMessage', () => {
     expect(deliveryCodeMessage(ORDER_ID).tag).not.toBe(
       orderStatusMessage('picked_up', 'A1B2', ORDER_ID)?.tag,
     )
+  })
+})
+
+describe('courierReviewMessage', () => {
+  it('sends an approved courier to the pool', () => {
+    expect(courierReviewMessage('approved', null)).toMatchObject({
+      url: '/courier',
+      tag: 'courier-review',
+    })
+  })
+
+  it('sends the other outcomes to the profile, with the reason', () => {
+    const suspended = courierReviewMessage('suspended', 'Documento ilegible')
+    expect(suspended.url).toBe('/courier/perfil')
+    expect(suspended.body).toContain('Documento ilegible')
+    expect(courierReviewMessage('pending', null).url).toBe('/courier/perfil')
+  })
+})
+
+describe('reservation messages', () => {
+  it('sends the owner to the board', () => {
+    expect(
+      newReservationMessage({
+        partySize: 4,
+        when: 'vie, 27 nov, 7:30 p. m.',
+        storeName: 'La Parrilla',
+      }),
+    ).toMatchObject({
+      title: 'Nueva reserva · 4 personas',
+      url: '/dashboard/reservas',
+    })
+  })
+
+  it('sends the customer to their reservation, with the reason when declined', () => {
+    const declined = reservationStatusMessage('declined', {
+      id: 'r1',
+      storeName: 'La Parrilla',
+      when: 'vie, 27 nov',
+      reason: 'Evento privado',
+    })
+    expect(declined.url).toBe('/account/reservas#r-r1')
+    expect(declined.body).toContain('Evento privado')
+    expect(
+      reservationCancelledMessage({ partySize: 1, when: 'hoy' }).body,
+    ).toContain('1 persona')
   })
 })

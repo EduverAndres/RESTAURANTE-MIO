@@ -106,6 +106,93 @@ export type Database = {
           },
         ]
       }
+      courier_ledger: {
+        Row: {
+          amount: number
+          cash_collected: number
+          courier_id: string
+          created_at: string
+          created_by: string | null
+          earnings: number
+          id: string
+          kind: string
+          note: string | null
+          occurred_at: string
+          order_id: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          settled_in_payout_id: string | null
+          store_id: string | null
+        }
+        Insert: {
+          amount?: number
+          cash_collected?: number
+          courier_id: string
+          created_at?: string
+          created_by?: string | null
+          earnings?: number
+          id?: string
+          kind: string
+          note?: string | null
+          occurred_at?: string
+          order_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          settled_in_payout_id?: string | null
+          store_id?: string | null
+        }
+        Update: {
+          amount?: number
+          cash_collected?: number
+          courier_id?: string
+          created_at?: string
+          created_by?: string | null
+          earnings?: number
+          id?: string
+          kind?: string
+          note?: string | null
+          occurred_at?: string
+          order_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          settled_in_payout_id?: string | null
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_ledger_courier_id_fkey"
+            columns: ["courier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_settled_in_payout_id_fkey"
+            columns: ["settled_in_payout_id"]
+            isOneToOne: false
+            referencedRelation: "courier_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courier_locations: {
         Row: {
           accuracy_m: number | null
@@ -135,6 +222,144 @@ export type Database = {
           {
             foreignKeyName: "courier_locations_courier_id_fkey"
             columns: ["courier_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_payouts: {
+        Row: {
+          adjustments: number
+          carried_in: number
+          carried_into_payout_id: string | null
+          cash_collected: number
+          courier_id: string
+          created_at: string
+          deliveries: number
+          earnings: number
+          id: string
+          net: number
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          adjustments?: number
+          carried_in?: number
+          carried_into_payout_id?: string | null
+          cash_collected?: number
+          courier_id: string
+          created_at?: string
+          deliveries?: number
+          earnings?: number
+          id?: string
+          net?: number
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          adjustments?: number
+          carried_in?: number
+          carried_into_payout_id?: string | null
+          cash_collected?: number
+          courier_id?: string
+          created_at?: string
+          deliveries?: number
+          earnings?: number
+          id?: string
+          net?: number
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_payouts_carried_into_payout_id_fkey"
+            columns: ["carried_into_payout_id"]
+            isOneToOne: false
+            referencedRelation: "courier_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_payouts_courier_id_fkey"
+            columns: ["courier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          city: string | null
+          created_at: string
+          document_number: string | null
+          license_expires_on: string | null
+          plate: string | null
+          soat_expires_on: string | null
+          status: string
+          status_note: string | null
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+          vehicle_type: string | null
+          zone: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          created_at?: string
+          document_number?: string | null
+          license_expires_on?: string | null
+          plate?: string | null
+          soat_expires_on?: string | null
+          status?: string
+          status_note?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_type?: string | null
+          zone?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          created_at?: string
+          document_number?: string | null
+          license_expires_on?: string | null
+          plate?: string | null
+          soat_expires_on?: string | null
+          status?: string
+          status_note?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_type?: string | null
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_profiles_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -630,9 +855,12 @@ export type Database = {
       }
       payouts: {
         Row: {
+          carried_in: number
+          carried_into_payout_id: string | null
           cash_collected: number
           commission: number
           created_at: string
+          delivery_and_tips: number
           gross: number
           id: string
           net: number
@@ -645,9 +873,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          carried_in?: number
+          carried_into_payout_id?: string | null
           cash_collected?: number
           commission?: number
           created_at?: string
+          delivery_and_tips?: number
           gross?: number
           id?: string
           net?: number
@@ -660,9 +891,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          carried_in?: number
+          carried_into_payout_id?: string | null
           cash_collected?: number
           commission?: number
           created_at?: string
+          delivery_and_tips?: number
           gross?: number
           id?: string
           net?: number
@@ -675,6 +909,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payouts_carried_into_payout_id_fkey"
+            columns: ["carried_into_payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payouts_store_id_fkey"
             columns: ["store_id"]
@@ -713,6 +954,7 @@ export type Database = {
       }
       platform_settings: {
         Row: {
+          courier_cash_debt_cap: number
           id: boolean
           referral_amount: number
           referral_credit_days: number
@@ -721,6 +963,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          courier_cash_debt_cap?: number
           id?: boolean
           referral_amount?: number
           referral_credit_days?: number
@@ -729,6 +972,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          courier_cash_debt_cap?: number
           id?: boolean
           referral_amount?: number
           referral_credit_days?: number
@@ -1192,6 +1436,146 @@ export type Database = {
           },
         ]
       }
+      reservation_settings: {
+        Row: {
+          blocked_dates: string[]
+          covers_per_slot: number
+          duration_minutes: number
+          enabled: boolean
+          max_days_ahead: number
+          max_party_size: number
+          min_lead_minutes: number
+          policy_text: string
+          slot_minutes: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_dates?: string[]
+          covers_per_slot?: number
+          duration_minutes?: number
+          enabled?: boolean
+          max_days_ahead?: number
+          max_party_size?: number
+          min_lead_minutes?: number
+          policy_text?: string
+          slot_minutes?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_dates?: string[]
+          covers_per_slot?: number
+          duration_minutes?: number
+          enabled?: boolean
+          max_days_ahead?: number
+          max_party_size?: number
+          min_lead_minutes?: number
+          policy_text?: string
+          slot_minutes?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          code: string
+          confirmed_at: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          customer_id: string
+          decline_reason: string | null
+          declined_at: string | null
+          id: string
+          no_show_at: string | null
+          notes: string | null
+          occasion: string | null
+          party_size: number
+          seated_at: string | null
+          service_date: string
+          starts_at: string
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          code?: string
+          confirmed_at?: string | null
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          customer_id: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          id?: string
+          no_show_at?: string | null
+          notes?: string | null
+          occasion?: string | null
+          party_size: number
+          seated_at?: string | null
+          service_date: string
+          starts_at: string
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          code?: string
+          confirmed_at?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          customer_id?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          id?: string
+          no_show_at?: string | null
+          notes?: string | null
+          occasion?: string | null
+          party_size?: number
+          seated_at?: string | null
+          service_date?: string
+          starts_at?: string
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           comment: string | null
@@ -1402,7 +1786,40 @@ export type Database = {
           window_start: string
         }[]
       }
+      courier_cash_balance: { Args: { p_courier: string }; Returns: number }
+      courier_cash_in_progress: {
+        Args: { p_courier: string }
+        Returns: number
+      }
+      create_reservation: {
+        Args: {
+          p_contact_name: string
+          p_contact_phone: string
+          p_customer_id: string
+          p_max_active: number
+          p_notes: string
+          p_occasion: string
+          p_party_size: number
+          p_service_date: string
+          p_starts_at: string
+          p_store_id: string
+        }
+        Returns: {
+          code: string
+          outcome: string
+          reservation_id: string
+        }[]
+      }
       ensure_referral_code: { Args: never; Returns: string }
+      generate_courier_payouts: {
+        Args: { p_period_end: string; p_period_start: string }
+        Returns: {
+          debts_carried: number
+          entries_settled: number
+          payouts_created: number
+          payouts_skipped: number
+        }[]
+      }
       generate_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: {
@@ -1412,7 +1829,18 @@ export type Database = {
           refunds_reversed: number
         }[]
       }
+      is_active_courier: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      my_courier_cash_status: {
+        Args: never
+        Returns: {
+          balance: number
+          blocked: boolean
+          cap: number
+          exposure: number
+          in_progress: number
+        }[]
+      }
       next_short_code: { Args: never; Returns: string }
       option_store_id: { Args: { option_id: string }; Returns: string }
       owns_store: { Args: { store_id: string }; Returns: boolean }

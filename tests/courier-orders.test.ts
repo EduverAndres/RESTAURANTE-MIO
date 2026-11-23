@@ -11,6 +11,9 @@ const row: CourierOrderRow = {
   status: 'ready',
   created_at: '2026-01-01T12:00:00.000Z',
   delivery_fee: 4500,
+  tip: 1000,
+  total: 30500,
+  payment_method: 'wompi',
   estimated_at: null,
   address_id: 'a1',
   stores: { name: 'La Esquina', lat: 4.65, lng: -74.08 },
@@ -64,5 +67,21 @@ describe('splitCourierOrders', () => {
     const { active, history } = splitCourierOrders(list)
     expect(active.map((order) => order.id)).toEqual(['1', '3'])
     expect(history.map((order) => order.id)).toEqual(['2', '4'])
+  })
+})
+
+describe('what the courier sees about money', () => {
+  it('shows the tip in the earnings and nothing to collect when paid online', () => {
+    const summary = toCourierOrderSummary(row, null)
+    expect(summary.earnings).toBe(5500)
+    expect(summary.cashToCollect).toBeNull()
+  })
+
+  it('tells them how much cash to collect on a cash order', () => {
+    const summary = toCourierOrderSummary(
+      { ...row, payment_method: 'cash' },
+      null,
+    )
+    expect(summary.cashToCollect).toBe(30500)
   })
 })

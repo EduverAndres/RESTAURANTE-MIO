@@ -1,9 +1,17 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
+import {
+  MISSING_FIELD_LABELS,
+  missingForApproval,
+} from '@/lib/couriers/profile'
+import type { VehicleType } from '@/lib/couriers/vocabulary'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { logger } from '@/lib/log/logger'
 import { bogotaDate } from '@/lib/plans'
+import { courierReviewMessage } from '@/lib/push/messages'
+import { sendPushToUsers } from '@/lib/push/send'
 import { recordRefund } from '@/lib/refunds/record'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -14,6 +22,12 @@ import {
   userRoleSchema,
   type StorePlanInput,
 } from '@/lib/validations/admin'
+import {
+  courierLedgerEntrySchema,
+  courierReviewSchema,
+  type CourierLedgerEntryInput,
+  type CourierReviewInput,
+} from '@/lib/validations/courier'
 import {
   refundInputSchema,
   type RefundFormInput,
@@ -287,15 +301,29 @@ export async function markPayoutPaid(
 
   await requireRole(['admin'])
   const admin = createAdminClient()
-  const { error } = await admin
+  // Only an open row: a payout already paid, or a debt that a later payout
+  // carried (`carried_into_payout_id`), is closed. Marking a carried debt paid
+  // would withhold it twice; the database refuses too
+  // (`payouts_carried_stays_pending`), this just says so in words.
+  const { data, error } = await admin
     .from('payouts')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', payoutId)
+    .eq('status', 'pending')
+    .is('carried_into_payout_id', null)
+    .select('id')
   if (error) {
     console.error('Failed to mark payout as paid', error)
     return {
       ok: false,
       error: 'No pudimos marcar la liquidación como pagada.',
+    }
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error:
+        'Esta liquidación ya se pagó o su saldo se arrastró a un periodo posterior.',
     }
   }
 
@@ -366,6 +394,7 @@ export async function recordRefundAsAdmin(
   if (!result.ok) return result
 
   revalidatePath('/admin/payments')
+  revalidatePath('/admin/orders')
   revalidatePath('/admin/payouts')
   revalidatePath(`/orders/${order.id}`)
   return { ok: true }
@@ -403,5 +432,202 @@ export async function setProductReviewHidden(
   }
   revalidatePath('/admin/reviews')
   if (data.stores?.slug) revalidatePath(`/t/${data.stores.slug}`)
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Couriers
+// ---------------------------------------------------------------------------
+
+/**
+ * Approves, suspends or sends back a courier's profile. Approval opens the
+ * order pool (`is_active_courier()`); the database also refuses to approve an
+ * incomplete profile (`courier_profiles_approved_complete`), this says which
+ * field is missing first.
+ */
+export async function setCourierStatus(
+  input: CourierReviewInput,
+): Promise<AdminActionResult> {
+  const parsed = courierReviewSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Datos inválidos.',
+    }
+  }
+  const { userId, status, note } = parsed.data
+
+  const { user } = await requireRole(['admin'])
+  const admin = createAdminClient()
+  const { data: profile, error: readError } = await admin
+    .from('courier_profiles')
+    .select(
+      'vehicle_type, plate, document_number, city, license_expires_on, soat_expires_on',
+    )
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (readError) {
+    logger.error('admin.courier.read_failed', { userId }, readError)
+    return { ok: false, error: GENERIC_ERROR }
+  }
+  if (!profile) {
+    return {
+      ok: false,
+      error: 'Este domiciliario todavía no ha enviado su perfil.',
+    }
+  }
+
+  if (status === 'approved') {
+    const missing = missingForApproval({
+      ...profile,
+      vehicle_type: profile.vehicle_type as VehicleType | null,
+    })
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        error: `Falta ${missing.map((field) => MISSING_FIELD_LABELS[field]).join(', ')}.`,
+      }
+    }
+  }
+
+  const { error } = await admin
+    .from('courier_profiles')
+    .update({
+      status,
+      status_note: note,
+      ...(status === 'approved'
+        ? { approved_by: user.id, approved_at: new Date().toISOString() }
+        : { approved_by: null, approved_at: null }),
+    })
+    .eq('user_id', userId)
+  if (error) {
+    logger.error('admin.courier.update_failed', { userId, status }, error)
+    return { ok: false, error: GENERIC_ERROR }
+  }
+
+  after(() => sendPushToUsers([userId], courierReviewMessage(status, note)))
+
+  revalidatePath('/admin/domiciliarios')
+  return { ok: true }
+}
+
+export type GenerateCourierPayoutsResult =
+  { ok: true; created: number; skipped: number } | { ok: false; error: string }
+
+/**
+ * Settles the courier ledger into one payout per courier for a closed
+ * period: what the platform owes them (delivery fees and tips of online
+ * orders), minus the cash they collected, plus their deposits, plus any debt
+ * carried from an earlier period. One transaction
+ * (`public.generate_courier_payouts`), so a failed run writes nothing.
+ */
+export async function generateCourierPayouts(
+  periodStart: string,
+  periodEnd: string,
+): Promise<GenerateCourierPayoutsResult> {
+  const parsedStart = periodDateSchema.safeParse(periodStart)
+  const parsedEnd = periodDateSchema.safeParse(periodEnd)
+  if (!parsedStart.success || !parsedEnd.success || periodStart > periodEnd) {
+    return { ok: false, error: 'Selecciona un periodo válido.' }
+  }
+  if (periodEnd >= bogotaDate(new Date())) {
+    return {
+      ok: false,
+      error: 'Ese periodo todavía no termina. Liquida periodos ya cerrados.',
+    }
+  }
+
+  await requireRole(['admin'])
+  const { data, error } = await createAdminClient().rpc(
+    'generate_courier_payouts',
+    { p_period_start: parsedStart.data, p_period_end: parsedEnd.data },
+  )
+  const row = Array.isArray(data) ? data[0] : data
+  if (error || !row) {
+    logger.error(
+      'courier_payouts.generate_failed',
+      { periodStart, periodEnd },
+      error,
+    )
+    return {
+      ok: false,
+      error: 'No pudimos generar las liquidaciones. Inténtalo de nuevo.',
+    }
+  }
+  logger.info('courier_payouts.generated', {
+    periodStart,
+    periodEnd,
+    created: row.payouts_created,
+    skipped: row.payouts_skipped,
+    settled: row.entries_settled,
+    carried: row.debts_carried,
+  })
+
+  revalidatePath('/admin/domiciliarios/liquidaciones')
+  revalidatePath('/courier/ganancias')
+  return {
+    ok: true,
+    created: Number(row.payouts_created),
+    skipped: Number(row.payouts_skipped),
+  }
+}
+
+/** Marks an open courier payout paid; a carried debt is already closed. */
+export async function markCourierPayoutPaid(
+  payoutId: string,
+): Promise<AdminActionResult> {
+  if (!isUuid(payoutId)) return { ok: false, error: 'Liquidación inválida.' }
+
+  await requireRole(['admin'])
+  const { data, error } = await createAdminClient()
+    .from('courier_payouts')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', payoutId)
+    .eq('status', 'pending')
+    .is('carried_into_payout_id', null)
+    .select('id')
+  if (error) {
+    logger.error('courier_payouts.mark_paid_failed', { payoutId }, error)
+    return { ok: false, error: 'No pudimos marcar la liquidación como pagada.' }
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error:
+        'Esta liquidación ya se pagó o su saldo se arrastró a un periodo posterior.',
+    }
+  }
+  revalidatePath('/admin/domiciliarios/liquidaciones')
+  revalidatePath('/courier/ganancias')
+  return { ok: true }
+}
+
+/**
+ * Records cash a courier handed over (a deposit) or a correction. A deposit
+ * pays their debt down at once, so a courier stopped by the cash cap can take
+ * cash orders again right after it is recorded.
+ */
+export async function recordCourierLedgerEntry(
+  input: CourierLedgerEntryInput,
+): Promise<AdminActionResult> {
+  const parsed = courierLedgerEntrySchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Datos inválidos.',
+    }
+  }
+  const { courierId, kind, amount, note } = parsed.data
+
+  const { user } = await requireRole(['admin'])
+  const { error } = await createAdminClient()
+    .from('courier_ledger')
+    .insert({ courier_id: courierId, kind, amount, note, created_by: user.id })
+  if (error) {
+    logger.error('courier_ledger.insert_failed', { courierId, kind }, error)
+    return { ok: false, error: GENERIC_ERROR }
+  }
+  revalidatePath('/admin/domiciliarios')
+  revalidatePath('/courier/ganancias')
   return { ok: true }
 }

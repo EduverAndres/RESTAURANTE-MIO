@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useState } from 'react'
+import { CountUp } from '@/components/motion/count-up'
 import { formatCOP } from '@/lib/format'
 import { compareChannelCost } from '@/lib/marketing/channel-cost'
 import { BASE_COMMISSION_PCT, ONLINE_PAYMENT_PCT } from '@/lib/plans'
@@ -12,6 +13,9 @@ import { BASE_COMMISSION_PCT, ONLINE_PAYMENT_PCT } from '@/lib/plans'
  * app charges, and how much of it is paid online. Nothing here asserts a
  * competitor's rate. Our side is the Normal plan exactly as it is charged
  * (lib/plans.ts), so the result is allowed to come out negative.
+ *
+ * The three results count to their new value as a slider moves (CountUp;
+ * instant with reduced motion). The live region reads final values only.
  */
 export function SavingsCalculator() {
   const revenueId = useId()
@@ -45,7 +49,7 @@ export function SavingsCalculator() {
             step={500_000}
             value={revenue}
             onChange={(event) => setRevenue(Number(event.target.value))}
-            className="accent-primary w-full"
+            className="accent-primary h-11 w-full cursor-pointer"
           />
           <p className="text-h3 font-display tabular-nums">
             {formatCOP(revenue)}
@@ -64,7 +68,7 @@ export function SavingsCalculator() {
             step={1}
             value={rate}
             onChange={(event) => setRate(Number(event.target.value))}
-            className="accent-primary w-full"
+            className="accent-primary h-11 w-full cursor-pointer"
           />
           <p className="text-h3 font-display tabular-nums">{rate} %</p>
         </div>
@@ -81,7 +85,7 @@ export function SavingsCalculator() {
             step={10}
             value={online}
             onChange={(event) => setOnline(Number(event.target.value))}
-            className="accent-primary w-full"
+            className="accent-primary h-11 w-full cursor-pointer"
           />
           <p className="text-h3 font-display tabular-nums">{online} %</p>
         </div>
@@ -92,16 +96,16 @@ export function SavingsCalculator() {
           <dt className="text-muted-foreground text-small">
             Comisión que pagas hoy
           </dt>
-          <dd className="text-h3 font-display tabular-nums">
-            {formatCOP(result.marketplaceCost)}
+          <dd className="text-h3 font-display">
+            <CountUp value={result.marketplaceCost} format="cop" />
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground text-small">
             Con Cerquita ({result.ourEffectivePct.toLocaleString('es-CO')} %)
           </dt>
-          <dd className="text-h3 font-display tabular-nums">
-            {formatCOP(result.ourCost)}
+          <dd className="text-h3 font-display">
+            <CountUp value={result.ourCost} format="cop" />
           </dd>
         </div>
         <div>
@@ -109,11 +113,11 @@ export function SavingsCalculator() {
             {result.worthIt ? 'Te ahorras' : 'Diferencia'}
           </dt>
           <dd
-            className={`text-h3 font-display tabular-nums ${
-              result.worthIt ? 'text-[var(--success-on-tint)]' : ''
+            className={`text-h3 font-display ${
+              result.worthIt ? 'text-success-on-tint' : ''
             }`}
           >
-            {formatCOP(Math.abs(result.monthlySaving))}
+            <CountUp value={Math.abs(result.monthlySaving)} format="cop" />
           </dd>
         </div>
       </dl>

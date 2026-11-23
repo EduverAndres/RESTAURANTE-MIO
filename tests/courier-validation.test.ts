@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   advanceOrderInputSchema,
   courierPositionSchema,
+  courierProfileSchema,
+  courierReviewSchema,
 } from '@/lib/validations/courier'
 
 describe('courierPositionSchema', () => {
@@ -105,5 +107,80 @@ describe('advanceOrderInputSchema', () => {
     for (const code of ['482', '48210', '48a1', '', '12 34']) {
       expect(advanceOrderInputSchema.safeParse({ code }).success).toBe(false)
     }
+  })
+})
+
+describe('courierProfileSchema', () => {
+  const motorcycle = {
+    vehicleType: 'motorcycle',
+    plate: 'abc 12d',
+    documentNumber: '1.045.678.901',
+    city: 'Barranquilla',
+    zone: '',
+    licenseExpiresOn: '2027-05-01',
+    soatExpiresOn: '2027-01-15',
+  } as const
+
+  it('normalises plate, document and empty fields', () => {
+    const parsed = courierProfileSchema.parse(motorcycle)
+    expect(parsed).toMatchObject({
+      plate: 'ABC12D',
+      documentNumber: '1045678901',
+      zone: null,
+    })
+  })
+
+  it('asks a motorised courier for plate, licence and SOAT', () => {
+    const result = courierProfileSchema.safeParse({
+      ...motorcycle,
+      plate: '',
+      licenseExpiresOn: '',
+      soatExpiresOn: '',
+    })
+    expect(result.success).toBe(false)
+    const paths = result.error?.issues.map((issue) => issue.path[0])
+    expect(paths).toEqual(['plate', 'licenseExpiresOn', 'soatExpiresOn'])
+  })
+
+  it('asks a bicycle for none of them', () => {
+    const result = courierProfileSchema.safeParse({
+      ...motorcycle,
+      vehicleType: 'bicycle',
+      plate: '',
+      licenseExpiresOn: '',
+      soatExpiresOn: '',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a malformed plate', () => {
+    expect(
+      courierProfileSchema.safeParse({ ...motorcycle, plate: 'AB123' }).success,
+    ).toBe(false)
+  })
+})
+
+describe('courierReviewSchema', () => {
+  const userId = '10000000-0000-4000-8000-000000000031'
+
+  it('requires a reason to suspend', () => {
+    expect(
+      courierReviewSchema.safeParse({ userId, status: 'suspended', note: '' })
+        .success,
+    ).toBe(false)
+    expect(
+      courierReviewSchema.safeParse({
+        userId,
+        status: 'suspended',
+        note: 'SOAT falso',
+      }).success,
+    ).toBe(true)
+  })
+
+  it('approves without a note', () => {
+    expect(
+      courierReviewSchema.safeParse({ userId, status: 'approved', note: '' })
+        .success,
+    ).toBe(true)
   })
 })

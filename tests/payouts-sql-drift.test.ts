@@ -4,17 +4,24 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { isCarryable, type CarryCandidate } from '@/lib/payouts/carry'
 import {
   isCollectedByMerchant,
   isEligible,
+  isPassedThroughToMerchant,
+  payoutNet,
   type PayoutOrderInput,
 } from '@/lib/payouts/compute'
 import { REFUND_REVERSES_PLATFORM_FEE } from '@/lib/payouts/reversal'
 import {
+  CARRYABLE_RULE,
   MERCHANT_COLLECTED_RULE,
+  MERCHANT_PASSTHROUGH_RULE,
+  PAYOUT_NET_SQL,
   payoutSqlBlocks,
   PAYOUT_ELIGIBLE_RULE,
 } from '@/lib/payouts/sql'
+import type { PayoutStatus } from '@/types/app'
 import type {
   OrderStatus,
   OrderType,
@@ -64,6 +71,8 @@ function order(
     platform_fee: 600,
     merchant_discount: 0,
     platform_discount: 0,
+    delivery_fee: 0,
+    tip: 0,
     delivered_at: '2026-09-15T12:00:00.000Z',
     payment_method,
     payment_status,
@@ -107,6 +116,86 @@ describe('the SQL mirror of the cash-held-by-merchant rule', () => {
   })
 })
 
+describe('the SQL mirror of the merchant pass-through rule', () => {
+  it('agrees with isPassedThroughToMerchant on every method, type and courier', () => {
+    for (const method of PAYMENT_METHODS) {
+      for (const type of ORDER_TYPES) {
+        for (const courier_id of [null, 'courier-1']) {
+          const input = { payment_method: method, type, courier_id }
+          expect(
+            MERCHANT_PASSTHROUGH_RULE.matches(input),
+            `${method}/${type}/${courier_id ?? 'sin domiciliario'}`,
+          ).toBe(isPassedThroughToMerchant(input))
+        }
+      }
+    }
+  })
+
+  it('never passes through money the merchant already holds in cash', () => {
+    // The two rules partition cash vs online: no order is in both.
+    for (const method of PAYMENT_METHODS) {
+      for (const type of ORDER_TYPES) {
+        for (const courier_id of [null, 'courier-1']) {
+          const input = { payment_method: method, type, courier_id }
+          expect(
+            isPassedThroughToMerchant(input) && isCollectedByMerchant(input),
+          ).toBe(false)
+        }
+      }
+    }
+  })
+})
+
+describe('the SQL mirror of the carry rule', () => {
+  it('agrees with isCarryable on every status, sign, stamp and period position', () => {
+    const statuses: readonly PayoutStatus[] = ['pending', 'paid']
+    const periodStart = '2026-09-14'
+    for (const status of statuses) {
+      for (const net of [-1, 0, 1]) {
+        for (const carried_into_payout_id of [null, 'payout-2']) {
+          for (const period_end of ['2026-09-13', '2026-09-14', '2026-09-20']) {
+            const row: CarryCandidate = {
+              id: 'payout-1',
+              store_id: 'store-1',
+              status,
+              net,
+              period_end,
+              carried_into_payout_id,
+            }
+            expect(
+              CARRYABLE_RULE.matches(row, periodStart),
+              `${status}/${net}/${carried_into_payout_id}/${period_end}`,
+            ).toBe(isCarryable(row, { periodStart }))
+          }
+        }
+      }
+    }
+  })
+})
+
+describe('the SQL mirror of the payout net', () => {
+  it('adds and subtracts the same columns payoutNet does', () => {
+    // Evaluate the SQL expression with the totals bound as numbers.
+    const parts = {
+      gross: 50000,
+      commission: 5500,
+      cash_collected: 12000,
+      plan_fee: 1663,
+      delivery_and_tips: 7000,
+      carried_in: -2500,
+    }
+    const expression = PAYOUT_NET_SQL.replace(
+      'coalesce(ct.carried_in, 0)',
+      `(${parts.carried_in})`,
+    ).replace(/\bt\.(\w+)/g, (_, column: string) =>
+      String(parts[column as keyof typeof parts]),
+    )
+    expect(expression).toMatch(/^[\d\s+\-().]+$/)
+    const evaluated = Function(`return ${expression}`)() as number
+    expect(evaluated).toBe(payoutNet(parts))
+  })
+})
+
 describe('the SQL mirror of the commission reversal', () => {
   it('follows REFUND_REVERSES_PLATFORM_FEE', () => {
     // Flipping that constant must not be able to mean one thing to the app
@@ -125,7 +214,7 @@ describe('the SQL mirror of the commission reversal', () => {
 const SQL_PATH = fileURLToPath(
   new URL(
     // The latest migration that defines public.generate_payouts.
-    '../supabase/migrations/20261105000300_discounts_loyalty_referrals.sql',
+    '../supabase/migrations/20261124000100_payout_carry.sql',
     import.meta.url,
   ),
 )
@@ -147,7 +236,7 @@ function block(name: string): string {
   return sql.slice(from + begin.length, to).trim()
 }
 
-describe('20261105000300_discounts_loyalty_referrals.sql', () => {
+describe('20261124000100_payout_carry.sql', () => {
   it('embeds every generated block verbatim', () => {
     for (const [name, sql] of Object.entries(payoutSqlBlocks())) {
       expect(block(name), name).toBe(sql)

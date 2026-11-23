@@ -230,13 +230,18 @@ the board still works in greyscale and under a high-contrast preference.
 
 ## Motion
 
-| Token               | Value                            |
-| ------------------- | -------------------------------- |
-| `--duration-fast`   | `150ms` (hover, focus)           |
-| `--duration-base`   | `220ms` (open/close)             |
-| `--duration-slow`   | `300ms` (large surfaces)         |
-| `--ease-out-soft`   | `cubic-bezier(0.2, 0.8, 0.2, 1)` |
-| `--animate-fade-up` | entrance for content blocks      |
+| Token                | Value                            |
+| -------------------- | -------------------------------- |
+| `--duration-fast`    | `150ms` (hover, focus)           |
+| `--duration-base`    | `220ms` (open/close)             |
+| `--duration-slow`    | `300ms` (large surfaces)         |
+| `--ease-out-soft`    | `cubic-bezier(0.2, 0.8, 0.2, 1)` |
+| `--animate-fade-up`  | entrance for content blocks      |
+| `--reveal-shift`     | `1.5rem` (scroll reveal rise)    |
+| `--reveal-range`     | `30vh` (scroll reveal distance)  |
+| `--demo-loop`        | `12s` (product demo loops)       |
+| `--marquee-duration` | `40s` (one marquee lap)          |
+| `--marquee-gap`      | `0.75rem` (marquee item spacing) |
 
 `--ease-out-soft` is also exposed as the Tailwind `ease-out-soft` utility.
 
@@ -246,6 +251,29 @@ transition to `1ms` via `:where(*, *::before, *::after)` and forces
 `scroll-behavior: auto`. Zero specificity means a component can still opt out
 deliberately; unlayered placement means no Tailwind utility can accidentally
 override it. Never gate essential feedback on an animation.
+
+### Marketing motion (Cerquita 2.0, phase 3)
+
+One rule for the whole block at the end of `app/globals.css`: an animation
+only exists on `screen`, inside `prefers-reduced-motion: no-preference` **and**
+under `:root:not([data-motion='reduce'])`. The base rules draw the finished
+state, so the server HTML is complete and visible without JavaScript, on a
+browser that cannot animate, in print and with either reduced-motion signal.
+`tests/design-tokens.test.ts` asserts the gating for every loop.
+
+| Piece                    | What it is                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `.reveal` / `Reveal`     | Fade-up on scroll with `animation-timeline: view()`, behind `@supports`; fully opaque `--reveal-range` into view |
+| `.reveal-line`           | The same timeline growing a rule from the left (`scaleX`)                                                        |
+| `.marquee` / `Marquee`   | Endless strip: list twice, copy `aria-hidden` + `inert`, paused on hover/focus, `animation: none` when reduced   |
+| `order-demo-*`           | `LiveOrderDemo`: an order going Recibido → Entregado on a phone; the markup is the last frame                    |
+| `board-demo-*`           | `BoardDemo`: an order crossing the kitchen board and a reservation being confirmed; last frame in the markup     |
+| `CountUp`                | Counts to its value when it enters the viewport; final value in the HTML and in a visually hidden span           |
+| `MotionProvider`         | Motion's `reducedMotion` is `always` under `data-motion="reduce"`, `user` otherwise                              |
+| `PillTabsList`/`Trigger` | Tabs whose active pill glides between triggers (`layoutId`); 44px triggers                                       |
+
+A demo never states a figure, a store name or a price: it is a drawing of the
+product, decorative (`aria-hidden`) and described in an `sr-only` caption.
 
 ## Adding a token
 

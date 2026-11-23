@@ -9,10 +9,10 @@
  * signed-in user who accepted an older version is asked again on their next
  * request (see `needsLegalAcceptance` and the gate in `middleware.ts`).
  */
-export const LEGAL_VERSION = '2026-10-08'
+export const LEGAL_VERSION = '2026-11-23'
 
 /** Human date for the "Última actualización" line of every document. */
-export const LEGAL_UPDATED_AT = '8 de octubre de 2026'
+export const LEGAL_UPDATED_AT = '23 de noviembre de 2026'
 
 export const LEGAL_DOCUMENTS = [
   {

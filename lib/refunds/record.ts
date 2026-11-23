@@ -5,6 +5,7 @@ import { refundThroughGateway } from '@/lib/refunds/gateway'
 import {
   REFUND_REJECTION_MESSAGES,
   planRefund,
+  type RefundActor,
   type RefundInput,
   type RefundOrder,
   type RefundRejection,
@@ -20,8 +21,11 @@ export interface RecordRefundParams {
   input: RefundInput
   /** Profile id of whoever pressed the button. */
   issuedBy: string
-  /** Only for the log: which surface the refund came from. */
-  actor: 'merchant' | 'admin'
+  /**
+   * Which surface the refund came from. It decides the cash rule in
+   * `planRefund` (only the platform records cash refunds) and goes to the log.
+   */
+  actor: RefundActor
 }
 
 /** Every answer `public.record_refund` can give. */
@@ -73,7 +77,7 @@ export async function recordRefund({
   issuedBy,
   actor,
 }: RecordRefundParams): Promise<RecordRefundResult> {
-  const plan = planRefund(order, input)
+  const plan = planRefund(order, input, actor)
   if (!plan.ok) {
     return { ok: false, error: REFUND_REJECTION_MESSAGES[plan.error] }
   }
