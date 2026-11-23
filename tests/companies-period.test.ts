@@ -7,6 +7,7 @@ import {
   nextPeriod,
   periodBounds,
   periodLabel,
+  periodTitle,
   previousPeriod,
   recentClosedPeriods,
 } from '@/lib/companies/period'
@@ -53,6 +54,8 @@ describe('periods', () => {
   it('names a period in Spanish', () => {
     expect(periodLabel('2026-11-01')).toBe('noviembre de 2026')
     expect(periodLabel('2027-01-01')).toBe('enero de 2027')
+    // Only the first letter: CSS `capitalize` would give "Octubre De 2026".
+    expect(periodTitle('2026-10-01')).toBe('Octubre de 2026')
   })
 
   it('lists the most recent closed months, newest first', () => {

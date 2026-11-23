@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { bogotaToday, periodLabel } from '@/lib/companies/period'
+import { bogotaToday, periodLabel, periodTitle } from '@/lib/companies/period'
 import { requireCompanyMember } from '@/lib/companies/server'
 import { statementDisplayStatus } from '@/lib/companies/statement'
 import {
@@ -95,8 +95,8 @@ export default async function CompanyStatementsPage() {
             <TableBody>
               {statements.map((statement) => (
                 <TableRow key={statement.id}>
-                  <TableCell className="font-medium capitalize">
-                    {periodLabel(statement.period)}
+                  <TableCell className="font-medium">
+                    {periodTitle(statement.period)}
                   </TableCell>
                   <TableCell>{date(statement.issued_on)}</TableCell>
                   <TableCell>{date(statement.due_on)}</TableCell>

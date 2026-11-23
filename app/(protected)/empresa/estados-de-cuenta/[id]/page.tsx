@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { PrintButton } from '@/components/companies/print-button'
 import { StatusBadge } from '@/components/orders/order-status-badge'
 import { formatNit } from '@/lib/companies/nit'
-import { bogotaToday, periodLabel } from '@/lib/companies/period'
+import { bogotaToday, periodTitle } from '@/lib/companies/period'
 import { requireCompanyMember } from '@/lib/companies/server'
 import { statementDisplayStatus } from '@/lib/companies/statement'
 import {
@@ -102,14 +102,14 @@ export default async function CompanyStatementPage({
             <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
               Estado de cuenta
             </p>
-            <h1 className="text-h2 font-display font-semibold capitalize">
-              {periodLabel(statement.period)}
+            <h1 className="text-h2 font-display font-semibold">
+              {periodTitle(statement.period)}
             </h1>
             <p className="text-muted-foreground font-mono text-xs">
               Ref. {reference}
             </p>
           </div>
-          <div className="text-right text-sm">
+          <div className="text-sm sm:text-right print:text-right">
             <p className="font-semibold">{COMPANY.brand}</p>
             <p className="text-muted-foreground">{COMPANY.legalName}</p>
             <p className="text-muted-foreground">NIT {COMPANY.nit}</p>
@@ -254,9 +254,9 @@ export default async function CompanyStatementPage({
 
         <footer className="text-muted-foreground space-y-1 text-xs text-pretty">
           <p>
-            Cada pedido lo factura el restaurante que lo vendió, a nombre de{' '}
-            {statement.legal_name}. Este estado de cuenta reúne lo que tu equipo
-            cargó a la cuenta de la empresa en el mes y no reemplaza esas
+            Cada restaurante factura sus pedidos a nombre de{' '}
+            {statement.legal_name} y este estado de cuenta reúne lo que tu
+            equipo cargó a la cuenta de la empresa en el mes; no reemplaza esas
             facturas.
           </p>
           <p>

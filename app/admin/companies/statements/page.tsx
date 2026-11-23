@@ -19,6 +19,7 @@ import { requireRole } from '@/lib/auth'
 import {
   bogotaToday,
   periodLabel,
+  periodTitle,
   recentClosedPeriods,
 } from '@/lib/companies/period'
 import { statementDisplayStatus } from '@/lib/companies/statement'
@@ -135,9 +136,7 @@ export default async function AdminCompanyStatementsPage() {
                         {row.lines} línea{row.lines === 1 ? '' : 's'}
                       </span>
                     </TableCell>
-                    <TableCell className="capitalize">
-                      {periodLabel(row.period)}
-                    </TableCell>
+                    <TableCell>{periodTitle(row.period)}</TableCell>
                     <TableCell>{date(row.due_on)}</TableCell>
                     <TableCell>
                       <StatusBadge

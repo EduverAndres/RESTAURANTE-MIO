@@ -72,6 +72,12 @@ export function periodLabel(period: string): string {
   return `${month} de ${period.slice(0, 4)}`
 }
 
+/** "Noviembre de 2026", for a title or the start of a cell. */
+export function periodTitle(period: string): string {
+  const label = periodLabel(period)
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 /** The `count` months before the current one, newest first. */
 export function recentClosedPeriods(now: Date, count: number): string[] {
   const current = bogotaMonthStart(now)

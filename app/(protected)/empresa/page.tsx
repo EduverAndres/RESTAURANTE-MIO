@@ -15,7 +15,7 @@ import { StatusBadge } from '@/components/orders/order-status-badge'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { formatNit } from '@/lib/companies/nit'
-import { periodLabel } from '@/lib/companies/period'
+import { periodLabel, periodTitle } from '@/lib/companies/period'
 import {
   fetchCompany,
   fetchMyCorporateBudget,
@@ -324,7 +324,7 @@ export default async function CompanyHomePage() {
           {isAdmin ? 'Resumen de la cuenta' : 'Tu cuenta de empresa'}
         </h1>
         <p className="text-muted-foreground text-sm">
-          {periodLabel(budget.period).replace(/^./, (c) => c.toUpperCase())}
+          {periodTitle(budget.period)}
         </p>
       </header>
 

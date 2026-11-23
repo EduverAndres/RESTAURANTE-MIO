@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { periodLabel } from '@/lib/companies/period'
+import { periodTitle } from '@/lib/companies/period'
 
 /** Bills a closed month for every company, then stamps the overdue ones. */
 export function GenerateStatementsForm({ periods }: { periods: string[] }) {
@@ -61,11 +61,11 @@ export function GenerateStatementsForm({ periods }: { periods: string[] }) {
             id={`${id}-period`}
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
-            className="border-input bg-background rounded-control h-11 border px-3 text-sm capitalize"
+            className="border-input bg-background rounded-control h-11 border px-3 text-sm"
           >
             {periods.map((value) => (
               <option key={value} value={value}>
-                {periodLabel(value)}
+                {periodTitle(value)}
               </option>
             ))}
           </select>

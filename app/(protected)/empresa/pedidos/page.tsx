@@ -16,7 +16,7 @@ import {
 import {
   bogotaMonthStart,
   isPeriod,
-  periodLabel,
+  periodTitle,
   recentClosedPeriods,
 } from '@/lib/companies/period'
 import { requireCompanyMember } from '@/lib/companies/server'
@@ -80,7 +80,7 @@ export default async function CompanyOrdersPage({
                     : 'border-border hover:bg-muted',
                 )}
               >
-                {periodLabel(month)}
+                {periodTitle(month)}
               </Link>
             </li>
           ))}
