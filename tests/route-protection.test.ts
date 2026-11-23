@@ -16,6 +16,7 @@ const APP_DIR = join(__dirname, '..', 'app')
 const PUBLIC_PAGES: Record<string, string> = {
   '/': 'marketplace home',
   '/para-restaurantes': 'marketing',
+  '/repartidores': 'marketing; courier recruitment, reads no private data',
   '/cookies': 'legal document',
   '/legal': 'legal index',
   '/privacidad': 'legal document',

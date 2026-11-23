@@ -11,6 +11,7 @@ type RevealTag =
   | 'ol'
   | 'li'
   | 'p'
+  | 'h2'
 
 interface RevealProps extends React.HTMLAttributes<HTMLElement> {
   as?: RevealTag

@@ -104,6 +104,7 @@ describe('rewriteForStore', () => {
     '/admin',
     // The owner landing is app-wide, not a page of any one store.
     '/para-restaurantes',
+    '/repartidores',
   ])('leaves %s untouched', (pathname) => {
     expect(rewriteForStore(pathname, slug)).toBe(pathname)
   })
