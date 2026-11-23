@@ -1,5 +1,7 @@
+import { LogInIcon } from 'lucide-react'
 import Link from 'next/link'
 import { AccessibilityMenu } from '@/components/a11y/accessibility-menu'
+import { DesktopNav, MobileMenu } from '@/components/layout/site-nav'
 import { UserMenu } from '@/components/layout/user-menu'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
@@ -42,33 +44,14 @@ export async function SiteHeader() {
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Wordmark />
 
-        <nav
-          aria-label="Principal"
-          className="hidden items-center gap-1 text-sm font-medium md:flex"
-        >
-          <Link
-            href="/"
-            className="rounded-pill text-muted-foreground hover:bg-muted hover:text-foreground px-3 py-1.5 transition-colors"
-          >
-            Inicio
-          </Link>
-          <Link
-            href="/#restaurantes"
-            className="rounded-pill text-muted-foreground hover:bg-muted hover:text-foreground px-3 py-1.5 transition-colors"
-          >
-            Explorar
-          </Link>
-          <Link
-            href="/para-restaurantes"
-            className="rounded-pill text-muted-foreground hover:bg-muted hover:text-foreground px-3 py-1.5 transition-colors"
-          >
-            Para negocios
-          </Link>
-        </nav>
+        <DesktopNav />
 
-        <div className="flex items-center gap-1.5">
-          <AccessibilityMenu />
-          <ThemeToggle />
+        {/* Below `md` the theme and accessibility controls live in the menu
+            sheet (and the accessibility menu in the bottom bar too), so the
+            row fits a 320px screen even with extra-large text. */}
+        <div className="flex items-center gap-1">
+          <AccessibilityMenu className="hidden size-11 md:inline-flex" />
+          <ThemeToggle className="hidden size-11 md:inline-flex" />
           {current ? (
             <UserMenu
               name={displayName}
@@ -77,10 +60,17 @@ export async function SiteHeader() {
               avatarUrl={current.profile?.avatar_url ?? null}
             />
           ) : (
-            <Button asChild className="rounded-pill px-4">
-              <Link href="/login">Iniciar sesión</Link>
+            <Button
+              asChild
+              className="rounded-pill h-11 px-4 max-sm:size-11 max-sm:px-0"
+            >
+              <Link href="/login">
+                <LogInIcon aria-hidden="true" className="size-5 sm:hidden" />
+                <span className="max-sm:sr-only">Iniciar sesión</span>
+              </Link>
             </Button>
           )}
+          <MobileMenu signedIn={Boolean(current)} />
         </div>
       </div>
     </header>

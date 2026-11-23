@@ -1,6 +1,14 @@
-import { QuoteIcon, StoreIcon } from 'lucide-react'
+import {
+  CalendarCheckIcon,
+  QuoteIcon,
+  RadarIcon,
+  ReceiptTextIcon,
+  StoreIcon,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { CountUp } from '@/components/motion/count-up'
+import { Marquee } from '@/components/motion/marquee'
 import { StarRating } from '@/components/store/star-rating'
 import { initialsOf } from '@/lib/format'
 import {
@@ -9,11 +17,9 @@ import {
   visibleStats,
   type ProofStat,
 } from '@/lib/marketplace/social-proof'
-import { formatAverage, opinionCount } from '@/lib/store/reviews-summary'
+import { opinionCount } from '@/lib/store/reviews-summary'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-
-const numberFormatter = new Intl.NumberFormat('es-CO')
 
 interface Testimonial {
   id: string
@@ -107,16 +113,21 @@ async function loadProof() {
 }
 
 /**
- * Who else is here and what they thought. Everything on it is read from the
- * database at request time, and every block hides itself until there is
- * enough real material to fill it (see `PROOF_THRESHOLDS`).
+ * What a visitor can hold the platform to, before ordering.
+ *
+ * Shown as figures when there are figures worth showing: every number is
+ * read from the database at request time, counts up as it scrolls into view
+ * (CountUp; the final value is in the HTML) and only appears once it clears
+ * its floor (`PROOF_THRESHOLDS`). The band never goes blank and never makes
+ * numbers up: the slots no figure has earned yet state things the product
+ * does on every order. Testimonials and the affiliate strip keep their own
+ * floors and simply stay out until there is enough real material.
  */
 export async function SocialProof() {
   const { stats, testimonials, affiliates } = await loadProof()
   const showTestimonials = testimonials.length >= 2
   const showAffiliates = affiliates.length >= 3
-
-  if (stats.length === 0 && !showTestimonials && !showAffiliates) return null
+  const showStats = stats.length > 0
 
   return (
     <section
@@ -124,25 +135,45 @@ export async function SocialProof() {
       className="border-border/60 border-t"
     >
       <div className="container-page py-section space-y-12">
-        <div className="max-w-2xl space-y-3">
+        <div className="reveal max-w-2xl space-y-3">
           <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
-            Comunidad
+            {showStats ? 'Comunidad' : 'Nuestra promesa'}
           </p>
           <h2
             id="confianza-title"
             className="text-h1 font-display font-semibold"
           >
-            Barranquilla ya está pidiendo aquí
+            {showStats
+              ? 'Barranquilla ya está pidiendo aquí'
+              : 'Lo que puedes esperar de cada pedido'}
           </h2>
         </div>
 
-        {stats.length > 0 ? (
-          <dl className="gap-card grid sm:grid-cols-3">
-            {stats.map((stat) => (
-              <Stat key={stat.key} stat={stat} />
-            ))}
-          </dl>
-        ) : null}
+        {/* Real figures first; product facts fill whatever is left of the
+            row, so one figure never sits alone in a three-column band. */}
+        <ul className="gap-card grid sm:grid-cols-3">
+          {stats.map((stat) => (
+            <Stat key={stat.key} stat={stat} />
+          ))}
+          {PRODUCT_FACTS.slice(0, Math.max(0, 3 - stats.length)).map(
+            ({ icon: Icon, title, text }) => (
+              <li
+                key={title}
+                className="reveal rounded-card bg-card shadow-1 ring-foreground/5 p-card flex flex-col gap-2 ring-1"
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <span className="font-display text-h2 font-semibold">
+                    {title}
+                  </span>
+                  <Icon aria-hidden="true" className="text-primary size-6" />
+                </span>
+                <span className="text-muted-foreground text-sm text-pretty">
+                  {text}
+                </span>
+              </li>
+            ),
+          )}
+        </ul>
 
         {showTestimonials ? (
           <ul
@@ -185,20 +216,24 @@ export async function SocialProof() {
             <h3 className="text-muted-foreground text-sm font-medium">
               Negocios que ya venden con nosotros
             </h3>
-            <ul className="flex flex-wrap gap-2">
+            <Marquee
+              label="Negocios que ya venden con nosotros"
+              duration={Math.max(30, affiliates.length * 4)}
+              listClassName="py-2"
+            >
               {affiliates.map((store) => (
                 <li key={store.id}>
                   <Link
                     href={`/t/${store.slug}`}
-                    className="rounded-pill bg-card shadow-1 ring-foreground/5 hover:shadow-2 inline-flex items-center gap-2 py-1.5 pr-4 pl-1.5 text-sm font-medium ring-1 transition-shadow"
+                    className="rounded-pill bg-card shadow-1 ring-foreground/5 hover:shadow-2 inline-flex min-h-11 items-center gap-2 py-1.5 pr-4 pl-1.5 text-sm font-medium whitespace-nowrap ring-1 transition-shadow"
                   >
-                    <span className="bg-primary/10 text-primary-on-tint relative grid size-7 place-items-center overflow-hidden rounded-full text-[11px] font-semibold">
+                    <span className="bg-primary/10 text-primary-on-tint relative grid size-8 place-items-center overflow-hidden rounded-full text-[11px] font-semibold">
                       {store.logo_url ? (
                         <Image
                           src={store.logo_url}
                           alt=""
                           fill
-                          sizes="28px"
+                          sizes="32px"
                           className="object-cover"
                         />
                       ) : (
@@ -209,7 +244,7 @@ export async function SocialProof() {
                   </Link>
                 </li>
               ))}
-            </ul>
+            </Marquee>
           </div>
         ) : null}
       </div>
@@ -217,11 +252,33 @@ export async function SocialProof() {
   )
 }
 
+/**
+ * The band's fallback: things every order gets, stated as words. No figure
+ * here, so nothing that could read as traction the platform does not have.
+ */
+const PRODUCT_FACTS = [
+  {
+    icon: ReceiptTextIcon,
+    title: 'Precio de carta',
+    text: 'Sin recargos ocultos: pagas la carta, el envío y la propina que elijas.',
+  },
+  {
+    icon: RadarIcon,
+    title: 'En vivo',
+    text: 'Ves tu pedido paso a paso y lo recibes con un código que solo tú tienes.',
+  },
+  {
+    icon: CalendarCheckIcon,
+    title: 'Pide o reserva',
+    text: 'A domicilio, para recoger, desde la mesa o con tu mesa reservada.',
+  },
+] as const
+
 function Stat({ stat }: { stat: ProofStat }) {
   const content =
     stat.key === 'stores'
       ? {
-          value: numberFormatter.format(stat.value),
+          value: <CountUp value={stat.value} />,
           label: 'negocios locales vendiendo',
           extra: (
             <StoreIcon aria-hidden="true" className="text-primary size-5" />
@@ -229,25 +286,25 @@ function Stat({ stat }: { stat: ProofStat }) {
         }
       : stat.key === 'rating'
         ? {
-            value: formatAverage(stat.value),
+            value: <CountUp value={stat.value} format="decimal" />,
             label: `calificación promedio · ${opinionCount(stat.reviews)}`,
             extra: <StarRating value={stat.value} />,
           }
         : {
-            value: numberFormatter.format(stat.value),
+            value: <CountUp value={stat.value} />,
             label: 'pedidos entregados',
             extra: null,
           }
 
   return (
-    <div className="rounded-card bg-card shadow-1 ring-foreground/5 p-card flex flex-col-reverse gap-1 ring-1">
-      <dt className="text-muted-foreground text-sm">{content.label}</dt>
-      <dd className="flex items-center justify-between gap-3">
-        <span className="font-display text-h1 font-semibold tabular-nums">
+    <li className="reveal rounded-card bg-card shadow-1 ring-foreground/5 p-card flex flex-col gap-1 ring-1">
+      <span className="flex items-center justify-between gap-3">
+        <span className="font-display text-h1 font-semibold">
           {content.value}
         </span>
         {content.extra}
-      </dd>
-    </div>
+      </span>
+      <span className="text-muted-foreground text-sm">{content.label}</span>
+    </li>
   )
 }

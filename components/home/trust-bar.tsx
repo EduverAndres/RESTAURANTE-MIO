@@ -14,7 +14,10 @@ import { supportWhatsAppUrl } from '@/lib/marketplace/support'
  * the order is tracked state by state and only the customer's code closes a
  * delivery — so the strip can be blunt about it.
  *
- * On a phone it is a rail you flick through; from `md` it lays out as a row.
+ * Two columns on a phone, one row from `md`. It used to be a rail on phones,
+ * but a scroll region with nothing focusable in it cannot be scrolled from a
+ * keyboard (axe: scrollable-region-focusable), and four short promises fit
+ * on screen anyway.
  */
 const PROMISES = [
   {
@@ -48,11 +51,11 @@ export function TrustBar() {
       className="border-border/60 bg-card border-b"
     >
       <div className="container-page py-5">
-        <ul className="rail -mx-gutter px-gutter gap-3 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0">
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-5 md:grid-cols-4 md:gap-3">
           {PROMISES.map(({ icon: Icon, title, text }) => (
             <li
               key={title}
-              className="flex w-[72vw] max-w-xs items-start gap-3 md:w-auto md:max-w-none"
+              className="flex flex-col items-start gap-2 sm:flex-row sm:gap-3"
             >
               <span className="rounded-control bg-primary/10 text-primary-on-tint grid size-10 shrink-0 place-items-center">
                 <Icon aria-hidden="true" className="size-5" />

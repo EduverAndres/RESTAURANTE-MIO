@@ -48,6 +48,9 @@ Puntos auditados hoy:
 | ----------------------------------------------- | ----------------------------- |
 | Portada del marketplace                         | `e2e/storefront.spec.ts`      |
 | Portada con texto extra grande + contraste alto | `e2e/storefront.spec.ts`      |
+| Portada · selector de público                   | `e2e/marketing.spec.ts`       |
+| Domiciliarios (`/repartidores`)                 | `e2e/marketing.spec.ts`       |
+| Para restaurantes (`/para-restaurantes`)        | `e2e/marketing.spec.ts`       |
 | Tienda · menú                                   | `e2e/storefront.spec.ts`      |
 | Tienda · cajón de producto                      | `e2e/storefront.spec.ts`      |
 | Tienda · carrito                                | `e2e/storefront.spec.ts`      |
@@ -143,14 +146,25 @@ atributo `class` en ese mismo elemento; los dos conviven sin tocarse.
   diseño normal usa para que los controles floten.
 - **Reducir animaciones** replica el bloque global de `prefers-reduced-motion`,
   pseudo-elementos incluidos, para quien tiene una cosa configurada en el
-  sistema y otra aquí.
+  sistema y otra aquí. También llega a framer-motion: `MotionProvider`
+  (`components/motion/motion-provider.tsx`) observa el atributo y pone
+  `reducedMotion="always"`, así que el indicador de las pestañas deja de
+  deslizarse. Las animaciones de marketing (revelado al hacer scroll, demos,
+  marquee, contadores) solo existen si ninguna de las dos señales pide
+  reducir, y su estado de reposo es el final: sin animación, todo se ve.
+- **Sin JavaScript** el contenido de marketing está completo: `Reveal` es CSS,
+  `CountUp` trae el valor final en el HTML y las pestañas (`AudienceSwitcher`,
+  «Cómo funciona») muestran todos sus paneles hasta que la página hidrata.
 
 ### Dónde se cambian
 
 El menú (`components/a11y/accessibility-menu.tsx`) está en dos sitios:
 
-- la cabecera del sitio (`components/layout/site-header.tsx`), y
-- la barra inferior en móvil (`components/layout/mobile-nav.tsx`),
+- la cabecera del sitio (`components/layout/site-header.tsx`) desde `md`, y
+  dentro del menú móvil (el Sheet de `components/layout/site-nav.tsx`) por
+  debajo;
+- la barra inferior en móvil (`components/layout/mobile-nav.tsx`), y
+- la cabecera de las páginas por público (`app/(marketing)/layout.tsx`),
 
 porque quien necesita texto más grande en el teléfono no debería tener que
 encontrar una cabecera de escritorio para conseguirlo.

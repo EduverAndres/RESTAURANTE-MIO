@@ -5,15 +5,20 @@ import {
   WalletIcon,
 } from 'lucide-react'
 import Link from 'next/link'
-import { SavingsCalculator } from '@/components/marketing/savings-calculator'
+import { BoardDemo } from '@/components/marketing/board-demo'
 import { Button } from '@/components/ui/button'
 
+/** The owner's sign-up: lands on the register form with the role chosen. */
+export const MERCHANT_REGISTER_HREF = '/register?role=merchant'
+
 /**
- * The part of the home addressed to the person who pays: the restaurant
- * owner. It sits after the diner content on purpose — an owner judges the
- * product by imagining their customer scrolling the sections above, and
- * arrives here already convinced or not. What this section adds is the
- * number, with their own figures in it.
+ * The top of the owner landing: the promise, three proofs and the panel
+ * itself, drawn and moving (BoardDemo). The argument with numbers — the
+ * savings calculator — has its own section further down.
+ *
+ * "Ver una tienda de verdad" only appears when there is a real, active store
+ * to send the owner to (`demoSlug`, read on the server); a link to a store
+ * that only exists in a seed file is a dead end in production.
  */
 
 const PROMISES = [
@@ -36,9 +41,12 @@ const PROMISES = [
 
 export function ForRestaurants({
   standalone = false,
+  demoSlug,
 }: {
   /** As a page of its own the headline is the h1 and there is no rule above. */
   standalone?: boolean
+  /** Slug of a live store to show, or null to hide the link. */
+  demoSlug: string | null
 }) {
   const Heading = standalone ? 'h1' : 'h2'
   return (
@@ -47,17 +55,17 @@ export function ForRestaurants({
       aria-labelledby="para-restaurantes-title"
       className={
         standalone
-          ? 'bg-card'
+          ? 'brand-mesh'
           : 'border-border/60 bg-card scroll-mt-24 border-t'
       }
     >
       <div className="container-page py-section">
         {/* No entrance animation: the headline is this page's largest paint
             and has to be in the HTML at full opacity. */}
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-14">
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
           <div className="space-y-8">
             <div className="space-y-3">
-              <p className="text-primary text-xs font-semibold tracking-wide uppercase">
+              <p className="text-primary-on-tint text-xs font-semibold tracking-wide uppercase">
                 Para negocios
               </p>
               <Heading
@@ -67,9 +75,9 @@ export function ForRestaurants({
                 Tus clientes ya son tuyos. Tu canal de venta también debería
                 serlo.
               </Heading>
-              <p className="text-muted-foreground text-pretty">
-                Recibe pedidos a domicilio, para recoger y desde la mesa con tu
-                propia marca. Sin mensualidad: pagas solo cuando vendes.
+              <p className="text-muted-foreground text-lead text-pretty">
+                Pedidos a domicilio, para recoger y desde la mesa, reservas y
+                pedidos de empresas, con tu propia marca y en un solo panel.
               </p>
             </div>
 
@@ -91,31 +99,31 @@ export function ForRestaurants({
               ))}
             </ul>
 
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link href="/register">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="rounded-pill h-12 px-6 text-base"
+              >
+                <Link href={MERCHANT_REGISTER_HREF}>
                   Crear mi tienda
                   <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/t/sushi-nocturno">Ver una tienda de verdad</Link>
-              </Button>
+              {demoSlug ? (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="rounded-pill h-12 px-6 text-base"
+                >
+                  <Link href={`/t/${demoSlug}`}>Ver una tienda de verdad</Link>
+                </Button>
+              ) : null}
             </div>
           </div>
 
-          <div className="space-y-4 lg:pt-10">
-            <div className="space-y-1">
-              <h3 className="text-h3 font-display font-semibold">
-                Haz la cuenta con tus números
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                No vamos a adivinar cuánto te cobran. Ponlo tú, que lo sabes
-                mejor que nadie.
-              </p>
-            </div>
-            <SavingsCalculator />
-          </div>
+          <BoardDemo className="mx-auto max-w-xl" />
         </div>
       </div>
     </section>

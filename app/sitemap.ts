@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 const STATIC_PATHS = [
   '/',
   '/para-restaurantes',
+  '/repartidores',
   '/terminos',
   '/terminos-aliados',
   '/privacidad',

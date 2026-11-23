@@ -24,6 +24,7 @@ import { MerchantSection } from '@/components/home/merchant-section'
 import { SocialProof } from '@/components/home/social-proof'
 import { StoreRail } from '@/components/home/store-rail'
 import { TrustBar } from '@/components/home/trust-bar'
+import { AudienceSwitcher } from '@/components/motion/audience-switcher'
 import { type StoreCardData } from '@/components/store/store-card'
 import { StoreGridSkeleton } from '@/components/store/store-card-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -291,15 +292,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </Suspense>
       </section>
 
-      <BenefitsSection />
+      {/* After the stores, for whoever is still deciding: who Cerquita is
+          for, how it works, what to expect, and the owner's band. */}
+      <AudienceSwitcher />
 
       <HowItWorks />
 
-      {/* Below the fold and optional by design: it renders nothing until
-          there is enough real proof, so it needs no placeholder either. */}
+      {/* Below the fold: real figures when they clear their floors, product
+          facts otherwise. It streams in without a placeholder. */}
       <Suspense fallback={null}>
         <SocialProof />
       </Suspense>
+
+      <BenefitsSection />
 
       <MerchantSection />
 
