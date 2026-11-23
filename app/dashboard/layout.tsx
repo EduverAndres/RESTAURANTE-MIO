@@ -11,6 +11,29 @@ import {
 import { getMerchantStores } from '@/lib/dashboard/store-context'
 import { APP_NAME } from '@/lib/env'
 import { pushConfigured } from '@/lib/env.server'
+import { planHas, planOfStore } from '@/lib/plans'
+import { createClient } from '@/lib/supabase/server'
+
+/**
+ * Whether the active store's plan includes reservations, and how many
+ * upcoming requests wait for an answer (the pill in the navigation).
+ */
+async function reservationsNavState(store: {
+  id: string
+  plan: string | null
+  founder_until: string | null
+}): Promise<{ included: boolean; pending: number }> {
+  const included = planHas(planOfStore(store), 'reservations')
+  const supabase = await createClient()
+  const { count } = await supabase
+    .from('reservations')
+    .select('id', { count: 'exact', head: true })
+    .eq('store_id', store.id)
+    .eq('status', 'pending')
+    .gt('starts_at', new Date().toISOString())
+  // A failed count only hides the pill; it never breaks the panel.
+  return { included, pending: count ?? 0 }
+}
 
 export const metadata: Metadata = {
   title: {
@@ -34,6 +57,7 @@ export default async function DashboardLayout({
     stores,
     parseActiveStoreId(cookieStore.get(ACTIVE_STORE_COOKIE)?.value),
   )
+  const reservations = active ? await reservationsNavState(active) : undefined
 
   return (
     <>
@@ -52,6 +76,7 @@ export default async function DashboardLayout({
         stores={stores.map(({ id, name, status }) => ({ id, name, status }))}
         activeStoreId={active?.id}
         pushEnabled={pushConfigured()}
+        reservations={reservations}
       >
         {children}
       </DashboardShell>

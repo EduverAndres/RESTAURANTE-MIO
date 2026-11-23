@@ -25,6 +25,10 @@ import { tableOrderPath } from '@/lib/tables/qr'
 import type { OpenGuestOrder } from '@/lib/tables/server'
 import { themeForPlan } from '@/lib/theme/plan-gate'
 import type { Store } from '@/types/app'
+import {
+  fetchReservationSettings,
+  isReservable,
+} from '@/lib/reservations/server'
 
 // Server rendering shared by /t/[slug] (regular storefront) and
 // /t/[slug]/mesa/[token] (same storefront tagged with a table).
@@ -113,9 +117,11 @@ export async function Storefront({
     isOpen: Boolean(store.is_open),
     now: new Date(),
   })
-  const [distanceKm, isFavorite] = await Promise.all([
+  const [distanceKm, isFavorite, reservationSettings] = await Promise.all([
     visitorDistanceKm(store),
     fetchIsFavorite(store.id),
+    // Not at a table: someone already seated does not book one.
+    table ? Promise.resolve(null) : fetchReservationSettings(store.id),
   ])
 
   const sections = resolveSections(theme.sectionOrder, {
@@ -144,6 +150,7 @@ export async function Storefront({
     table,
     distanceKm,
     sections,
+    reservable: !table && isReservable(store, reservationSettings),
   }
 
   return (

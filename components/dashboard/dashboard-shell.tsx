@@ -3,6 +3,7 @@
 import {
   BarChart3Icon,
   BikeIcon,
+  CalendarClockIcon,
   ClipboardListIcon,
   GiftIcon,
   LandmarkIcon,
@@ -31,6 +32,7 @@ import {
   StoreSwitcher,
   type StoreSwitcherStore,
 } from '@/components/dashboard/store-switcher'
+import { ReservationsLive } from '@/components/dashboard/reservations/reservations-live'
 import { initialsOf } from '@/lib/format'
 import { PushToggle } from '@/components/notifications/push-toggle'
 import { SoundToggle } from '@/components/notifications/sound-toggle'
@@ -51,6 +53,7 @@ import type { UserRole } from '@/types/app'
 
 const MERCHANT_ITEMS: DashboardNavItem[] = [
   { label: 'Pedidos', href: '/dashboard', icon: ReceiptTextIcon },
+  { label: 'Reservas', href: '/dashboard/reservas', icon: CalendarClockIcon },
   { label: 'Menú', href: '/dashboard/menu', icon: UtensilsIcon },
   { label: 'Tienda', href: '/dashboard/store', icon: PaletteIcon },
   { label: 'Clientes', href: '/dashboard/customers', icon: UsersIcon },
@@ -91,7 +94,29 @@ interface DashboardShellProps {
   activeStoreId?: string
   /** Server-computed `pushConfigured()`; hides the toggle when false. */
   pushEnabled?: boolean
+  /**
+   * Merchant variant: whether the active store's plan includes reservations,
+   * and how many requests wait for an answer.
+   */
+  reservations?: { included: boolean; pending: number }
   children: React.ReactNode
+}
+
+/** The merchant items, with the reservations entry's pill filled in. */
+function merchantItems(
+  reservations: DashboardShellProps['reservations'],
+): DashboardNavItem[] {
+  return MERCHANT_ITEMS.map((item) => {
+    if (item.href !== '/dashboard/reservas' || !reservations) return item
+    if (!reservations.included)
+      return { ...item, badge: { label: 'Mediano', kind: 'plan' } }
+    return reservations.pending > 0
+      ? {
+          ...item,
+          badge: { label: String(reservations.pending), kind: 'count' },
+        }
+      : item
+  })
 }
 
 function SignOutButton({
@@ -164,11 +189,12 @@ export function DashboardShell({
   stores = [],
   activeStoreId,
   pushEnabled = false,
+  reservations,
   children,
 }: DashboardShellProps) {
   const [open, setOpen] = useState(false)
   const { collapsed, ready, toggle } = useSidebarCollapsed()
-  const items = variant === 'admin' ? ADMIN_ITEMS : MERCHANT_ITEMS
+  const items = variant === 'admin' ? ADMIN_ITEMS : merchantItems(reservations)
   const title = SHELL_TITLES[variant]
   const switcher =
     variant === 'merchant' && stores.length > 0 ? (
@@ -330,6 +356,9 @@ export function DashboardShell({
           </div>
         </header>
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
+          {variant === 'merchant' && activeStoreId && reservations?.included ? (
+            <ReservationsLive storeId={activeStoreId} />
+          ) : null}
           {children}
         </main>
       </div>

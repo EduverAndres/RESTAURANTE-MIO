@@ -225,3 +225,21 @@ export const COUPON_CHECK_POLICY: RateLimitPolicy = {
   limit: 15,
   windowSeconds: 900,
 }
+
+/**
+ * Reservation requests by one account. Generous for a person planning a few
+ * outings, tight enough that nobody can fill a restaurant's book with fake
+ * requests (each one holds covers until the store declines it).
+ */
+export const RESERVATION_CREATE_POLICY: RateLimitPolicy = {
+  bucket: 'reservation_create',
+  limit: 5,
+  windowSeconds: 3600,
+}
+
+/** Reservation requests from one network address, across accounts. */
+export const RESERVATION_CREATE_IP_POLICY: RateLimitPolicy = {
+  bucket: 'reservation_create_ip',
+  limit: 20,
+  windowSeconds: 3600,
+}

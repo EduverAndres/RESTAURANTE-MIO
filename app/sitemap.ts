@@ -6,6 +6,7 @@ const STATIC_PATHS = [
   '/',
   '/para-restaurantes',
   '/repartidores',
+  '/reservas',
   '/terminos',
   '/terminos-aliados',
   '/privacidad',

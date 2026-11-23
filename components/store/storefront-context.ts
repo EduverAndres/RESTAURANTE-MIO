@@ -16,6 +16,8 @@ export interface StorefrontContext {
   distanceKm: number | null
   /** The sections that will actually render, in order. */
   sections: ThemeSection[]
+  /** The store takes table reservations (and this is not a table visit). */
+  reservable?: boolean
 }
 
 /** Every section component takes exactly this. */

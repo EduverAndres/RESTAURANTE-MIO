@@ -33,6 +33,7 @@ const UNTOUCHED_PREFIXES = [
   '/register',
   // Audience landings are app-wide, not pages of any one store.
   '/repartidores',
+  '/reservas',
 ] as const
 
 function hostWithoutPort(host: string): string {

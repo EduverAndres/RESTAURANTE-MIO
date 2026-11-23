@@ -141,3 +141,56 @@ export function courierReviewMessage(
     tag: 'courier-review',
   }
 }
+
+// ---------------------------------------------------------------------------
+// Reservations
+// ---------------------------------------------------------------------------
+
+/** To the store owner, when a customer asks for a table. */
+export function newReservationMessage(input: {
+  partySize: number
+  when: string
+  storeName: string
+}): PushPayload {
+  return {
+    title: `Nueva reserva · ${input.partySize} ${input.partySize === 1 ? 'persona' : 'personas'}`,
+    body: `${input.storeName}: ${input.when}. Confírmala desde tu panel.`,
+    url: '/dashboard/reservas',
+    tag: 'new-reservation',
+  }
+}
+
+/** To the customer, when the store answers or cancels. */
+export function reservationStatusMessage(
+  status: 'confirmed' | 'declined' | 'cancelled',
+  input: { id: string; storeName: string; when: string; reason: string | null },
+): PushPayload {
+  const titles = {
+    confirmed: '¡Reserva confirmada!',
+    declined: 'No pudimos confirmar tu reserva',
+    cancelled: 'Tu reserva fue cancelada',
+  } as const
+  const body =
+    status === 'confirmed'
+      ? `${input.storeName} te espera ${input.when}.`
+      : `${input.storeName}, ${input.when}${input.reason ? `: ${input.reason}` : '.'}`
+  return {
+    title: titles[status],
+    body,
+    url: `/account/reservas#r-${input.id}`,
+    tag: `reservation-${input.id}`,
+  }
+}
+
+/** To the store owner, when a customer cancels. */
+export function reservationCancelledMessage(input: {
+  partySize: number
+  when: string
+}): PushPayload {
+  return {
+    title: 'Reserva cancelada',
+    body: `Se liberó la mesa de ${input.partySize} ${input.partySize === 1 ? 'persona' : 'personas'} para ${input.when}.`,
+    url: '/dashboard/reservas',
+    tag: 'reservation-cancelled',
+  }
+}

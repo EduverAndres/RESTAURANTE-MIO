@@ -586,3 +586,16 @@ values
   ('c0000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000001', current_date - 7, current_date - 1, 980000, 78400, 901600, 'pending', null),
   ('c0000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000005', current_date - 7, current_date - 1, 720000, 43200, 676800, 'pending', null)
 on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Reservations: one store on a plan that includes them, taking bookings.
+-- The founders migration runs before this seed, so seeded stores are not
+-- founders and need a paid plan to offer reservations.
+-- ---------------------------------------------------------------------------
+update public.stores set plan = 'mediano' where slug = 'la-parrilla-del-norte';
+
+insert into public.reservation_settings (store_id, enabled, policy_text)
+select id, true, 'Guardamos tu mesa 15 minutos. Para grupos de más de 8 personas, escríbenos.'
+from public.stores
+where slug = 'la-parrilla-del-norte'
+on conflict (store_id) do nothing;

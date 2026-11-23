@@ -1,4 +1,4 @@
-import { HeartIcon, LogOutIcon } from 'lucide-react'
+import { CalendarDaysIcon, HeartIcon, LogOutIcon } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { AddressList } from './address-list'
@@ -57,6 +57,15 @@ export default async function AccountPage() {
         )
         .eq('user_id', user.id),
     ])
+
+  // Upcoming bookings, for the shortcut below. A failed count only hides
+  // the number.
+  const { count: upcomingReservations } = await supabase
+    .from('reservations')
+    .select('id', { count: 'exact', head: true })
+    .eq('customer_id', user.id)
+    .in('status', ['pending', 'confirmed'])
+    .gt('starts_at', new Date().toISOString())
 
   const displayName =
     profile?.full_name?.trim() || user.email?.split('@')[0] || 'Tu cuenta'
@@ -194,6 +203,37 @@ export default async function AccountPage() {
                 }
               />
             )}
+          </section>
+
+          <section
+            aria-labelledby="reservas-title"
+            className="rounded-card bg-card shadow-1 flex flex-wrap items-center justify-between gap-3 p-4"
+          >
+            <div className="flex items-center gap-3">
+              <CalendarDaysIcon
+                aria-hidden="true"
+                className="text-primary size-5"
+              />
+              <div>
+                <h2
+                  id="reservas-title"
+                  className="font-display text-xl font-semibold"
+                >
+                  Mis reservas
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {upcomingReservations
+                    ? `Tienes ${upcomingReservations} reserva${upcomingReservations === 1 ? '' : 's'} próxima${upcomingReservations === 1 ? '' : 's'}.`
+                    : 'Reserva tu mesa en los restaurantes que lo permiten.'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/account/reservas"
+              className="text-primary-on-tint text-sm font-medium underline underline-offset-2"
+            >
+              Ver mis reservas
+            </Link>
           </section>
 
           <section aria-labelledby="favoritos-title" className="space-y-4">

@@ -10,7 +10,8 @@
 // soft attack. The product ask is "not stressful", so nothing here beeps.
 import type { OrderStatus } from '@/types/app'
 
-export type SoundEvent = OrderStatus | 'new_order'
+export type SoundEvent =
+  OrderStatus | 'new_order' | 'new_reservation' | 'reservation_cancelled'
 
 /** One note: pitch in Hz, offset and length in seconds. */
 export interface ToneStep {
@@ -90,6 +91,14 @@ const SEQUENCES: Record<SoundEvent, ToneStep[]> = {
   delivered: pair(NOTE.G5, NOTE.C6, 0.34),
   // Descending, so the ear reads it as "no" without alarm.
   cancelled: pair(NOTE.E5, NOTE.C5, 0.3),
+  // A reservation is not an order: three quick rising notes, distinct from
+  // the order "ding-dong" so the kitchen can tell them apart by ear.
+  new_reservation: [
+    { freq: NOTE.E5, at: 0, duration: 0.18 },
+    { freq: NOTE.G5, at: 0.1, duration: 0.18 },
+    { freq: NOTE.C6, at: 0.2, duration: 0.24 },
+  ],
+  reservation_cancelled: pair(NOTE.G5, NOTE.E5, 0.26),
 }
 
 export function toneSequenceFor(event: SoundEvent): ToneStep[] {

@@ -16,7 +16,7 @@ import type { Store } from '@/types/app'
 /** Lightweight shape shared with the StoreSwitcher in the dashboard header. */
 export type MerchantStoreSummary = Pick<
   Store,
-  'id' | 'name' | 'slug' | 'status' | 'is_open'
+  'id' | 'name' | 'slug' | 'status' | 'is_open' | 'plan' | 'founder_until'
 >
 
 /**
@@ -30,7 +30,7 @@ export const getMerchantStores = cache(
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('stores')
-      .select('id, name, slug, status, is_open')
+      .select('id, name, slug, status, is_open, plan, founder_until')
       .eq('owner_id', userId)
       .order('created_at', { ascending: true })
     throwOnQueryError(error, 'merchant stores')

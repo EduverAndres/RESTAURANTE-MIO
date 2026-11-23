@@ -17,6 +17,7 @@ const PUBLIC_PAGES: Record<string, string> = {
   '/': 'marketplace home',
   '/para-restaurantes': 'marketing',
   '/repartidores': 'marketing; courier recruitment, reads no private data',
+  '/reservas': 'reservation directory: active stores that take bookings',
   '/cookies': 'legal document',
   '/legal': 'legal index',
   '/privacidad': 'legal document',
@@ -28,6 +29,8 @@ const PUBLIC_PAGES: Record<string, string> = {
   '/forgot-password': 'auth form',
   '/offline': 'PWA fallback',
   '/t/[slug]': 'public storefront',
+  '/t/[slug]/reservar':
+    'table booking: anyone sees the times; booking needs a session, checked in the server action',
   '/t/[slug]/mesa/[token]': 'table QR entry; the token is the credential',
   '/t/[slug]/mesa/[token]/checkout': 'table checkout; token-scoped',
   '/t/[slug]/mesa/[token]/pedido/[orderId]':
