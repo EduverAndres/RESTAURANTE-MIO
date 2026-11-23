@@ -2,7 +2,7 @@
 // the RLS client and (separately) the delivery addresses; this module only
 // shapes them for the cards.
 import { haversineKm, latLngOf } from '@/lib/geo'
-import type { OrderStatus } from '@/types/app'
+import type { OrderStatus, PaymentMethod } from '@/types/app'
 
 export interface CourierOrderRow {
   id: string
@@ -10,6 +10,9 @@ export interface CourierOrderRow {
   status: OrderStatus
   created_at: string
   delivery_fee: number
+  tip: number
+  total: number
+  payment_method: PaymentMethod
   estimated_at: string | null
   address_id: string | null
   stores: { name: string; lat: number | null; lng: number | null } | null
@@ -29,6 +32,10 @@ export interface CourierOrderSummary {
   createdAt: string
   estimatedAt: string | null
   deliveryFee: number
+  /** Delivery fee plus the whole tip: what the courier earns. */
+  earnings: number
+  /** What to collect from the customer on a cash order; null when paid online. */
+  cashToCollect: number | null
   storeName: string
   addressLine: string | null
   /** Store to customer straight-line distance; null when coordinates are missing. */
@@ -55,6 +62,8 @@ export function toCourierOrderSummary(
     createdAt: row.created_at,
     estimatedAt: row.estimated_at,
     deliveryFee: Number(row.delivery_fee),
+    earnings: Number(row.delivery_fee) + Number(row.tip),
+    cashToCollect: row.payment_method === 'cash' ? Number(row.total) : null,
     storeName: row.stores?.name ?? 'Tienda',
     addressLine: formatAddressLine(address),
     distanceKm: store && customer ? haversineKm(store, customer) : null,

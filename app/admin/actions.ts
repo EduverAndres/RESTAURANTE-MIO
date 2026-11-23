@@ -23,7 +23,9 @@ import {
   type StorePlanInput,
 } from '@/lib/validations/admin'
 import {
+  courierLedgerEntrySchema,
   courierReviewSchema,
+  type CourierLedgerEntryInput,
   type CourierReviewInput,
 } from '@/lib/validations/courier'
 import {
@@ -506,5 +508,126 @@ export async function setCourierStatus(
   after(() => sendPushToUsers([userId], courierReviewMessage(status, note)))
 
   revalidatePath('/admin/domiciliarios')
+  return { ok: true }
+}
+
+export type GenerateCourierPayoutsResult =
+  { ok: true; created: number; skipped: number } | { ok: false; error: string }
+
+/**
+ * Settles the courier ledger into one payout per courier for a closed
+ * period: what the platform owes them (delivery fees and tips of online
+ * orders), minus the cash they collected, plus their deposits, plus any debt
+ * carried from an earlier period. One transaction
+ * (`public.generate_courier_payouts`), so a failed run writes nothing.
+ */
+export async function generateCourierPayouts(
+  periodStart: string,
+  periodEnd: string,
+): Promise<GenerateCourierPayoutsResult> {
+  const parsedStart = periodDateSchema.safeParse(periodStart)
+  const parsedEnd = periodDateSchema.safeParse(periodEnd)
+  if (!parsedStart.success || !parsedEnd.success || periodStart > periodEnd) {
+    return { ok: false, error: 'Selecciona un periodo válido.' }
+  }
+  if (periodEnd >= bogotaDate(new Date())) {
+    return {
+      ok: false,
+      error: 'Ese periodo todavía no termina. Liquida periodos ya cerrados.',
+    }
+  }
+
+  await requireRole(['admin'])
+  const { data, error } = await createAdminClient().rpc(
+    'generate_courier_payouts',
+    { p_period_start: parsedStart.data, p_period_end: parsedEnd.data },
+  )
+  const row = Array.isArray(data) ? data[0] : data
+  if (error || !row) {
+    logger.error(
+      'courier_payouts.generate_failed',
+      { periodStart, periodEnd },
+      error,
+    )
+    return {
+      ok: false,
+      error: 'No pudimos generar las liquidaciones. Inténtalo de nuevo.',
+    }
+  }
+  logger.info('courier_payouts.generated', {
+    periodStart,
+    periodEnd,
+    created: row.payouts_created,
+    skipped: row.payouts_skipped,
+    settled: row.entries_settled,
+    carried: row.debts_carried,
+  })
+
+  revalidatePath('/admin/domiciliarios/liquidaciones')
+  revalidatePath('/courier/ganancias')
+  return {
+    ok: true,
+    created: Number(row.payouts_created),
+    skipped: Number(row.payouts_skipped),
+  }
+}
+
+/** Marks an open courier payout paid; a carried debt is already closed. */
+export async function markCourierPayoutPaid(
+  payoutId: string,
+): Promise<AdminActionResult> {
+  if (!isUuid(payoutId)) return { ok: false, error: 'Liquidación inválida.' }
+
+  await requireRole(['admin'])
+  const { data, error } = await createAdminClient()
+    .from('courier_payouts')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', payoutId)
+    .eq('status', 'pending')
+    .is('carried_into_payout_id', null)
+    .select('id')
+  if (error) {
+    logger.error('courier_payouts.mark_paid_failed', { payoutId }, error)
+    return { ok: false, error: 'No pudimos marcar la liquidación como pagada.' }
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error:
+        'Esta liquidación ya se pagó o su saldo se arrastró a un periodo posterior.',
+    }
+  }
+  revalidatePath('/admin/domiciliarios/liquidaciones')
+  revalidatePath('/courier/ganancias')
+  return { ok: true }
+}
+
+/**
+ * Records cash a courier handed over (a deposit) or a correction. A deposit
+ * pays their debt down at once, so a courier stopped by the cash cap can take
+ * cash orders again right after it is recorded.
+ */
+export async function recordCourierLedgerEntry(
+  input: CourierLedgerEntryInput,
+): Promise<AdminActionResult> {
+  const parsed = courierLedgerEntrySchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Datos inválidos.',
+    }
+  }
+  const { courierId, kind, amount, note } = parsed.data
+
+  const { user } = await requireRole(['admin'])
+  const { error } = await createAdminClient()
+    .from('courier_ledger')
+    .insert({ courier_id: courierId, kind, amount, note, created_by: user.id })
+  if (error) {
+    logger.error('courier_ledger.insert_failed', { courierId, kind }, error)
+    return { ok: false, error: GENERIC_ERROR }
+  }
+  revalidatePath('/admin/domiciliarios')
+  revalidatePath('/courier/ganancias')
   return { ok: true }
 }

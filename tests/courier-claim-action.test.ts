@@ -28,6 +28,7 @@ const APPROVED = {
   soat_expires_on: null,
 }
 let courierProfile: Record<string, unknown> | null = APPROVED
+let claimError: { message: string } | null = null
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({
     auth: { getUser: async () => ({ data: { user: { id: 'user-1' } } }) },
@@ -48,7 +49,7 @@ vi.mock('@/lib/supabase/server', () => ({
         update: () => chain,
         eq: () => chain,
         is: () => chain,
-        select: async () => ({ data: [], error: null }),
+        select: async () => ({ data: [], error: claimError }),
       }
       return chain
     },
@@ -61,6 +62,7 @@ describe('claimOrder', () => {
   beforeEach(() => {
     tablesTouched.length = 0
     courierProfile = APPROVED
+    claimError = null
   })
 
   // /courier is open to admins, whose RLS lets them update any order: their
@@ -103,5 +105,16 @@ describe('claimOrder', () => {
     const { claimOrder } = await import('@/app/courier/actions')
     const result = await claimOrder(ORDER_ID)
     expect(!result.ok && result.error).toMatch(/Completa tu perfil/)
+  })
+
+  // guard_courier_cash_cap refuses a cash order over the courier's cap.
+  it('explains the cash cap instead of a generic failure', async () => {
+    role = 'courier'
+    claimError = { message: 'courier_cash_cap' }
+    const { claimOrder } = await import('@/app/courier/actions')
+    const result = await claimOrder(ORDER_ID)
+    expect(!result.ok && result.error).toMatch(
+      /efectivo pendiente por consignar/,
+    )
   })
 })

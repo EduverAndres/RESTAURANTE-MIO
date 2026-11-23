@@ -45,7 +45,11 @@ export function UserRoleSelect({
   }
 
   return (
-    <Select value={role} onValueChange={onChange} disabled={disabled || pending}>
+    <Select
+      value={role}
+      onValueChange={onChange}
+      disabled={disabled || pending}
+    >
       <SelectTrigger
         aria-label={`Rol de ${userName}`}
         className="rounded-control h-9 w-40"

@@ -4,20 +4,27 @@ import { LoaderCircleIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { toast } from 'sonner'
-import { markPayoutPaid } from '@/app/admin/actions'
+import { markCourierPayoutPaid, markPayoutPaid } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 
 interface PayoutMarkPaidButtonProps {
   payoutId: string
+  /** A store payout (default) or a courier payout. */
+  target?: 'stores' | 'couriers'
 }
 
-export function PayoutMarkPaidButton({ payoutId }: PayoutMarkPaidButtonProps) {
+export function PayoutMarkPaidButton({
+  payoutId,
+  target = 'stores',
+}: PayoutMarkPaidButtonProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
   function onClick() {
     startTransition(async () => {
-      const result = await markPayoutPaid(payoutId)
+      const markPaid =
+        target === 'couriers' ? markCourierPayoutPaid : markPayoutPaid
+      const result = await markPaid(payoutId)
       if (!result.ok) {
         toast.error(result.error)
         return

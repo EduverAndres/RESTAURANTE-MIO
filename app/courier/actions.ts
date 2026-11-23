@@ -51,6 +51,8 @@ const CODE_LOCKED =
   'Demasiados intentos. El cliente puede confirmar la entrega desde su pedido o el restaurante desde su panel.'
 const CODE_CHECK_FAILED = 'No pudimos verificar el código. Inténtalo de nuevo.'
 const UPDATE_FAILED = 'No pudimos actualizar el pedido.'
+const CASH_CAP_REACHED =
+  'Tienes mucho efectivo pendiente por consignar. Consígnalo para seguir tomando pedidos en efectivo; los pagados en línea sí los puedes tomar.'
 const STATUS_CHANGED =
   'El pedido cambió de estado en otro dispositivo. Se actualizará.'
 
@@ -136,6 +138,11 @@ export async function claimOrder(
     .eq('type', 'delivery')
     .select('id, address_id, short_code, customer_id, stores(lat, lng)')
   if (error) {
+    // `guard_courier_cash_cap` refuses a cash order that would put the
+    // courier over their cash debt cap.
+    if (error.message?.includes('courier_cash_cap')) {
+      return { ok: false, error: CASH_CAP_REACHED }
+    }
     console.error('Failed to claim order', error)
     return {
       ok: false,

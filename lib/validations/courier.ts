@@ -146,3 +146,36 @@ export const courierReviewSchema = z
   })
 
 export type CourierReviewInput = z.input<typeof courierReviewSchema>
+
+/**
+ * A ledger entry the admin records: a deposit (cash the courier handed over,
+ * always positive) or an adjustment (signed, for corrections).
+ */
+export const courierLedgerEntrySchema = z
+  .object({
+    courierId: z.uuid('Domiciliario inválido.'),
+    kind: z.enum(['deposit', 'adjustment']),
+    amount: z.coerce
+      .number({ error: 'Escribe un valor.' })
+      .int('Escribe el valor en pesos, sin decimales.')
+      .refine((value) => value !== 0, 'El valor no puede ser cero.')
+      .refine(
+        (value) => Math.abs(value) <= 10_000_000,
+        'El valor es demasiado alto.',
+      ),
+    note: z
+      .string()
+      .trim()
+      .max(200, 'Máximo 200 caracteres.')
+      .transform((value) => (value === '' ? null : value)),
+  })
+  .refine((value) => value.kind !== 'deposit' || value.amount > 0, {
+    path: ['amount'],
+    message: 'Una consignación siempre es un valor positivo.',
+  })
+  .refine((value) => value.kind !== 'adjustment' || value.note !== null, {
+    path: ['note'],
+    message: 'Explica el ajuste.',
+  })
+
+export type CourierLedgerEntryInput = z.input<typeof courierLedgerEntrySchema>

@@ -44,18 +44,18 @@ export default async function AdminOverviewPage() {
     pendingPayoutsResult,
     stuckEvents,
   ] = await Promise.all([
-      supabase.from('stores').select('id', { count: 'exact', head: true }),
-      supabase
-        .from('stores')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending'),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      supabase
-        .from('payouts')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending'),
-      fetchStuckPaymentEvents(),
-    ])
+    supabase.from('stores').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('stores')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('payouts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+    fetchStuckPaymentEvents(),
+  ])
 
   // Actionable is counted over the rows the screen actually shows (the query
   // is capped), so it reads "at least this many". `total` is not capped, so

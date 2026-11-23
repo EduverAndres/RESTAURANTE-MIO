@@ -106,6 +106,93 @@ export type Database = {
           },
         ]
       }
+      courier_ledger: {
+        Row: {
+          amount: number
+          cash_collected: number
+          courier_id: string
+          created_at: string
+          created_by: string | null
+          earnings: number
+          id: string
+          kind: string
+          note: string | null
+          occurred_at: string
+          order_id: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          settled_in_payout_id: string | null
+          store_id: string | null
+        }
+        Insert: {
+          amount?: number
+          cash_collected?: number
+          courier_id: string
+          created_at?: string
+          created_by?: string | null
+          earnings?: number
+          id?: string
+          kind: string
+          note?: string | null
+          occurred_at?: string
+          order_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          settled_in_payout_id?: string | null
+          store_id?: string | null
+        }
+        Update: {
+          amount?: number
+          cash_collected?: number
+          courier_id?: string
+          created_at?: string
+          created_by?: string | null
+          earnings?: number
+          id?: string
+          kind?: string
+          note?: string | null
+          occurred_at?: string
+          order_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          settled_in_payout_id?: string | null
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_ledger_courier_id_fkey"
+            columns: ["courier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_settled_in_payout_id_fkey"
+            columns: ["settled_in_payout_id"]
+            isOneToOne: false
+            referencedRelation: "courier_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_ledger_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courier_locations: {
         Row: {
           accuracy_m: number | null
@@ -136,6 +223,75 @@ export type Database = {
             foreignKeyName: "courier_locations_courier_id_fkey"
             columns: ["courier_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_payouts: {
+        Row: {
+          adjustments: number
+          carried_in: number
+          carried_into_payout_id: string | null
+          cash_collected: number
+          courier_id: string
+          created_at: string
+          deliveries: number
+          earnings: number
+          id: string
+          net: number
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          adjustments?: number
+          carried_in?: number
+          carried_into_payout_id?: string | null
+          cash_collected?: number
+          courier_id: string
+          created_at?: string
+          deliveries?: number
+          earnings?: number
+          id?: string
+          net?: number
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          adjustments?: number
+          carried_in?: number
+          carried_into_payout_id?: string | null
+          cash_collected?: number
+          courier_id?: string
+          created_at?: string
+          deliveries?: number
+          earnings?: number
+          id?: string
+          net?: number
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_payouts_carried_into_payout_id_fkey"
+            columns: ["carried_into_payout_id"]
+            isOneToOne: false
+            referencedRelation: "courier_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_payouts_courier_id_fkey"
+            columns: ["courier_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -798,6 +954,7 @@ export type Database = {
       }
       platform_settings: {
         Row: {
+          courier_cash_debt_cap: number
           id: boolean
           referral_amount: number
           referral_credit_days: number
@@ -806,6 +963,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          courier_cash_debt_cap?: number
           id?: boolean
           referral_amount?: number
           referral_credit_days?: number
@@ -814,6 +972,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          courier_cash_debt_cap?: number
           id?: boolean
           referral_amount?: number
           referral_credit_days?: number
@@ -1487,7 +1646,21 @@ export type Database = {
           window_start: string
         }[]
       }
+      courier_cash_balance: { Args: { p_courier: string }; Returns: number }
+      courier_cash_in_progress: {
+        Args: { p_courier: string }
+        Returns: number
+      }
       ensure_referral_code: { Args: never; Returns: string }
+      generate_courier_payouts: {
+        Args: { p_period_end: string; p_period_start: string }
+        Returns: {
+          debts_carried: number
+          entries_settled: number
+          payouts_created: number
+          payouts_skipped: number
+        }[]
+      }
       generate_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: {
@@ -1499,6 +1672,16 @@ export type Database = {
       }
       is_active_courier: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      my_courier_cash_status: {
+        Args: never
+        Returns: {
+          balance: number
+          blocked: boolean
+          cap: number
+          exposure: number
+          in_progress: number
+        }[]
+      }
       next_short_code: { Args: never; Returns: string }
       option_store_id: { Args: { option_id: string }; Returns: string }
       owns_store: { Args: { store_id: string }; Returns: boolean }

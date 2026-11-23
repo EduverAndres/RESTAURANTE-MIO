@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { CourierLedgerEntryDialog } from '@/components/admin/courier-ledger-entry-dialog'
 import { CourierReviewActions } from '@/components/admin/courier-review-actions'
 import { StatusBadge } from '@/components/orders/order-status-badge'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -23,6 +25,8 @@ import {
   VEHICLE_LABELS,
   type CourierStatus,
 } from '@/lib/couriers/vocabulary'
+import { ledgerBalance } from '@/lib/couriers/ledger'
+import { formatCOP } from '@/lib/format'
 import { formatDateCO } from '@/lib/format-date'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { throwOnQueryError } from '@/lib/supabase/query-error'
@@ -52,6 +56,8 @@ export default async function AdminCouriersPage() {
   const [
     { data: couriers, error: couriersError },
     { data: profiles, error: profilesError },
+    { data: openEntries, error: entriesError },
+    { data: openPayouts, error: payoutsError },
   ] = await Promise.all([
     admin
       .from('profiles')
@@ -60,9 +66,44 @@ export default async function AdminCouriersPage() {
       .order('created_at', { ascending: false })
       .limit(500),
     admin.from('courier_profiles').select('*').limit(500),
+    // What each courier owes or is owed right now: unsettled ledger entries
+    // plus payouts not paid yet (same as `courier_cash_balance` in SQL).
+    admin
+      .from('courier_ledger')
+      .select('courier_id, kind, earnings, cash_collected, amount')
+      .is('settled_in_payout_id', null),
+    admin
+      .from('courier_payouts')
+      .select('courier_id, net')
+      .eq('status', 'pending')
+      .is('carried_into_payout_id', null),
   ])
   throwOnQueryError(couriersError, 'admin couriers')
   throwOnQueryError(profilesError, 'admin courier profiles')
+  throwOnQueryError(entriesError, 'admin courier ledger')
+  throwOnQueryError(payoutsError, 'admin courier open payouts')
+
+  const balanceOf = new Map<string, number>()
+  for (const entry of openEntries ?? []) {
+    const balance = ledgerBalance([
+      {
+        kind: entry.kind as 'delivery' | 'deposit' | 'adjustment',
+        earnings: Number(entry.earnings),
+        cash_collected: Number(entry.cash_collected),
+        amount: Number(entry.amount),
+      },
+    ])
+    balanceOf.set(
+      entry.courier_id,
+      (balanceOf.get(entry.courier_id) ?? 0) + balance,
+    )
+  }
+  for (const payout of openPayouts ?? []) {
+    balanceOf.set(
+      payout.courier_id,
+      (balanceOf.get(payout.courier_id) ?? 0) + Number(payout.net),
+    )
+  }
 
   const byUser = new Map<string, CourierProfile>(
     (profiles ?? []).map((row) => [row.user_id, toCourierProfile(row)]),
@@ -86,7 +127,13 @@ export default async function AdminCouriersPage() {
           de pedidos.{' '}
           {waiting > 0
             ? `${waiting} perfil${waiting === 1 ? '' : 'es'} esperando revisión.`
-            : 'No hay perfiles esperando revisión.'}
+            : 'No hay perfiles esperando revisión.'}{' '}
+          <Link
+            href="/admin/domiciliarios/liquidaciones"
+            className="text-primary-on-tint font-medium underline underline-offset-2"
+          >
+            Ver liquidaciones de domiciliarios
+          </Link>
         </p>
       </header>
 
@@ -106,6 +153,7 @@ export default async function AdminCouriersPage() {
                 <TableHead>Documento</TableHead>
                 <TableHead>Licencia</TableHead>
                 <TableHead>SOAT</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
                 <TableHead className="text-right">Revisión</TableHead>
               </TableRow>
             </TableHeader>
@@ -177,6 +225,35 @@ export default async function AdminCouriersPage() {
                       }
                     >
                       {date(profile?.soat_expires_on ?? null)}
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      {(() => {
+                        const balance = balanceOf.get(courier.id) ?? 0
+                        return (
+                          <div className="flex flex-col items-end gap-1">
+                            <span
+                              className={
+                                balance < 0
+                                  ? 'text-destructive font-medium tabular-nums'
+                                  : 'tabular-nums'
+                              }
+                            >
+                              {balance < 0
+                                ? `Debe ${formatCOP(-balance)}`
+                                : balance > 0
+                                  ? `Se le debe ${formatCOP(balance)}`
+                                  : formatCOP(0)}
+                            </span>
+                            {profile ? (
+                              <CourierLedgerEntryDialog
+                                courierId={courier.id}
+                                name={name}
+                                owed={Math.max(0, -balance)}
+                              />
+                            ) : null}
+                          </div>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell className="text-right">
                       <CourierReviewActions

@@ -1,6 +1,8 @@
 'use client'
 
 import {
+  BanknoteIcon,
+  CreditCardIcon,
   LoaderCircleIcon,
   MapPinIcon,
   RouteIcon,
@@ -62,12 +64,42 @@ export function AvailableOrderCard({
         <p className="text-right">
           <span className="text-muted-foreground block text-xs">Ganas</span>
           <span className="font-display text-lg font-semibold tabular-nums">
-            {formatCOP(order.deliveryFee)}
+            {formatCOP(order.earnings)}
           </span>
+          {order.earnings > order.deliveryFee ? (
+            <span className="text-muted-foreground block text-xs">
+              con propina
+            </span>
+          ) : null}
         </p>
       </header>
 
       <dl className="space-y-1 text-sm">
+        <div className="flex items-center gap-1.5">
+          <dt className="sr-only">Pago</dt>
+          {order.cashToCollect !== null ? (
+            <BanknoteIcon
+              aria-hidden="true"
+              className="text-accent-strong size-4 shrink-0"
+            />
+          ) : (
+            <CreditCardIcon
+              aria-hidden="true"
+              className="text-muted-foreground size-4 shrink-0"
+            />
+          )}
+          <dd
+            className={
+              order.cashToCollect !== null
+                ? 'font-medium'
+                : 'text-muted-foreground'
+            }
+          >
+            {order.cashToCollect !== null
+              ? `Efectivo: cobra ${formatCOP(order.cashToCollect)}`
+              : 'Pagado en línea: no cobres nada'}
+          </dd>
+        </div>
         <div className="flex items-start gap-1.5">
           <dt className="sr-only">Dirección</dt>
           <MapPinIcon

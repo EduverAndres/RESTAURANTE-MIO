@@ -15,7 +15,7 @@ import { throwOnQueryError } from '@/lib/supabase/query-error'
 export const dynamic = 'force-dynamic'
 
 const ORDER_COLUMNS =
-  'id, short_code, status, created_at, delivery_fee, estimated_at, address_id, stores(name, lat, lng)'
+  'id, short_code, status, created_at, delivery_fee, tip, total, payment_method, estimated_at, address_id, stores(name, lat, lng)'
 const HISTORY_LIMIT = 20
 
 export default async function CourierPage() {

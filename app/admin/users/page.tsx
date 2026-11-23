@@ -102,7 +102,8 @@ export default async function AdminUsersPage() {
         />
       )}
       <p className="text-muted-foreground text-xs">
-        Roles: {Object.entries(ROLE_LABELS)
+        Roles:{' '}
+        {Object.entries(ROLE_LABELS)
           .map(([, label]) => label)
           .join(', ')}
         .

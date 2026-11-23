@@ -4,7 +4,7 @@ import { LoaderCircleIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { generatePayouts } from '@/app/admin/actions'
+import { generateCourierPayouts, generatePayouts } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -36,7 +36,12 @@ function boundsFor(option: PeriodOption, now: Date) {
   return monthBounds(previous)
 }
 
-export function PayoutPeriodForm() {
+/** Who the period is settled for: stores (default) or couriers. */
+export function PayoutPeriodForm({
+  target = 'stores',
+}: {
+  target?: 'stores' | 'couriers'
+} = {}) {
   const router = useRouter()
   const [option, setOption] = useState<PeriodOption>('week-previous')
   const [pending, startTransition] = useTransition()
@@ -46,7 +51,9 @@ export function PayoutPeriodForm() {
     event.preventDefault()
     const bounds = boundsFor(option, new Date())
     startTransition(async () => {
-      const result = await generatePayouts(bounds.start, bounds.end)
+      const generate =
+        target === 'couriers' ? generateCourierPayouts : generatePayouts
+      const result = await generate(bounds.start, bounds.end)
       if (!result.ok) {
         toast.error(result.error)
         return
@@ -74,7 +81,10 @@ export function PayoutPeriodForm() {
           value={option}
           onValueChange={(value) => setOption(value as PeriodOption)}
         >
-          <SelectTrigger id="payout-period" className="rounded-control h-10 w-48">
+          <SelectTrigger
+            id="payout-period"
+            className="rounded-control h-10 w-48"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

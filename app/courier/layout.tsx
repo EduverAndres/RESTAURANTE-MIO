@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 
 const COURIER_LINKS = [
   { href: '/courier', label: 'Entregas' },
+  { href: '/courier/ganancias', label: 'Ganancias' },
   { href: '/courier/perfil', label: 'Mi perfil' },
 ] as const
 
