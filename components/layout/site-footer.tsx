@@ -14,22 +14,31 @@ import { cn } from '@/lib/utils'
 const VENDOR_NAME = 'NEXUS'
 const VENDOR_TAGLINE = 'tecnología inteligente'
 
+/** One column per audience, in the order people arrive. */
 const COLUMNS = [
   {
-    title: 'Para clientes',
+    title: 'Clientes',
     links: [
-      { href: '/#restaurantes', label: 'Explorar negocios' },
+      { href: '/#restaurantes', label: 'Explorar' },
+      { href: '/reservas', label: 'Reservar mesa' },
       { href: '/account#pedidos', label: 'Mis pedidos' },
-      { href: '/register', label: 'Crear una cuenta' },
     ],
   },
   {
-    title: 'Para negocios',
+    title: 'Empresas',
+    links: [{ href: '/empresas', label: 'Cuenta empresarial' }],
+  },
+  {
+    title: 'Negocios',
     links: [
-      { href: '/register?role=merchant', label: 'Registrar mi negocio' },
-      { href: '/para-restaurantes', label: 'Planes y calculadora' },
-      { href: '/dashboard', label: 'Panel de comercio' },
+      { href: '/para-restaurantes', label: `Vende con ${APP_NAME}` },
+      { href: '/para-restaurantes#planes', label: 'Planes' },
+      { href: '/para-restaurantes#destacados', label: 'Publicidad' },
     ],
+  },
+  {
+    title: 'Trabaja con nosotros',
+    links: [{ href: '/repartidores', label: 'Domiciliarios' }],
   },
 ] as const
 
@@ -48,52 +57,37 @@ const TRUST = [
 ] as const
 
 /**
- * The marketplace's own footer block: where to go next for each audience and
- * the promises again, for the visitor who scrolled all the way down still
- * deciding. Only on the app tone — inside a storefront the merchant's brand
- * owns the page and the footer stays a one-line credit.
+ * The marketplace's own footer block: where to go next for each audience —
+ * customers, companies, businesses and couriers — and the promises again,
+ * for the visitor who scrolled all the way down still deciding. Only on the
+ * app tone — inside a storefront the merchant's brand owns the page and the
+ * footer stays a one-line credit.
+ *
+ * Five tracks from `lg`: the brand (with the trust promises under it) and
+ * the four audience columns. Two tracks below that, with the brand across.
  */
 function AppFooterNav() {
   const support = supportWhatsAppUrl('Hola, necesito ayuda.')
 
   return (
-    <div className="px-gutter mx-auto grid w-full max-w-6xl gap-10 pt-12 pb-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-      <div className="space-y-3">
-        <p className="font-display font-display-soft text-2xl font-semibold tracking-tight lowercase">
-          {APP_NAME}
-          <span className="text-primary">.</span>
-        </p>
-        <p className="text-muted-foreground max-w-xs text-sm text-pretty">
-          Lo bueno queda cerquita. Restaurantes y negocios de Barranquilla, cada
-          uno con su propia marca.
-        </p>
-        <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-          <MapPinIcon aria-hidden="true" className="text-primary size-4" />
-          Barranquilla, Colombia
-        </p>
-      </div>
+    <div className="px-gutter mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-6 gap-y-10 pt-12 pb-8 lg:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))]">
+      <div className="col-span-2 space-y-4 lg:col-span-1">
+        <div className="space-y-3">
+          <p className="font-display font-display-soft text-2xl font-semibold tracking-tight lowercase">
+            {APP_NAME}
+            <span className="text-primary">.</span>
+          </p>
+          <p className="text-muted-foreground max-w-xs text-sm text-pretty">
+            Lo bueno queda cerquita. Restaurantes y negocios de Barranquilla,
+            cada uno con su propia marca.
+          </p>
+          <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
+            <MapPinIcon aria-hidden="true" className="text-primary size-4" />
+            Barranquilla, Colombia
+          </p>
+        </div>
 
-      {COLUMNS.map((column) => (
-        <nav key={column.title} aria-label={column.title} className="space-y-3">
-          <h2 className="text-sm font-semibold">{column.title}</h2>
-          <ul className="space-y-2 text-sm">
-            {column.links.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ))}
-
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold">Compra con confianza</h2>
-        <ul className="space-y-2 text-sm">
+        <ul aria-label="Compra con confianza" className="space-y-2 text-sm">
           {TRUST.map(({ icon: Icon, label }) => (
             <li
               key={label}
@@ -121,6 +115,24 @@ function AppFooterNav() {
           ) : null}
         </ul>
       </div>
+
+      {COLUMNS.map((column) => (
+        <nav key={column.title} aria-label={column.title} className="space-y-3">
+          <h2 className="text-sm font-semibold">{column.title}</h2>
+          <ul className="space-y-1 text-sm">
+            {column.links.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-muted-foreground hover:text-foreground inline-block py-1 transition-colors"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))}
     </div>
   )
 }
