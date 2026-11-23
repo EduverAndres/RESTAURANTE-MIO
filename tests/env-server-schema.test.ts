@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  corporateAccountsEnabledFrom,
   parseServerEnv,
   pushConfiguredFrom,
   sentryConfiguredFrom,
@@ -80,7 +81,9 @@ describe('parseServerEnv', () => {
 
   it('accepts a Sentry DSN and rejects anything that is not one', () => {
     expect(parseServerEnv({ SENTRY_DSN: DSN }).success).toBe(true)
-    expect(parseServerEnv({ SENTRY_DSN: 'https://sentry.io' }).success).toBe(false)
+    expect(parseServerEnv({ SENTRY_DSN: 'https://sentry.io' }).success).toBe(
+      false,
+    )
     expect(parseServerEnv({ SENTRY_DSN: 'abc123' }).success).toBe(false)
   })
 
@@ -136,10 +139,33 @@ describe('pushConfiguredFrom', () => {
 describe('sentryConfiguredFrom', () => {
   it('is false with no DSN, so the app runs with error reporting off', () => {
     expect(sentryConfiguredFrom({})).toBe(false)
-    expect(sentryConfiguredFrom({ SENTRY_ENVIRONMENT: 'production' })).toBe(false)
+    expect(sentryConfiguredFrom({ SENTRY_ENVIRONMENT: 'production' })).toBe(
+      false,
+    )
   })
 
   it('is true on the DSN alone; the environment label is optional', () => {
     expect(sentryConfiguredFrom({ SENTRY_DSN: DSN })).toBe(true)
+  })
+})
+
+describe('corporateAccountsEnabledFrom', () => {
+  it('is off unless the flag says exactly "true"', () => {
+    expect(corporateAccountsEnabledFrom({})).toBe(false)
+    expect(
+      corporateAccountsEnabledFrom({ CORPORATE_ACCOUNTS_ENABLED: 'false' }),
+    ).toBe(false)
+    expect(
+      corporateAccountsEnabledFrom({ CORPORATE_ACCOUNTS_ENABLED: 'true' }),
+    ).toBe(true)
+  })
+
+  it('refuses a value that is not true or false', () => {
+    expect(parseServerEnv({ CORPORATE_ACCOUNTS_ENABLED: 'yes' }).success).toBe(
+      false,
+    )
+    expect(
+      parseServerEnv({ CORPORATE_ACCOUNTS_ENABLED: ' true ' }).success,
+    ).toBe(true)
   })
 })

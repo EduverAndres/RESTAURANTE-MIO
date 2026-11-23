@@ -97,15 +97,19 @@ export async function loyaltyCard(
 
   const { data: orders } = await supabase
     .from('orders')
-    .select('status, subtotal, merchant_discount, loyalty_redeemed')
+    .select(
+      'status, subtotal, merchant_discount, loyalty_redeemed, payment_method',
+    )
     .eq('store_id', storeId)
     .eq('customer_id', userId)
     .limit(1000)
   const minOrder = Number(program.min_order)
   const rows = orders ?? []
+  // An order the employee's company paid earns no personal stamp.
   const earned = rows.filter(
     (order) =>
       order.status === 'delivered' &&
+      order.payment_method !== 'corporate' &&
       Number(order.subtotal) - Number(order.merchant_discount) >= minOrder,
   ).length
   const redeemed = rows.filter(
@@ -153,6 +157,12 @@ export interface DiscountRequest {
   subtotal: number
   couponCode: string
   useReward: boolean
+  /**
+   * Paid with a company account: the loyalty reward and referral credits are
+   * the customer's own and are never spent on the company's bill. A store
+   * coupon still applies (it lowers what the company pays).
+   */
+  corporate?: boolean
 }
 
 export type ResolvedDiscounts =
@@ -209,6 +219,13 @@ export async function resolveDiscounts(
     if (!check.ok) return { ok: false, error: check.error, field: 'coupon' }
     merchantDiscount = check.amount
     couponId = coupon.id
+  } else if (request.useReward && request.corporate) {
+    return {
+      ok: false,
+      error:
+        'El premio de sellos es personal: no aplica en pedidos que paga tu empresa.',
+      field: 'reward',
+    }
   } else if (request.useReward) {
     const card = await loyaltyCard(supabase, request.storeId, request.userId)
     if (!card || card.available < 1) {
@@ -224,7 +241,10 @@ export async function resolveDiscounts(
 
   let platformDiscount = 0
   let creditId: string | null = null
-  for (const credit of await openCredits(supabase, request.userId)) {
+  const credits = request.corporate
+    ? []
+    : await openCredits(supabase, request.userId)
+  for (const credit of credits) {
     const value = creditDiscount(credit, request.subtotal - merchantDiscount)
     if (value > 0) {
       platformDiscount = value

@@ -1,4 +1,9 @@
-import { BanknoteIcon, CreditCardIcon, WalletIcon } from 'lucide-react'
+import {
+  BanknoteIcon,
+  Building2Icon,
+  CreditCardIcon,
+  WalletIcon,
+} from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import type { PaymentMethod } from '@/types/app'
@@ -28,11 +33,13 @@ const TILE_TONES: Partial<Record<PaymentMethod, string>> = {
   mock: 'bg-muted text-muted-foreground',
   wompi: 'bg-white shadow-1',
   mercadopago: 'bg-accent/20 text-foreground',
+  corporate: 'bg-primary/10 text-primary-on-tint',
 }
 
 const ICONS: Partial<Record<PaymentMethod, React.ReactNode>> = {
   cash: <BanknoteIcon aria-hidden="true" className="size-5" />,
   mock: <CreditCardIcon aria-hidden="true" className="size-5" />,
+  corporate: <Building2Icon aria-hidden="true" className="size-5" />,
 }
 
 export function PaymentMark({ method }: { method: PaymentMethod }) {

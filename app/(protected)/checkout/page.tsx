@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { CheckoutForm } from './checkout-form'
 import { requireUser } from '@/lib/auth'
+import { fetchCorporateCheckoutOption } from '@/lib/companies/server'
 import { listPaymentOptions } from '@/lib/payments'
 import { createClient } from '@/lib/supabase/server'
 
@@ -10,12 +11,15 @@ export const dynamic = 'force-dynamic'
 export default async function CheckoutPage() {
   const { user } = await requireUser('/checkout')
   const supabase = await createClient()
-  const { data: addresses } = await supabase
-    .from('addresses')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('is_default', { ascending: false })
-    .order('created_at', { ascending: false })
+  const [{ data: addresses }, corporateOption] = await Promise.all([
+    supabase
+      .from('addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false }),
+    fetchCorporateCheckoutOption(),
+  ])
 
   return (
     <div className="container-page py-8 lg:py-12">
@@ -29,6 +33,7 @@ export default async function CheckoutPage() {
       <CheckoutForm
         addresses={addresses ?? []}
         paymentOptions={listPaymentOptions()}
+        corporateOption={corporateOption}
       />
     </div>
   )

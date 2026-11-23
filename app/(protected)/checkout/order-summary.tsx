@@ -159,7 +159,9 @@ export function OrderSummary({
         ) : null}
         {checkout.paymentMethod === 'cash'
           ? 'Confirmar pedido'
-          : `Pagar ${formatCOP(checkout.payable)}`}
+          : checkout.paymentMethod === 'corporate'
+            ? `Pagar ${formatCOP(checkout.payable)} con la cuenta de empresa`
+            : `Pagar ${formatCOP(checkout.payable)}`}
       </Button>
       <p className="text-muted-foreground text-center text-xs">
         Podrás cancelar mientras el restaurante no lo acepte.

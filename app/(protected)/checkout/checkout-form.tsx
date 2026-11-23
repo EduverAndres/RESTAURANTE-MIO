@@ -11,12 +11,15 @@ import { AddressFormDialog } from '@/components/address/address-form'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { CorporateCheckoutOption } from '@/lib/companies/checkout'
 import type { PaymentOption } from '@/lib/payments'
 import type { Address } from '@/types/app'
 
 interface CheckoutFormProps {
   addresses: Address[]
   paymentOptions: PaymentOption[]
+  /** "Cuenta de empresa", when the customer belongs to a company. */
+  corporateOption: CorporateCheckoutOption | null
 }
 
 /**
@@ -28,8 +31,12 @@ interface CheckoutFormProps {
  * total behind a "next" button is just friction. The step machine still runs
  * underneath — it is only the visibility rule that changes.
  */
-export function CheckoutForm({ addresses, paymentOptions }: CheckoutFormProps) {
-  const checkout = useCheckout({ addresses, paymentOptions })
+export function CheckoutForm({
+  addresses,
+  paymentOptions,
+  corporateOption,
+}: CheckoutFormProps) {
+  const checkout = useCheckout({ addresses, paymentOptions, corporateOption })
 
   if (!checkout.ready) {
     return (

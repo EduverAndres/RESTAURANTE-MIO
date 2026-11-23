@@ -57,6 +57,12 @@ export const checkoutSchema = z
     couponCode: z.string().trim().max(30).default(''),
     /** Spend a completed loyalty card on this order. */
     useReward: z.boolean().default(false),
+    /** "Motivo o centro de costo" of an order paid with a company account. */
+    corporateReference: z
+      .string()
+      .trim()
+      .max(80, 'El motivo admite hasta 80 caracteres.')
+      .default(''),
   })
   .superRefine((value, ctx) => {
     if (value.type === 'delivery' && !value.addressId) {
@@ -64,6 +70,14 @@ export const checkoutSchema = z
         code: 'custom',
         path: ['addressId'],
         message: 'Selecciona una dirección de entrega.',
+      })
+    }
+    if (value.paymentMethod === 'corporate' && value.useReward) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['useReward'],
+        message:
+          'El premio de sellos es personal: no aplica en pedidos que paga tu empresa.',
       })
     }
     if (value.schedule === 'scheduled') {
