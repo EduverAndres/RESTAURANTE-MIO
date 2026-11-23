@@ -1,7 +1,8 @@
 'use client'
 
 import { InfoIcon } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import { RangeSlider as Slider } from '@/components/marketing/range-slider'
 import { CountUp } from '@/components/motion/count-up'
 import { formatCOP } from '@/lib/format'
 import {
@@ -9,51 +10,6 @@ import {
   estimateCourierEarnings,
   type CourierEarningsInput,
 } from '@/lib/marketing/courier-earnings'
-
-interface SliderProps {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  display: string
-  onChange: (value: number) => void
-}
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  display,
-  onChange,
-}: SliderProps) {
-  const id = useId()
-  return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="text-small font-medium">
-          {label}
-        </label>
-        <span className="font-display text-xl font-semibold tabular-nums">
-          {display}
-        </span>
-      </div>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        aria-valuetext={display}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="accent-primary h-11 w-full cursor-pointer"
-      />
-    </div>
-  )
-}
 
 /**
  * The courier's estimate, with their own numbers.

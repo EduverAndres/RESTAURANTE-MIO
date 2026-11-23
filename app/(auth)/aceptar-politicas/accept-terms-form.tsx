@@ -21,8 +21,11 @@ export function AcceptTermsForm({
   const [error, setError] = useState<string | undefined>()
   const [pending, startTransition] = useTransition()
 
+  // The company terms are accepted when a company signs up or someone
+  // joins one, never at this gate.
   const documents = LEGAL_DOCUMENTS.filter(
-    (document) => partner || document.key !== 'aliados',
+    (document) =>
+      document.key !== 'empresas' && (partner || document.key !== 'aliados'),
   )
 
   function accept(event: React.FormEvent) {

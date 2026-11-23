@@ -46,6 +46,13 @@ export const LEGAL_DOCUMENTS = [
     summary:
       'Condiciones para quien vende o entrega a través de la plataforma.',
   },
+  {
+    key: 'empresas',
+    href: '/terminos-empresas',
+    title: 'Términos para Empresas',
+    summary:
+      'Cuenta corporativa: equipo, presupuestos, crédito mensual y facturación.',
+  },
 ] as const
 
 export type LegalDocumentKey = (typeof LEGAL_DOCUMENTS)[number]['key']
