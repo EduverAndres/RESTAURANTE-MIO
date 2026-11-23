@@ -1394,10 +1394,11 @@ html[data-text-size='xlarge'] {
 /* ---------------------------------------------------------------------------
  * Marketing motion  (Cerquita 2.0 · Fase 3)
  *
- * One rule for the whole block: an animation only exists inside
+ * One rule for the whole block: an animation only exists on screen, inside
  * `prefers-reduced-motion: no-preference` AND under
  * `:root:not([data-motion='reduce'])`, so both the system setting and the
- * in-app "Reducir animaciones" switch it off. The base rules draw the
+ * in-app "Reducir animaciones" switch it off (and a printout never catches
+ * a block mid-reveal). The base rules draw the
  * finished state — the revealed block, the delivered order, the still list —
  * so nothing depends on an animation running, and the server HTML is
  * complete and visible without JavaScript.
@@ -1434,7 +1435,7 @@ html[data-text-size='xlarge'] {
 }
 
 @supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
+  @media screen and (prefers-reduced-motion: no-preference) {
     :root:not([data-motion='reduce']) .reveal,
     :root:not([data-motion='reduce']) .reveal-line {
       animation-name: reveal-in;
@@ -1482,7 +1483,7 @@ html[data-text-size='xlarge'] {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media screen and (prefers-reduced-motion: no-preference) {
   :root:not([data-motion='reduce']) .marquee-track {
     animation: marquee-scroll var(--marquee-duration) linear infinite;
   }
@@ -1533,7 +1534,7 @@ html[data-text-size='xlarge'] {
   display: none;
 }
 
-/* Live order demo (components/marketing/live-order-demo.tsx). One loop of
+/* Live order demo (components/motion/live-order-demo.tsx). One loop of
    `--demo-loop`: Recibido 0–25 %, Preparando 25–50 %, En camino 50–80 %,
    Entregado 80–100 %. The markup is the last frame — every step reached, the
    route drawn, the courier at the door — so with motion off that is what
@@ -1834,7 +1835,7 @@ html[data-text-size='xlarge'] {
   transform: translateX(calc(200% + 2 * var(--board-gap)));
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media screen and (prefers-reduced-motion: no-preference) {
   :root:not([data-motion='reduce']) .order-demo-label-1 {
     animation: order-demo-label-1 var(--demo-loop) infinite;
   }

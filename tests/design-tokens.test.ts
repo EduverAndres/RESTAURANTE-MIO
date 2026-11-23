@@ -211,7 +211,7 @@ describe('marketing motion (Fase 3)', () => {
   /** The condition of the closest `@media` that opens before `index`. */
   function mediaAt(index: number): string | undefined {
     const head = css.slice(0, index)
-    return Array.from(head.matchAll(/@media \(([^)]+)\)/g)).pop()?.[1]
+    return Array.from(head.matchAll(/@media [^{]*?\(([^)]+)\)/g)).pop()?.[1]
   }
 
   it.each([
