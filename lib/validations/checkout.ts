@@ -40,9 +40,12 @@ export const checkoutSchema = z
     addressId: z.uuid().nullable().default(null),
     schedule: z.enum(SCHEDULE_KINDS).default('asap'),
     scheduledAt: z.string().datetime({ offset: true }).nullable().default(null),
-    paymentMethod: z.enum(['cash', 'mock', 'wompi', 'mercadopago'], {
-      error: 'Elige un método de pago.',
-    }),
+    paymentMethod: z.enum(
+      ['cash', 'mock', 'wompi', 'mercadopago', 'corporate'],
+      {
+        error: 'Elige un método de pago.',
+      },
+    ),
     tipPercent: z.number().int().min(0).max(50).default(0),
     notes: z
       .string()

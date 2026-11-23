@@ -56,6 +56,362 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          billing_address: string
+          billing_email: string
+          city: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          created_by: string | null
+          credit_limit: number
+          dv: number
+          id: string
+          legal_name: string
+          max_tip_pct: number
+          nit: string
+          payment_terms_days: number
+          status: string
+          status_note: string | null
+          suspended_at: string | null
+          terms_accepted_at: string
+          terms_accepted_by: string | null
+          terms_version: string
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_address: string
+          billing_email: string
+          city?: string
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          created_by?: string | null
+          credit_limit?: number
+          dv: number
+          id?: string
+          legal_name: string
+          max_tip_pct?: number
+          nit: string
+          payment_terms_days?: number
+          status?: string
+          status_note?: string | null
+          suspended_at?: string | null
+          terms_accepted_at?: string
+          terms_accepted_by?: string | null
+          terms_version: string
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_address?: string
+          billing_email?: string
+          city?: string
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          created_by?: string | null
+          credit_limit?: number
+          dv?: number
+          id?: string
+          legal_name?: string
+          max_tip_pct?: number
+          nit?: string
+          payment_terms_days?: number
+          status?: string
+          status_note?: string | null
+          suspended_at?: string | null
+          terms_accepted_at?: string
+          terms_accepted_by?: string | null
+          terms_version?: string
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_terms_accepted_by_fkey"
+            columns: ["terms_accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_invitations: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          max_uses: number
+          monthly_budget: number | null
+          per_order_limit: number | null
+          revoked_at: string | null
+          role: string
+          token_hash: string
+          uses: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          max_uses?: number
+          monthly_budget?: number | null
+          per_order_limit?: number | null
+          revoked_at?: string | null
+          role?: string
+          token_hash: string
+          uses?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          max_uses?: number
+          monthly_budget?: number | null
+          per_order_limit?: number | null
+          revoked_at?: string | null
+          role?: string
+          token_hash?: string
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_members: {
+        Row: {
+          active: boolean
+          company_id: string
+          id: string
+          invitation_id: string | null
+          joined_at: string
+          left_at: string | null
+          monthly_budget: number | null
+          per_order_limit: number | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          id?: string
+          invitation_id?: string | null
+          joined_at?: string
+          left_at?: string | null
+          monthly_budget?: number | null
+          per_order_limit?: number | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          id?: string
+          invitation_id?: string | null
+          joined_at?: string
+          left_at?: string | null
+          monthly_budget?: number | null
+          per_order_limit?: number | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_members_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "company_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_statement_lines: {
+        Row: {
+          amount: number
+          company_id: string
+          corporate_reference: string | null
+          created_at: string
+          id: string
+          kind: string
+          member_name: string | null
+          order_id: string
+          ordered_at: string
+          short_code: string
+          statement_id: string
+          store_name: string
+          voided: boolean
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          corporate_reference?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          member_name?: string | null
+          order_id: string
+          ordered_at: string
+          short_code: string
+          statement_id: string
+          store_name: string
+          voided?: boolean
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          corporate_reference?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          member_name?: string | null
+          order_id?: string
+          ordered_at?: string
+          short_code?: string
+          statement_id?: string
+          store_name?: string
+          voided?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_statement_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_statement_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_statement_lines_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "company_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_statements: {
+        Row: {
+          company_id: string
+          created_at: string
+          due_on: string
+          dv: number
+          id: string
+          issued_on: string
+          legal_name: string
+          nit: string
+          paid_at: string | null
+          payment_ref: string | null
+          period: string
+          status: string
+          total: number
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          due_on: string
+          dv: number
+          id?: string
+          issued_on: string
+          legal_name: string
+          nit: string
+          paid_at?: string | null
+          payment_ref?: string | null
+          period: string
+          status?: string
+          total: number
+          void_reason?: string | null
+          voided_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          due_on?: string
+          dv?: number
+          id?: string
+          issued_on?: string
+          legal_name?: string
+          nit?: string
+          paid_at?: string | null
+          payment_ref?: string | null
+          period?: string
+          status?: string
+          total?: number
+          void_reason?: string | null
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_statements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           active: boolean
@@ -598,6 +954,73 @@ export type Database = {
           },
         ]
       }
+      order_corporate_billing: {
+        Row: {
+          billing_address: string
+          billing_email: string
+          city: string
+          company_id: string
+          created_at: string
+          dv: number
+          invoiced_at: string | null
+          legal_name: string
+          merchant_invoice_ref: string | null
+          nit: string
+          order_id: string
+          store_id: string
+        }
+        Insert: {
+          billing_address: string
+          billing_email: string
+          city: string
+          company_id: string
+          created_at?: string
+          dv: number
+          invoiced_at?: string | null
+          legal_name: string
+          merchant_invoice_ref?: string | null
+          nit: string
+          order_id: string
+          store_id: string
+        }
+        Update: {
+          billing_address?: string
+          billing_email?: string
+          city?: string
+          company_id?: string
+          created_at?: string
+          dv?: number
+          invoiced_at?: string | null
+          legal_name?: string
+          merchant_invoice_ref?: string | null
+          nit?: string
+          order_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_corporate_billing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_corporate_billing_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_corporate_billing_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -657,6 +1080,10 @@ export type Database = {
           accepted_at: string | null
           address_id: string | null
           cancelled_at: string | null
+          company_id: string | null
+          company_member_id: string | null
+          corporate_period: string | null
+          corporate_reference: string | null
           coupon_id: string | null
           courier_id: string | null
           created_at: string
@@ -693,6 +1120,10 @@ export type Database = {
           accepted_at?: string | null
           address_id?: string | null
           cancelled_at?: string | null
+          company_id?: string | null
+          company_member_id?: string | null
+          corporate_period?: string | null
+          corporate_reference?: string | null
           coupon_id?: string | null
           courier_id?: string | null
           created_at?: string
@@ -729,6 +1160,10 @@ export type Database = {
           accepted_at?: string | null
           address_id?: string | null
           cancelled_at?: string | null
+          company_id?: string | null
+          company_member_id?: string | null
+          corporate_period?: string | null
+          corporate_reference?: string | null
           coupon_id?: string | null
           courier_id?: string | null
           created_at?: string
@@ -767,6 +1202,20 @@ export type Database = {
             columns: ["address_id"]
             isOneToOne: false
             referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_member_id_fkey"
+            columns: ["company_member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
             referencedColumns: ["id"]
           },
           {
@@ -1773,8 +2222,71 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_company_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          company_id: string
+          outcome: string
+        }[]
+      }
+      authorize_corporate_payment: {
+        Args: { p_order_id: string }
+        Returns: {
+          outcome: string
+          payment_ref: string
+        }[]
+      }
+      bogota_month_start: { Args: never; Returns: string }
       can_edit_order_items: { Args: { order_id: string }; Returns: boolean }
       claim_referral: { Args: { p_code: string }; Returns: string }
+      company_credit_used: { Args: { p_company_id: string }; Returns: number }
+      company_is_overdue: { Args: { p_company_id: string }; Returns: boolean }
+      company_member_spent: {
+        Args: { p_member_id: string; p_period: string }
+        Returns: number
+      }
+      company_month_summary: {
+        Args: { p_company_id: string; p_period: string }
+        Returns: {
+          credit_limit: number
+          credit_used: number
+          members_active: number
+          open_balance: number
+          orders_count: number
+          orders_total: number
+          overdue: boolean
+        }[]
+      }
+      company_orders: {
+        Args: { p_company_id: string; p_period: string }
+        Returns: {
+          corporate_reference: string
+          created_at: string
+          member_name: string
+          order_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          short_code: string
+          status: Database["public"]["Enums"]["order_status"]
+          store_name: string
+          total: number
+        }[]
+      }
+      company_team: {
+        Args: { p_company_id: string }
+        Returns: {
+          active: boolean
+          email: string
+          full_name: string
+          joined_at: string
+          left_at: string
+          member_id: string
+          monthly_budget: number
+          per_order_limit: number
+          role: string
+          spent_this_month: number
+          user_id: string
+        }[]
+      }
       consume_rate_limit: {
         Args: {
           p_bucket: string
@@ -1790,6 +2302,21 @@ export type Database = {
       courier_cash_in_progress: {
         Args: { p_courier: string }
         Returns: number
+      }
+      create_company_invitation: {
+        Args: {
+          p_company_id: string
+          p_expires_days: number
+          p_max_uses: number
+          p_monthly_budget: number
+          p_per_order_limit: number
+          p_role: string
+          p_token_hash: string
+        }
+        Returns: {
+          invitation_id: string
+          outcome: string
+        }[]
       }
       create_reservation: {
         Args: {
@@ -1811,6 +2338,14 @@ export type Database = {
         }[]
       }
       ensure_referral_code: { Args: never; Returns: string }
+      generate_company_statements: {
+        Args: { p_period: string }
+        Returns: {
+          lines_added: number
+          statements_created: number
+          statements_skipped: number
+        }[]
+      }
       generate_courier_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: {
@@ -1831,6 +2366,27 @@ export type Database = {
       }
       is_active_courier: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_company_admin: { Args: { p_company_id: string }; Returns: boolean }
+      is_company_member: { Args: { p_company_id: string }; Returns: boolean }
+      my_corporate_budget: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_name: string
+          company_status: string
+          credit_available: number
+          credit_limit: number
+          credit_used: number
+          max_tip_pct: number
+          member_id: string
+          monthly_budget: number
+          overdue: boolean
+          per_order_limit: number
+          period: string
+          role: string
+          spent_this_month: number
+        }[]
+      }
       my_courier_cash_status: {
         Args: never
         Returns: {
@@ -1842,9 +2398,21 @@ export type Database = {
         }[]
       }
       next_short_code: { Args: never; Returns: string }
+      nit_check_digit: { Args: { p_nit: string }; Returns: number }
       option_store_id: { Args: { option_id: string }; Returns: string }
       owns_store: { Args: { store_id: string }; Returns: boolean }
       owns_store_folder: { Args: { folder: string }; Returns: boolean }
+      peek_company_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          company_name: string
+          expires_at: string
+          monthly_budget: number
+          outcome: string
+          per_order_limit: number
+          role: string
+        }[]
+      }
       product_store_id: { Args: { product_id: string }; Returns: string }
       record_refund: {
         Args: {
@@ -1859,6 +2427,25 @@ export type Database = {
         Returns: string
       }
       referral_spent_this_month: { Args: never; Returns: number }
+      refresh_overdue_company_statements: { Args: never; Returns: number }
+      register_company: {
+        Args: {
+          p_billing_address: string
+          p_billing_email: string
+          p_city: string
+          p_contact_name: string
+          p_contact_phone: string
+          p_dv: number
+          p_legal_name: string
+          p_nit: string
+          p_terms_version: string
+          p_trade_name: string
+        }
+        Returns: {
+          company_id: string
+          outcome: string
+        }[]
+      }
       resolve_store_table: {
         Args: { store_slug: string; token: string }
         Returns: {
@@ -1866,6 +2453,20 @@ export type Database = {
           number: number
           store_id: string
         }[]
+      }
+      revoke_company_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: string
+      }
+      set_company_member: {
+        Args: {
+          p_active: boolean
+          p_member_id: string
+          p_monthly_budget: number
+          p_per_order_limit: number
+          p_role: string
+        }
+        Returns: string
       }
       store_is_visible: { Args: { store_id: string }; Returns: boolean }
       stores_nearby: {
@@ -1916,9 +2517,24 @@ export type Database = {
           outcome: string
         }[]
       }
+      update_company_billing: {
+        Args: {
+          p_billing_address: string
+          p_billing_email: string
+          p_city: string
+          p_company_id: string
+          p_contact_name: string
+          p_contact_phone: string
+        }
+        Returns: string
+      }
       user_role_of: {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      void_company_statement: {
+        Args: { p_reason: string; p_statement_id: string }
+        Returns: string
       }
     }
     Enums: {
@@ -1931,7 +2547,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
       order_type: "delivery" | "pickup" | "table"
-      payment_method: "cash" | "wompi" | "mercadopago" | "mock"
+      payment_method: "cash" | "wompi" | "mercadopago" | "mock" | "corporate"
       payment_status: "pending" | "paid" | "failed" | "refunded"
       payout_status: "pending" | "paid"
       store_status: "pending" | "active" | "suspended"
@@ -2073,7 +2689,7 @@ export const Constants = {
         "cancelled",
       ],
       order_type: ["delivery", "pickup", "table"],
-      payment_method: ["cash", "wompi", "mercadopago", "mock"],
+      payment_method: ["cash", "wompi", "mercadopago", "mock", "corporate"],
       payment_status: ["pending", "paid", "failed", "refunded"],
       payout_status: ["pending", "paid"],
       store_status: ["pending", "active", "suspended"],

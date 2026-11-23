@@ -34,6 +34,7 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   wompi: 'Wompi',
   mercadopago: 'Mercado Pago',
   mock: 'Prueba',
+  corporate: 'Cuenta de empresa',
 }
 
 /** Short codes are alphanumeric; anything else is dropped before the query. */

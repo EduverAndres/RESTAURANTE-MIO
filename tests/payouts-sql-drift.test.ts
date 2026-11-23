@@ -55,6 +55,7 @@ const PAYMENT_METHODS: readonly PaymentMethod[] = [
   'wompi',
   'mercadopago',
   'mock',
+  'corporate',
 ]
 
 function order(

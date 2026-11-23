@@ -1,0 +1,22 @@
+-- Reverts supabase/migrations/20261124000500_payment_method_corporate.sql.
+--
+-- Intentionally does nothing.
+--
+-- Postgres cannot remove a value from an enum (there is no
+-- `alter type ... drop value`). The only way out is to rebuild the type —
+-- create a new enum without 'corporate', rewrite every column that uses
+-- `payment_method` (orders, courier_ledger, ...) and every function that
+-- names it, then drop the old type — which needs a maintenance window and
+-- must first deal with any order already paid with a company account.
+--
+-- Leaving the value in place is harmless once 0600–0800 are rolled back: no
+-- code path creates a corporate order (the app also keeps the method behind
+-- CORPORATE_ACCOUNTS_ENABLED, off by default), and the settlement, commission
+-- and courier rules treat any non-cash method the same way.
+--
+-- Roll back, in this order: 0800, 0700, 0600 (each has its .down.sql), then
+-- forget this migration so a later `db push` does not try to re-add it:
+--   psql "$SUPABASE_DB_URL" -c "delete from supabase_migrations.schema_migrations where version = '20261124000500'"
+-- (`add value if not exists` makes re-applying it a no-op anyway.)
+
+select 1;

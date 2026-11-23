@@ -65,13 +65,24 @@ export const ACCEPT_PATH = '/aceptar-politicas'
 export const LEGAL_PENDING_COOKIE = 'tienda_legal_pending'
 export const LEGAL_PENDING_MAX_AGE = 60 * 10
 
-export type ConsentSource =
-  | 'register'
-  | 'login-password'
-  | 'login-sms'
-  | 'login-google'
-  | 'login-microsoft'
-  | 'gate'
+/**
+ * Where an acceptance was given. MIRRORED IN SQL: the check constraint on
+ * `legal_consents.source` (supabase/migrations/20261124000600_companies.sql)
+ * embeds this list; tests/companies-sql-drift.test.ts compares them.
+ */
+export const CONSENT_SOURCES = [
+  'register',
+  'login-password',
+  'login-sms',
+  'login-google',
+  'login-microsoft',
+  'gate',
+  // The Términos para Empresas: signing a company up, joining one.
+  'company-register',
+  'company-join',
+] as const
+
+export type ConsentSource = (typeof CONSENT_SOURCES)[number]
 
 /** The keys written to `auth.users.raw_user_meta_data`. */
 export interface LegalMetadata {
