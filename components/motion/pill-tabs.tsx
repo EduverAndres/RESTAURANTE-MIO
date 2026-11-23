@@ -43,7 +43,9 @@ export function PillTabsTrigger({
   return (
     <TabsTrigger
       className={cn(
-        'rounded-pill data-active:text-primary-foreground dark:data-active:text-primary-foreground relative h-11 px-4 text-sm data-active:bg-transparent data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent',
+        // The base trigger darkens its label on hover; on the active pill that
+        // would put dark ink on the brand fill (3.4:1), so hover is pinned too.
+        'rounded-pill data-active:text-primary-foreground dark:data-active:text-primary-foreground data-active:hover:text-primary-foreground dark:data-active:hover:text-primary-foreground relative h-11 px-4 text-sm data-active:bg-transparent data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent',
         className,
       )}
       {...props}

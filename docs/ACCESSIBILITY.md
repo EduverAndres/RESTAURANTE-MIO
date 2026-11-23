@@ -48,6 +48,9 @@ Puntos auditados hoy:
 | ----------------------------------------------- | ----------------------------- |
 | Portada del marketplace                         | `e2e/storefront.spec.ts`      |
 | Portada con texto extra grande + contraste alto | `e2e/storefront.spec.ts`      |
+| Portada · selector de público                   | `e2e/marketing.spec.ts`       |
+| Domiciliarios (`/repartidores`)                 | `e2e/marketing.spec.ts`       |
+| Para restaurantes (`/para-restaurantes`)        | `e2e/marketing.spec.ts`       |
 | Tienda · menú                                   | `e2e/storefront.spec.ts`      |
 | Tienda · cajón de producto                      | `e2e/storefront.spec.ts`      |
 | Tienda · carrito                                | `e2e/storefront.spec.ts`      |
