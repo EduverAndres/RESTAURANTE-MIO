@@ -287,15 +287,29 @@ export async function markPayoutPaid(
 
   await requireRole(['admin'])
   const admin = createAdminClient()
-  const { error } = await admin
+  // Only an open row: a payout already paid, or a debt that a later payout
+  // carried (`carried_into_payout_id`), is closed. Marking a carried debt paid
+  // would withhold it twice; the database refuses too
+  // (`payouts_carried_stays_pending`), this just says so in words.
+  const { data, error } = await admin
     .from('payouts')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', payoutId)
+    .eq('status', 'pending')
+    .is('carried_into_payout_id', null)
+    .select('id')
   if (error) {
     console.error('Failed to mark payout as paid', error)
     return {
       ok: false,
       error: 'No pudimos marcar la liquidación como pagada.',
+    }
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      error:
+        'Esta liquidación ya se pagó o su saldo se arrastró a un periodo posterior.',
     }
   }
 

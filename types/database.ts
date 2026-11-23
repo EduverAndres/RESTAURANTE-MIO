@@ -630,9 +630,12 @@ export type Database = {
       }
       payouts: {
         Row: {
+          carried_in: number
+          carried_into_payout_id: string | null
           cash_collected: number
           commission: number
           created_at: string
+          delivery_and_tips: number
           gross: number
           id: string
           net: number
@@ -645,9 +648,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          carried_in?: number
+          carried_into_payout_id?: string | null
           cash_collected?: number
           commission?: number
           created_at?: string
+          delivery_and_tips?: number
           gross?: number
           id?: string
           net?: number
@@ -660,9 +666,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          carried_in?: number
+          carried_into_payout_id?: string | null
           cash_collected?: number
           commission?: number
           created_at?: string
+          delivery_and_tips?: number
           gross?: number
           id?: string
           net?: number
@@ -675,6 +684,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payouts_carried_into_payout_id_fkey"
+            columns: ["carried_into_payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payouts_store_id_fkey"
             columns: ["store_id"]

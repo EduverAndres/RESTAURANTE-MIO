@@ -23,6 +23,8 @@ function refunded(
     platform_fee: 600,
     merchant_discount: 0,
     platform_discount: 0,
+    delivery_fee: 0,
+    tip: 0,
     payment_method: 'wompi',
     type: 'delivery',
     courier_id: 'courier-1',
@@ -53,6 +55,8 @@ function order(overrides: Partial<PayoutOrderInput> = {}): PayoutOrderInput {
     platform_fee: 600,
     merchant_discount: 0,
     platform_discount: 0,
+    delivery_fee: 0,
+    tip: 0,
     delivered_at: '2026-09-15T12:00:00.000Z',
     payment_method: 'wompi',
     payment_status: 'paid',
@@ -72,6 +76,7 @@ describe('reverseRefundedOrder', () => {
       gross: -10000,
       commission: -600,
       cash_collected: 0,
+      delivery_and_tips: 0,
       net: -9400,
     })
   })
@@ -253,6 +258,8 @@ describe('summarizePayouts with adjustments', () => {
         commission: 600 - 240,
         cash_collected: 0,
         plan_fee: 0,
+        delivery_and_tips: 0,
+        carried_in: 0,
         net: 10000 - 4000 - (600 - 240),
       },
     ])
@@ -271,6 +278,8 @@ describe('summarizePayouts with adjustments', () => {
         commission: -600,
         cash_collected: 0,
         plan_fee: 0,
+        delivery_and_tips: 0,
+        carried_in: 0,
         net: -9400,
       },
     ])
@@ -317,7 +326,27 @@ describe('reversing a cash sale the merchant held', () => {
       gross: -10000,
       commission: -600,
       cash_collected: -10000,
+      delivery_and_tips: 0,
       net: 600,
     })
+  })
+})
+
+describe('reversing what was passed through to the merchant', () => {
+  it('takes the delivery fee and tip back when the merchant had received them', () => {
+    const adjustment = reverseRefundedOrder(
+      refunded({ courier_id: null, delivery_fee: 5000, tip: 2000 }),
+    )
+    expect(adjustment).toMatchObject({
+      delivery_and_tips: -7000,
+      net: -10000 + 600 - 7000,
+    })
+  })
+
+  it('leaves them alone when a platform courier had delivered', () => {
+    const adjustment = reverseRefundedOrder(
+      refunded({ courier_id: 'courier-1', delivery_fee: 5000, tip: 2000 }),
+    )
+    expect(adjustment.delivery_and_tips).toBe(0)
   })
 })

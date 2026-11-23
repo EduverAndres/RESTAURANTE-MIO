@@ -15,6 +15,8 @@ function order(overrides: Partial<PayoutOrderInput>): PayoutOrderInput {
     platform_fee: 600,
     merchant_discount: 0,
     platform_discount: 0,
+    delivery_fee: 0,
+    tip: 0,
     delivered_at: '2026-09-08T12:00:00.000Z',
     payment_method: 'wompi',
     payment_status: 'paid',
@@ -58,6 +60,8 @@ describe('summarizePayouts', () => {
         commission: 1800,
         cash_collected: 0,
         plan_fee: 0,
+        delivery_and_tips: 0,
+        carried_in: 0,
         net: 28200,
       },
       {
@@ -68,6 +72,8 @@ describe('summarizePayouts', () => {
         commission: 300,
         cash_collected: 0,
         plan_fee: 0,
+        delivery_and_tips: 0,
+        carried_in: 0,
         net: 4700,
       },
     ])
@@ -110,6 +116,8 @@ describe('summarizePayouts', () => {
         commission: 480,
         cash_collected: 0,
         plan_fee: 0,
+        delivery_and_tips: 0,
+        carried_in: 0,
         net: 7520,
       },
     ])
@@ -255,6 +263,8 @@ describe('plan fees', () => {
         commission: 0,
         cash_collected: 0,
         plan_fee: 30310,
+        delivery_and_tips: 0,
+        carried_in: 0,
         net: -30310,
       },
     ])
@@ -308,5 +318,53 @@ describe('discounts', () => {
       commission: 1800,
       net: 3200,
     })
+  })
+})
+
+describe('delivery fees and tips the merchant earned', () => {
+  // The platform collected them online; the merchant did the delivery (or
+  // served the pickup), so they are the merchant's to receive.
+  it('passes them through on an online order the merchant delivered', () => {
+    const [row] = summarizePayouts(
+      [order({ courier_id: null, delivery_fee: 5000, tip: 2000 })],
+      PERIOD,
+    )
+    expect(row).toMatchObject({
+      delivery_and_tips: 7000,
+      net: 10000 - 600 + 7000,
+    })
+  })
+
+  it('passes the tip through on an online pickup order', () => {
+    const [row] = summarizePayouts(
+      [order({ type: 'pickup', courier_id: null, tip: 1500 })],
+      PERIOD,
+    )
+    expect(row.delivery_and_tips).toBe(1500)
+  })
+
+  it('keeps them out when a platform courier delivered', () => {
+    // Those go to the courier ledger, not to the merchant.
+    const [row] = summarizePayouts(
+      [order({ courier_id: 'courier-1', delivery_fee: 5000, tip: 2000 })],
+      PERIOD,
+    )
+    expect(row).toMatchObject({ delivery_and_tips: 0, net: 9400 })
+  })
+
+  it('keeps them out of a cash order, where they are already in the till', () => {
+    const [row] = summarizePayouts(
+      [
+        order({
+          payment_method: 'cash',
+          payment_status: 'pending',
+          courier_id: null,
+          delivery_fee: 5000,
+          tip: 2000,
+        }),
+      ],
+      PERIOD,
+    )
+    expect(row.delivery_and_tips).toBe(0)
   })
 })
