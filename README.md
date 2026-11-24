@@ -424,8 +424,9 @@ on the register page.
      public IP and offers to fix it (with a backup): a Lightsail instance
      without a static IP gets a new public IP when it stops, and a build with
      the old one sends every redirect, QR code and payment URL there. The
-     middleware also logs `site_url.host_mismatch` when visitors arrive on a
-     public host that is not the site's.
+     app answers only on that address: the middleware redirects visitors who
+     arrive on another public host (the bare IP, a test name) to the same
+     path there, and logs `site_url.host_mismatch` once.
    - Set every environment variable from the table above **before building**:
      `NEXT_PUBLIC_*` values are inlined at build time, so a build made with
      `NEXT_PUBLIC_SITE_URL=http://localhost:3000` prints table QR codes and
