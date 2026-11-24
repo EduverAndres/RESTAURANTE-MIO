@@ -25,14 +25,17 @@ export function StoreThemeScope({
   return (
     <div
       data-store-theme
+      data-store-page
       data-store-scheme={theme.mode === 'auto' ? 'auto' : theme.mode}
       data-store-motion={theme.motion}
       style={themeToCssVars(theme) as CSSProperties}
-      className="bg-[var(--store-background)] text-[var(--store-text)]"
+      className="flex flex-1 flex-col bg-[var(--store-background)] text-[var(--store-text)]"
     >
       {/* Already sanitised and scoped to [data-store-theme] by the theme layer. */}
       {theme.customCss ? <style>{theme.customCss}</style> : null}
-      <div data-store-ui className={cn('min-h-dvh', className)}>
+      {/* A column that fills the page, so the footer's `mt-auto` takes it to
+          the bottom however short the content is (see globals.css). */}
+      <div data-store-ui className={cn('flex flex-1 flex-col', className)}>
         {children}
       </div>
     </div>

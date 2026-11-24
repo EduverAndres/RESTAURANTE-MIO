@@ -188,7 +188,7 @@ export default async function ReservePage({ params, searchParams }: PageProps) {
             load={loadFromRows(holding ?? [])}
             policy={settings.policy_text}
             nowIso={now.toISOString()}
-            signedIn={current !== null}
+            userId={current?.user.id ?? null}
             defaults={{
               name: current?.profile?.full_name ?? '',
               phone: current?.profile?.phone ?? '',
