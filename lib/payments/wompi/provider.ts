@@ -7,9 +7,32 @@ import {
   buildCheckoutUrl,
   mapWompiStatus,
   paymentReference,
+  wompiAcceptsRedirect,
   wompiBaseUrl,
 } from '@/lib/payments/wompi/status'
 import type { PaymentProvider, PaymentResult } from '@/lib/payments/types'
+import { siteUrl } from '@/lib/site-url'
+
+let warnedBlockedSite = false
+
+/**
+ * Wompi's firewall refuses a return address on an IP or localhost (see
+ * `wompiAcceptsRedirect`), so on such a deployment every customer who chose
+ * Wompi landed on a CloudFront 403 page. The option is withheld instead, and
+ * the log says why once per process.
+ */
+function siteReachableByWompi(): boolean {
+  const site = siteUrl()
+  if (wompiAcceptsRedirect(site)) return true
+  if (!warnedBlockedSite) {
+    warnedBlockedSite = true
+    logger.warn('wompi.provider.site_url_blocked', {
+      siteUrl: site,
+      fix: 'Publica el sitio con un dominio (docs/HTTPS.md) o, para pruebas, con <ip-con-guiones>.sslip.io en NEXT_PUBLIC_SITE_URL y recompila.',
+    })
+  }
+  return false
+}
 
 export interface WompiTransactionData {
   id: string
@@ -77,7 +100,7 @@ export const wompiProvider: PaymentProvider = {
   label: 'Tarjeta, PSE o Nequi',
   description: 'Pago seguro con Wompi',
   isAvailable() {
-    return wompiConfigured()
+    return wompiConfigured() && siteReachableByWompi()
   },
   async createPayment(input): Promise<PaymentResult> {
     const {
