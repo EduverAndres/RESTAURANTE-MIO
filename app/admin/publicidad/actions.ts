@@ -11,7 +11,11 @@ import {
 import { requireRole } from '@/lib/auth'
 import { logger } from '@/lib/log/logger'
 import { bogotaDate } from '@/lib/plans'
-import { adStatusNotification, fromPush } from '@/lib/notifications/messages'
+import {
+  adStatusNotification,
+  fromPush,
+  type OutgoingNotification,
+} from '@/lib/notifications/messages'
 import { notify } from '@/lib/notifications/send'
 import { adCampaignReviewMessage } from '@/lib/push/messages'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -62,6 +66,23 @@ async function describeCampaign(campaignId: string) {
   }
 }
 
+type DescribedCampaign = NonNullable<
+  Awaited<ReturnType<typeof describeCampaign>>
+>
+
+/**
+ * Tells the campaign's store owner what changed. Passed to `after()` as a
+ * running promise, so it starts now, not once the response has finished.
+ */
+async function notifyCampaignOwner(
+  campaignId: string,
+  message: (campaign: DescribedCampaign) => OutgoingNotification,
+) {
+  const campaign = await describeCampaign(campaignId)
+  if (!campaign) return
+  await notify({ storeOwner: campaign.storeId }, message(campaign))
+}
+
 /**
  * Approves a request. The slot limit, the late start and the one-campaign-
  * per-store rule are decided by `approve_ad_campaign`, which locks the
@@ -88,17 +109,14 @@ export async function approveAdCampaign(input: {
   }
 
   revalidateAds()
-  after(async () => {
-    const campaign = await describeCampaign(campaignId)
-    if (!campaign) return
-    await notify(
-      { storeOwner: campaign.storeId },
+  after(
+    notifyCampaignOwner(campaignId, (campaign) =>
       fromPush(
         'ad_reviewed',
         adCampaignReviewMessage({ decision: 'approved', ...campaign }),
       ),
-    )
-  })
+    ),
+  )
   return { ok: true }
 }
 
@@ -131,17 +149,18 @@ export async function rejectAdCampaign(
   }
 
   revalidateAds()
-  after(async () => {
-    const campaign = await describeCampaign(campaignId)
-    if (!campaign) return
-    await notify(
-      { storeOwner: campaign.storeId },
+  after(
+    notifyCampaignOwner(campaignId, (campaign) =>
       fromPush(
         'ad_reviewed',
-        adCampaignReviewMessage({ decision: 'rejected', reason, ...campaign }),
+        adCampaignReviewMessage({
+          decision: 'rejected',
+          reason,
+          ...campaign,
+        }),
       ),
-    )
-  })
+    ),
+  )
   return { ok: true }
 }
 
@@ -212,14 +231,11 @@ export async function setAdCampaignStatus(
   const change = (
     { pause: 'paused', resume: 'resumed', end: 'ended' } as const
   )[action]
-  after(async () => {
-    const campaign = await describeCampaign(campaignId)
-    if (!campaign) return
-    await notify(
-      { storeOwner: campaign.storeId },
+  after(
+    notifyCampaignOwner(campaignId, (campaign) =>
       adStatusNotification({ change, placement: campaign.placement }),
-    )
-  })
+    ),
+  )
   return { ok: true }
 }
 

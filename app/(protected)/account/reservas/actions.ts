@@ -79,7 +79,7 @@ export async function cancelMyReservation(
     partySize: row.party_size,
     when: formatReservationWhen(row.starts_at),
   })
-  after(() =>
+  after(
     notify(
       { storeOwner: row.store_id },
       fromPush('reservation_cancelled', message),

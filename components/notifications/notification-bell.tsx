@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  useRealtimeChannel,
+  useBroadcastChannel,
   useRealtimeRefresh,
 } from '@/components/providers/realtime-provider'
 import { Button } from '@/components/ui/button'
@@ -56,9 +56,10 @@ export interface NotificationBellProps {
 }
 
 /**
- * The in-app inbox. It loads the newest notifications, then listens for new
- * rows addressed to this user through Realtime: each one rings, shows a toast
- * and refreshes the screen, so a status the event changed (a campaign
+ * The in-app inbox. It loads the newest notifications, then listens on the
+ * user's private Broadcast topic (`user:<id>`), where the database sends each
+ * new row the moment it commits: it rings, shows a toast and refreshes the
+ * screen within milliseconds, so a status the event changed (a campaign
  * approved, a new request in an admin list) appears without reloading.
  */
 export function NotificationBell({
@@ -73,6 +74,8 @@ export function NotificationBell({
   const [unread, setUnread] = useState(0)
   const [now, setNow] = useState(() => Date.now())
   const newestId = useRef<string | null>(null)
+  /** Ids already shown, so a backfill and a live message never count twice. */
+  const seen = useRef(new Set<string>())
 
   /** Reads the inbox; true when something arrived since the last read. */
   const load = useCallback(async (): Promise<boolean> => {
@@ -94,6 +97,7 @@ export function NotificationBell({
     const changed =
       newestId.current !== null && rows[0]?.id !== newestId.current
     newestId.current = rows[0]?.id ?? ''
+    for (const row of rows) seen.current.add(row.id)
     setItems(rows)
     setUnread(count.count ?? 0)
     return changed
@@ -142,14 +146,13 @@ export function NotificationBell({
       .then()
   }, [supabase, userId])
 
-  useRealtimeChannel({
-    name: `notifications-${userId}`,
-    table: 'notifications',
-    event: 'INSERT',
-    filter: `recipient_id=eq.${userId}`,
-    onEvent: (payload) => {
-      const row = payload.new as unknown as NotificationItem | undefined
-      if (!row?.id) return
+  useBroadcastChannel({
+    topic: `user:${userId}`,
+    event: 'notification',
+    onMessage: (payload) => {
+      const row = payload as unknown as NotificationItem
+      if (typeof row.id !== 'string' || seen.current.has(row.id)) return
+      seen.current.add(row.id)
       newestId.current = row.id
       setItems((current) =>
         [row, ...current.filter((entry) => entry.id !== row.id)].slice(
@@ -221,7 +224,13 @@ export function NotificationBell({
             Aquí verás los avisos importantes en cuanto ocurran.
           </p>
         ) : (
-          <div className="max-h-[min(26rem,60vh)] overflow-y-auto">
+          // Focusable, so the list can be scrolled from the keyboard too.
+          <div
+            role="group"
+            aria-label="Notificaciones recientes"
+            tabIndex={0}
+            className="focus-visible:ring-ring max-h-[min(26rem,60vh)] overflow-y-auto rounded-xl outline-none focus-visible:ring-2"
+          >
             {items.map((item) => {
               const pending = !item.read_at
               const needsAction =

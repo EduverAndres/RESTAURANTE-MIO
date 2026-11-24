@@ -183,9 +183,7 @@ export async function createReservation(
     when: formatReservationWhen(startsAt),
     storeName: store.name,
   })
-  after(() =>
-    notify({ storeOwner: store.id }, fromPush('reservation_new', message)),
-  )
+  after(notify({ storeOwner: store.id }, fromPush('reservation_new', message)))
 
   revalidatePath('/account/reservas')
   revalidatePath('/dashboard/reservas')
