@@ -31,7 +31,10 @@ export async function SiteHeader() {
     'Tu cuenta'
 
   return (
-    <header className="border-border/60 bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
+    <header
+      data-site-header
+      className="border-border/60 bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md"
+    >
       {/*
         First stop for a keyboard user on every page: it is visually hidden
         until focused, and jumps past the nav to the page's own content.

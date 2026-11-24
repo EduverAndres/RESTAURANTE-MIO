@@ -678,6 +678,77 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Store skin for the shared UI kit
+ *
+ * The storefront's own components read `--store-*` directly. A page that is
+ * the restaurant's but is built from the shared kit (the booking page: Button,
+ * Input, the day and time chips) opts in with a `[data-store-ui]` element
+ * inside its `[data-store-theme]` wrapper (components/store/store-theme-
+ * scope.tsx). In there the kit's tokens point at the tenant's, so every
+ * control wears the restaurant's colours, radii and type without a store copy
+ * of each component.
+ *
+ * It must be a child of the wrapper, not the wrapper itself: high contrast
+ * sets `--store-text: var(--foreground)` on the wrapper, and redefining
+ * `--foreground` from `--store-text` on that same element would be a cycle.
+ * One level down, `--store-text` arrives already computed.
+ * ------------------------------------------------------------------------- */
+[data-store-theme] [data-store-ui] {
+  --background: var(--store-background);
+  --foreground: var(--store-text);
+  --surface: var(--store-surface);
+  --surface-elevated: var(--store-surface);
+  --card: var(--store-surface);
+  --card-foreground: var(--store-text);
+  --popover: var(--store-surface);
+  --popover-foreground: var(--store-text);
+  --primary: var(--store-primary);
+  --primary-foreground: var(--store-on-primary);
+  /* Brand-coloured text on a pale brand tint: pulled toward the ink so a
+     light brand colour still reads. */
+  --primary-on-tint: color-mix(
+    in oklch,
+    var(--store-primary) 62%,
+    var(--store-text)
+  );
+  --secondary: rgb(var(--store-text-rgb) / 0.06);
+  --secondary-foreground: var(--store-text);
+  --muted: rgb(var(--store-text-rgb) / 0.06);
+  --muted-foreground: rgb(var(--store-text-rgb) / 0.75);
+  --accent: rgb(var(--store-primary-rgb) / 0.1);
+  --accent-foreground: var(--store-text);
+  --border: rgb(var(--store-text-rgb) / 0.12);
+  --input: rgb(var(--store-text-rgb) / 0.2);
+  --radius-card: var(--store-radius);
+  --radius-control: var(--store-field-radius);
+  --radius-pill: var(--store-button-radius);
+
+  color: var(--store-text);
+  font-family: var(--store-font-body);
+  letter-spacing: var(--store-letter-spacing);
+}
+
+/* Tailwind compiles `font-display` with the app's face written in, so the
+   tenant's display face has to be applied by selector. Unlayered, so it wins
+   over the utility. */
+[data-store-theme] [data-store-ui] .font-display {
+  font-family: var(--store-font-display);
+  text-transform: var(--store-heading-case);
+}
+
+/* Over a restaurant's page the site header goes opaque: its translucent
+   cream over a dark storefront turned grey, and its links dropped to 3.6:1. */
+body:has([data-store-theme]) [data-site-header] {
+  background-color: var(--background);
+}
+
+[data-contrast='high'] [data-store-theme] [data-store-ui] {
+  --border: color-mix(in oklch, var(--store-text) 55%, transparent);
+  --input: color-mix(in oklch, var(--store-text) 70%, transparent);
+  --muted-foreground: color-mix(in oklch, var(--store-text) 88%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
  * Theme editor
  *
  * Editor-only rules. The live preview renders the real storefront inside an
