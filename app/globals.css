@@ -1332,6 +1332,19 @@ html[data-text-size='xlarge'] {
   }
 }
 
+/* The admin panel's bars grow from the baseline with a small overshoot. */
+@keyframes welcome-bar {
+  0% {
+    transform: scaleY(0);
+  }
+  70% {
+    transform: scaleY(1.06);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
 @keyframes page-in {
   from {
     opacity: 0;
@@ -1357,6 +1370,17 @@ html[data-text-size='xlarge'] {
     cubic-bezier(0.3, 0.7, 0.4, 1) 520ms both;
   --animate-welcome-ripple: welcome-ripple 500ms var(--ease-out-soft) 880ms both;
   --animate-welcome-phrase: welcome-rise 360ms var(--ease-out-soft) 700ms both;
+  /* Merchant: the home pops in as the route reaches it. */
+  --animate-welcome-arrive: welcome-dot-pop 320ms var(--ease-out-soft) 640ms
+    both;
+  /* Admin: the panel settles, then its bars rise one after the other. */
+  --animate-welcome-panel: welcome-rise 300ms var(--ease-out-soft) 60ms both;
+  --animate-welcome-bar-1: welcome-bar 420ms cubic-bezier(0.3, 0.7, 0.4, 1)
+    220ms both;
+  --animate-welcome-bar-2: welcome-bar 420ms cubic-bezier(0.3, 0.7, 0.4, 1)
+    340ms both;
+  --animate-welcome-bar-3: welcome-bar 420ms cubic-bezier(0.3, 0.7, 0.4, 1)
+    460ms both;
   --animate-page-in: page-in 360ms var(--ease-out-soft) both;
 }
 
@@ -1367,7 +1391,8 @@ html[data-text-size='xlarge'] {
   transform-origin: center;
 }
 
-.welcome-pin {
+.welcome-pin,
+.welcome-bar {
   transform-box: fill-box;
   transform-origin: 50% 100%;
 }
