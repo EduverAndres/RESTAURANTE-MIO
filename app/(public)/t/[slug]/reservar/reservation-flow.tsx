@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  CalendarPlusIcon,
-  CheckIcon,
-  LoaderCircleIcon,
-  MinusIcon,
-  PlusIcon,
-} from 'lucide-react'
+import { LoaderCircleIcon, MinusIcon, PlusIcon } from 'lucide-react'
 import Link from 'next/link'
 import {
   useMemo,
@@ -17,6 +11,7 @@ import {
 } from 'react'
 import { toast } from 'sonner'
 import { createReservation } from './actions'
+import { RequestStatusCard } from './request-status-card'
 import { FieldError } from '@/components/forms/field-error'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,7 +22,6 @@ import {
   formatReservationWhen,
   partyLabel,
 } from '@/lib/reservations/format'
-import { buildIcs } from '@/lib/reservations/ics'
 import {
   bookableDates,
   nextAvailableDates,
@@ -51,7 +45,8 @@ interface Props {
   policy: string
   /** Fixed at render so the server HTML and the first client render agree. */
   nowIso: string
-  signedIn: boolean
+  /** The signed-in customer; null asks the visitor to sign in to book. */
+  userId: string | null
   defaults: { name: string; phone: string }
   initial: { date: string | null; time: string | null; party: number | null }
 }
@@ -91,7 +86,7 @@ export function ReservationFlow({
   load,
   policy,
   nowIso,
-  signedIn,
+  userId,
   defaults,
   initial,
 }: Props) {
@@ -131,8 +126,17 @@ export function ReservationFlow({
   const [notes, setNotes] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pending, startTransition] = useTransition()
-  const [done, setDone] = useState<{ id: string; code: string } | null>(null)
+  // What was booked travels with the result: a live refresh recomputes the
+  // slots underneath, and the card must not depend on them.
+  const [done, setDone] = useState<{
+    id: string
+    code: string
+    startsAt: string
+    party: number
+  } | null>(null)
   const doneHeading = useRef<HTMLHeadingElement>(null)
+  const timeHeading = useRef<HTMLHeadingElement>(null)
+  const signedIn = userId !== null
 
   const slots = useMemo(
     () => slotsFor({ date, schedule, config, load, partySize: party, now }),
@@ -180,62 +184,32 @@ export function ReservationFlow({
         toast.error(result.error)
         return
       }
-      setDone({ id: result.reservationId, code: result.code })
+      setDone({
+        id: result.reservationId,
+        code: result.code,
+        startsAt: selected.startsAt,
+        party,
+      })
       requestAnimationFrame(() => doneHeading.current?.focus())
     })
   }
 
-  if (done && selected) {
-    const ics = buildIcs({
-      uid: done.id,
-      title: `Reserva en ${store.name} · ${partyLabel(party)}`,
-      start: new Date(selected.startsAt),
-      durationMinutes: config.durationMinutes,
-      location: store.address,
-      description: `Código ${done.code}`,
-    })
+  if (done && userId) {
     return (
-      <section
-        aria-labelledby="reserva-lista"
-        className="rounded-card bg-card shadow-2 p-card space-y-5 text-center"
-      >
-        <div className="bg-success/15 text-success mx-auto flex size-16 animate-[check-pop_420ms_var(--ease-out-soft)_both] items-center justify-center rounded-full">
-          <CheckIcon aria-hidden="true" className="size-8" />
-        </div>
-        <div className="space-y-2">
-          <h2
-            id="reserva-lista"
-            ref={doneHeading}
-            tabIndex={-1}
-            className="font-display text-2xl font-semibold outline-none"
-          >
-            Solicitud enviada
-          </h2>
-          <p className="text-muted-foreground text-pretty">
-            {store.name} confirmará tu mesa para {partyLabel(party)} el{' '}
-            {formatReservationWhen(selected.startsAt)}. Te avisamos apenas
-            responda.
-          </p>
-          <p className="text-sm">
-            Código de reserva:{' '}
-            <span className="font-mono font-semibold">{done.code}</span>
-          </p>
-        </div>
-        <div className="flex flex-col justify-center gap-2 sm:flex-row">
-          <Button asChild className="rounded-pill h-11">
-            <Link href="/account/reservas">Ver mis reservas</Link>
-          </Button>
-          <Button asChild variant="outline" className="rounded-pill h-11">
-            <a
-              href={`data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`}
-              download={`reserva-${done.code}.ics`}
-            >
-              <CalendarPlusIcon aria-hidden="true" data-icon="inline-start" />
-              Agregar al calendario
-            </a>
-          </Button>
-        </div>
-      </section>
+      <RequestStatusCard
+        reservation={{ id: done.id, code: done.code }}
+        userId={userId}
+        store={{ name: store.name, address: store.address }}
+        party={done.party}
+        startsAt={done.startsAt}
+        durationMinutes={config.durationMinutes}
+        headingRef={doneHeading}
+        onRebook={() => {
+          setDone(null)
+          setStartsAt(null)
+          requestAnimationFrame(() => timeHeading.current?.focus())
+        }}
+      />
     )
   }
 
@@ -330,7 +304,12 @@ export function ReservationFlow({
       </section>
 
       <section aria-labelledby="hora" className="space-y-3">
-        <h2 id="hora" className="font-display text-lg font-semibold">
+        <h2
+          id="hora"
+          ref={timeHeading}
+          tabIndex={-1}
+          className="font-display text-lg font-semibold outline-none"
+        >
           ¿A qué hora?
         </h2>
         {grouped.length === 0 ? (
