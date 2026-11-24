@@ -3,12 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import { requireRole } from '@/lib/auth'
-import { bogotaMonthStart } from '@/lib/companies/period'
+import { bogotaMonthStart, periodLabel } from '@/lib/companies/period'
 import { companyDisplayName } from '@/lib/companies/vocabulary'
 import { isUuid } from '@/lib/dashboard/active-store'
+import { formatCOP } from '@/lib/format'
+import { formatDateCO } from '@/lib/format-date'
 import { logger } from '@/lib/log/logger'
+import {
+  companyStatementNotification,
+  fromPush,
+} from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { companyReviewMessage } from '@/lib/push/messages'
-import { sendPushToUsers } from '@/lib/push/send'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   companyApprovalSchema,
@@ -34,21 +40,42 @@ function firstMessage(error: { issues: { message: string }[] }): string {
   return error.issues[0]?.message ?? 'Datos inválidos.'
 }
 
-async function notifyAdmins(
-  admin: ReturnType<typeof createAdminClient>,
+function notifyAdmins(
   companyId: string,
   status: 'active' | 'suspended',
   companyName: string,
 ) {
-  const { data } = await admin
-    .from('company_members')
-    .select('user_id')
-    .eq('company_id', companyId)
-    .eq('role', 'admin')
-    .eq('active', true)
-  const ids = (data ?? []).map((row) => row.user_id)
-  if (ids.length > 0)
-    after(() => sendPushToUsers(ids, companyReviewMessage(status, companyName)))
+  after(() =>
+    notify(
+      { companyAdmins: companyId },
+      fromPush('company_reviewed', companyReviewMessage(status, companyName)),
+    ),
+  )
+}
+
+/** Tells each billed company's admins that its statement is out. */
+async function notifyNewStatements(period: string, since: string) {
+  const { data, error } = await createAdminClient()
+    .from('company_statements')
+    .select('company_id, total, due_on')
+    .eq('period', period)
+    .gte('created_at', since)
+  if (error) {
+    logger.error('company_statements.notify_load_failed', { period }, error)
+    return
+  }
+  await Promise.all(
+    (data ?? []).map((statement) =>
+      notify(
+        { companyAdmins: statement.company_id },
+        companyStatementNotification({
+          periodLabel: periodLabel(period),
+          amountLabel: formatCOP(Number(statement.total)),
+          dueLabel: formatDateCO(new Date(`${statement.due_on}T12:00:00`)),
+        }),
+      ),
+    ),
+  )
 }
 
 /**
@@ -98,7 +125,7 @@ export async function approveCompany(
     companyId: row.id,
     creditLimit: values.creditLimit,
   })
-  await notifyAdmins(admin, row.id, 'active', companyDisplayName(row))
+  notifyAdmins(row.id, 'active', companyDisplayName(row))
   revalidatePath('/admin/companies')
   return { ok: true }
 }
@@ -170,7 +197,7 @@ export async function suspendCompany(
   const row = data?.[0]
   if (!row) return { ok: false, error: 'Solo se suspende una empresa activa.' }
 
-  await notifyAdmins(admin, row.id, 'suspended', companyDisplayName(row))
+  notifyAdmins(row.id, 'suspended', companyDisplayName(row))
   revalidatePath('/admin/companies')
   return { ok: true }
 }
@@ -198,6 +225,9 @@ export async function generateCompanyStatements(
 
   await requireRole(['admin'])
   const admin = createAdminClient()
+  // Statements written by this run are the ones created from now on: a
+  // second run for the same month notifies nobody twice.
+  const startedAt = new Date().toISOString()
   const { data, error } = await admin.rpc('generate_company_statements', {
     p_period: parsed.data,
   })
@@ -223,6 +253,8 @@ export async function generateCompanyStatements(
   })
   revalidatePath('/admin/companies/statements')
   revalidatePath('/empresa/estados-de-cuenta')
+  if (Number(row.statements_created) > 0)
+    after(() => notifyNewStatements(parsed.data, startedAt))
   return {
     ok: true,
     created: Number(row.statements_created),

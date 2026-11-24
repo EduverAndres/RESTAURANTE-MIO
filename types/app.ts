@@ -48,6 +48,7 @@ export type Payout = Tables<'payouts'>
 export type PaymentEvent = Tables<'payment_events'>
 export type Refund = Tables<'refunds'>
 export type PushSubscriptionRow = Tables<'push_subscriptions'>
+export type NotificationRow = Tables<'notifications'>
 export type AdPlacementRow = Tables<'ad_placements'>
 export type AdCampaignRow = Tables<'ad_campaigns'>
 export type AdCampaignPauseRow = Tables<'ad_campaign_pauses'>

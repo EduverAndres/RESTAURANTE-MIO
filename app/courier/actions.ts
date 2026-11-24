@@ -18,6 +18,8 @@ import {
 import { isUuid } from '@/lib/dashboard/active-store'
 import { latLngOf, type LatLng } from '@/lib/geo'
 import { logger } from '@/lib/log/logger'
+import { courierSubmittedNotification } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { canCourierTransition } from '@/lib/orders/status'
 import {
   courierAssignedMessage,
@@ -520,5 +522,24 @@ export async function saveCourierProfile(
   revalidatePath('/courier')
   revalidatePath('/courier/perfil')
   revalidatePath('/admin/domiciliarios')
+  // A first profile, or an approved courier whose identity changed, waits for
+  // an admin. Edits to a profile already waiting do not ring again.
+  if (!previous || backToReview) {
+    const userId = user.id
+    after(async () => {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle()
+      await notify(
+        { admins: true },
+        courierSubmittedNotification({
+          courierName: profile?.full_name?.trim() || 'Un domiciliario',
+          again: backToReview,
+        }),
+      )
+    })
+  }
   return { ok: true, status }
 }

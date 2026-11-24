@@ -145,6 +145,31 @@ describe('reservation messages', () => {
       reservationCancelledMessage({ partySize: 1, when: 'hoy' }).body,
     ).toContain('1 persona')
   })
+
+  it('never ends a time in "p. m.." (the bell keeps these texts)', () => {
+    const when = 'vie, 27 nov, 7:30 p. m.'
+    const bodies = [
+      newReservationMessage({ partySize: 2, when, storeName: 'La Parrilla' })
+        .body,
+      reservationStatusMessage('confirmed', {
+        id: 'r1',
+        storeName: 'La Parrilla',
+        when,
+        reason: null,
+      }).body,
+      reservationStatusMessage('cancelled', {
+        id: 'r1',
+        storeName: 'La Parrilla',
+        when,
+        reason: null,
+      }).body,
+      reservationCancelledMessage({ partySize: 2, when }).body,
+    ]
+    for (const body of bodies) expect(body).not.toContain('..')
+    expect(
+      reservationCancelledMessage({ partySize: 2, when: 'hoy' }).body,
+    ).toBe('Se liberó la mesa de 2 personas para hoy.')
+  })
 })
 
 describe('companyReviewMessage', () => {

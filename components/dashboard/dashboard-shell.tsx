@@ -37,6 +37,7 @@ import {
 } from '@/components/dashboard/store-switcher'
 import { ReservationsLive } from '@/components/dashboard/reservations/reservations-live'
 import { initialsOf } from '@/lib/format'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { PushToggle } from '@/components/notifications/push-toggle'
 import { SoundToggle } from '@/components/notifications/sound-toggle'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
@@ -99,7 +100,7 @@ const SHELL_TITLES = {
 interface DashboardShellProps {
   variant: 'merchant' | 'admin'
   appName: string
-  user: { name: string; email: string; role: UserRole }
+  user: { id: string; name: string; email: string; role: UserRole }
   /** Merchant variant only: stores the owner can switch between. */
   stores?: StoreSwitcherStore[]
   activeStoreId?: string
@@ -112,6 +113,9 @@ interface DashboardShellProps {
   reservations?: { included: boolean; pending: number }
   children: React.ReactNode
 }
+
+/** The panel's reservations listener already rings and toasts these. */
+const RESERVATION_KINDS = ['reservation_new', 'reservation_cancelled'] as const
 
 /** The merchant items, with the reservations entry's pill filled in. */
 function merchantItems(
@@ -365,6 +369,14 @@ export function DashboardShell({
             </span>
             <PushToggle enabled={pushEnabled} className="hidden lg:flex" />
             <SoundToggle compact className="hidden lg:flex" />
+            <NotificationBell
+              userId={user.id}
+              quietKinds={
+                variant === 'merchant' && reservations?.included
+                  ? RESERVATION_KINDS
+                  : undefined
+              }
+            />
             <ThemeToggle />
           </div>
         </header>

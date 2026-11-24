@@ -2,8 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
+import { after } from 'next/server'
 import { ACTIVE_STORE_COOKIE, isUuid } from '@/lib/dashboard/active-store'
 import { secureCookieFlag } from '@/lib/http/secure-cookie'
+import { storeRegisteredNotification } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { isValidSlug } from '@/lib/slug'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -134,6 +137,11 @@ export async function createStore(
     maxAge: ONE_YEAR_SECONDS,
   })
   revalidateStorePages()
+  revalidatePath('/admin/stores')
+  const storeName = parsed.data.name
+  after(() =>
+    notify({ admins: true }, storeRegisteredNotification({ storeName })),
+  )
   return { ok: true, storeId: data.id, slug: data.slug }
 }
 
