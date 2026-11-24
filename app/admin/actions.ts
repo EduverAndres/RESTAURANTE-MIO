@@ -110,7 +110,7 @@ export async function setStoreStatus(
   revalidatePath('/')
   if (store) {
     const storeStatus = parsed.data
-    after(() =>
+    after(
       notify(
         { storeOwner: storeId },
         storeReviewedNotification({
@@ -406,7 +406,7 @@ export async function markPayoutPaid(
   revalidatePath('/admin/payouts')
   revalidatePath('/dashboard/payouts')
   const paid = data[0]
-  after(() => notifyPayout('paid', paid))
+  after(notifyPayout('paid', paid))
   return { ok: true }
 }
 
@@ -583,7 +583,7 @@ export async function setCourierStatus(
     return { ok: false, error: GENERIC_ERROR }
   }
 
-  after(() =>
+  after(
     notify(
       { userIds: [userId] },
       fromPush('courier_reviewed', courierReviewMessage(status, note)),
@@ -713,7 +713,7 @@ export async function markCourierPayoutPaid(
   revalidatePath('/admin/domiciliarios/liquidaciones')
   revalidatePath('/courier/ganancias')
   const paid = data[0]
-  after(() =>
+  after(
     notify(
       { userIds: [paid.courier_id] },
       courierPayoutNotification({
@@ -753,7 +753,7 @@ export async function recordCourierLedgerEntry(
   revalidatePath('/admin/domiciliarios')
   revalidatePath('/courier/ganancias')
   if (kind === 'deposit') {
-    after(() =>
+    after(
       notify(
         { userIds: [courierId] },
         courierPayoutNotification({

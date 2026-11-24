@@ -46,3 +46,54 @@ export function createDebouncer(waitMs: number): Debouncer {
     },
   }
 }
+
+/**
+ * Runs the first call at once, then folds every call made within `waitMs`
+ * into one more run when the window closes.
+ *
+ * For the screen refresh after a realtime event: the trailing debouncer above
+ * made every change wait `waitMs` before the screen even started to update.
+ * This one starts it immediately, and a burst (two UPDATEs from one action)
+ * still costs at most one extra round trip, which picks up the later write.
+ */
+export function createLeadingDebouncer(waitMs: number): Debouncer {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let pending: (() => void) | null = null
+
+  const close = () => {
+    const run = pending
+    pending = null
+    if (run) {
+      // The trailing run opens a window of its own, so a steady stream of
+      // events refreshes at most once per `waitMs`.
+      run()
+      timer = setTimeout(close, waitMs)
+    } else {
+      timer = null
+    }
+  }
+
+  return {
+    schedule(run) {
+      if (timer === null) {
+        run()
+        timer = setTimeout(close, waitMs)
+      } else {
+        pending = run
+      }
+    },
+    flush() {
+      if (timer === null) return
+      clearTimeout(timer)
+      timer = null
+      const run = pending
+      pending = null
+      run?.()
+    },
+    cancel() {
+      if (timer !== null) clearTimeout(timer)
+      timer = null
+      pending = null
+    },
+  }
+}

@@ -168,7 +168,7 @@ export async function actOnReservation(
         when: formatReservationWhen(row.starts_at),
         reason,
       })
-      after(() =>
+      after(
         notify(
           { userIds: [row.customer_id] },
           fromPush('reservation_updated', message),
