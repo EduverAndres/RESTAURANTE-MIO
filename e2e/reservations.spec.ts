@@ -73,6 +73,11 @@ test('a customer books, the restaurant confirms, the customer cancels', async ({
   await owner.getByRole('button', { name: 'Confirmar' }).first().click()
   await expect(owner.getByText('Reserva confirmada').first()).toBeVisible()
 
+  // The card the customer was left on follows the answer, without a reload.
+  await expect(
+    customer.getByRole('heading', { name: '¡Mesa confirmada!' }),
+  ).toBeVisible()
+
   // 3. The customer sees it confirmed, then cancels it.
   await customer.goto('/account/reservas')
   await expect(customer.getByText('Confirmada').first()).toBeVisible()
@@ -83,6 +88,53 @@ test('a customer books, the restaurant confirms, the customer cancels', async ({
     .click()
   await customer.getByRole('button', { name: 'Sí, cancelar' }).click()
   await expect(customer.getByText('Reserva cancelada').first()).toBeVisible()
+})
+
+test('the restaurant cancels and the customer’s card says so at once', async ({
+  browser,
+}) => {
+  const customer = await as(browser, 'customer')
+  await customer.goto(`/t/${STORE}/reservar`)
+  await customer.getByRole('radio', { name: /Mañana/ }).click()
+  await customer
+    .locator('[role="radiogroup"][aria-label] [role="radio"]:not([disabled])')
+    .first()
+    .click()
+  if (!(await customer.getByLabel('Nombre').inputValue()))
+    await customer.getByLabel('Nombre').fill('Cliente de prueba')
+  if (!(await customer.getByLabel('Celular').inputValue()))
+    await customer.getByLabel('Celular').fill('3001234567')
+  await customer.getByRole('button', { name: 'Reservar', exact: true }).click()
+  await expect(
+    customer.getByRole('heading', { name: 'Solicitud enviada' }),
+  ).toBeVisible()
+  const code = (await customer.locator('section .font-mono').textContent())!
+
+  // The restaurant confirms it, then has to cancel it.
+  const owner = await as(browser, 'merchant')
+  await owner.goto('/dashboard/reservas')
+  const card = owner.locator('article').filter({ hasText: code })
+  await card.getByRole('button', { name: 'Confirmar' }).click()
+  await expect(
+    customer.getByRole('heading', { name: '¡Mesa confirmada!' }),
+  ).toBeVisible()
+  await card.getByRole('button', { name: 'Cancelar', exact: true }).click()
+  await owner.getByLabel('Motivo').fill('Cierre por mantenimiento')
+  await owner.getByRole('button', { name: 'Cancelar reserva' }).click()
+  await expect(owner.getByText('Reserva cancelada').first()).toBeVisible()
+
+  // The customer, still on the booking page, sees why and can pick again.
+  await expect(
+    customer.getByRole('heading', { name: 'Reserva cancelada' }),
+  ).toBeVisible()
+  await expect(
+    customer.getByText(/Motivo: Cierre por mantenimiento\./),
+  ).toBeVisible()
+  await expectNoA11yViolations(customer, 'booking card · cancelled')
+  await customer.getByRole('button', { name: 'Elegir otra hora' }).click()
+  await expect(
+    customer.getByRole('heading', { name: '¿A qué hora?' }),
+  ).toBeFocused()
 })
 
 test('the directory lists the restaurants that take reservations', async ({

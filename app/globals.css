@@ -742,6 +742,15 @@ body:has([data-store-theme]) [data-site-header] {
   background-color: var(--background);
 }
 
+/* A page dressed by StoreThemeScope fills the space under the site header
+   (the layout's <main> is flex-1), and its footer, `mt-auto`, sits at the
+   bottom. With a full-viewport minimum instead, a short page (the booking
+   card) left the footer mid-screen with the restaurant's background below. */
+main:has(> [data-store-page]) {
+  display: flex;
+  flex-direction: column;
+}
+
 [data-contrast='high'] [data-store-theme] [data-store-ui] {
   --border: color-mix(in oklch, var(--store-text) 55%, transparent);
   --input: color-mix(in oklch, var(--store-text) 70%, transparent);
