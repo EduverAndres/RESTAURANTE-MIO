@@ -104,6 +104,12 @@ export const REFUND_REJECTION_MESSAGES: Record<RefundRejection, string> = {
  */
 export function isRefundable(order: RefundableOrder): boolean {
   if (order.payment_status === 'refunded') return false
+  // A company account is billed on the monthly statement only once the order
+  // is delivered. Before that, cancelling is what gives the credit back (and
+  // writes nothing); after it, a refund is a credit (abono) on the next
+  // statement. A cancelled corporate order has nothing to refund.
+  if (order.payment_method === 'corporate')
+    return order.payment_status === 'paid' && order.status === 'delivered'
   if (order.payment_status === 'paid') return true
   return order.payment_method === 'cash' && order.status === 'delivered'
 }

@@ -18,12 +18,15 @@ const PUBLIC_PAGES: Record<string, string> = {
   '/para-restaurantes': 'marketing',
   '/repartidores': 'marketing; courier recruitment, reads no private data',
   '/reservas': 'reservation directory: active stores that take bookings',
+  '/empresas':
+    'marketing; company accounts landing, reads no private data (the panel is /empresa, gated)',
   '/cookies': 'legal document',
   '/legal': 'legal index',
   '/privacidad': 'legal document',
   '/proteccion-al-consumidor': 'legal document',
   '/terminos': 'legal document',
   '/terminos-aliados': 'legal document',
+  '/terminos-empresas': 'legal document',
   '/login': 'auth form',
   '/register': 'auth form',
   '/forgot-password': 'auth form',
@@ -49,6 +52,8 @@ const SELF_GUARDED_PAGES: Record<string, RegExp> = {
 
 /** Route handlers and how each one authenticates its caller. */
 const ROUTE_HANDLERS: Record<string, string> = {
+  '/api/ads/click/[campaignId]':
+    'public sponsored-click redirect; counts via record_ad_click (service role), skips bots, rate-limited per address; returns no data',
   '/api/health': 'public liveness probe; returns no data',
   '/api/webhooks/wompi': 'Wompi event signature (checksum) verified',
   '/api/webhooks/mercadopago': 'Mercado Pago x-signature verified',

@@ -106,6 +106,10 @@ describe('rewriteForStore', () => {
     '/para-restaurantes',
     '/repartidores',
     '/reservas',
+    '/empresas',
+    '/empresa',
+    '/empresa/unirse/abc',
+    '/terminos-empresas',
   ])('leaves %s untouched', (pathname) => {
     expect(rewriteForStore(pathname, slug)).toBe(pathname)
   })

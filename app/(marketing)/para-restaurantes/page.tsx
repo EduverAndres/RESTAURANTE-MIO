@@ -12,7 +12,10 @@ import { SavingsCalculator } from '@/components/marketing/savings-calculator'
 import { Reveal } from '@/components/motion/reveal'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/env'
-import { fetchDemoStoreSlug } from '@/lib/marketing/public-data'
+import {
+  fetchAdPlacements,
+  fetchDemoStoreSlug,
+} from '@/lib/marketing/public-data'
 import { BASE_COMMISSION_PCT } from '@/lib/plans'
 
 export const metadata: Metadata = {
@@ -47,13 +50,16 @@ const STEPS = [
 ] as const
 
 export default async function OwnerLandingPage() {
-  const demoSlug = await fetchDemoStoreSlug()
+  const [demoSlug, adPlacements] = await Promise.all([
+    fetchDemoStoreSlug(),
+    fetchAdPlacements(),
+  ])
 
   return (
     <>
       <ForRestaurants standalone demoSlug={demoSlug} />
 
-      <MerchantFeatures />
+      <MerchantFeatures adPlacements={adPlacements} />
 
       <section
         id="calculadora"

@@ -3,6 +3,13 @@ import Link from 'next/link'
 import { StoreCard, type StoreCardData } from '@/components/store/store-card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  pinSponsored,
+  type SponsoredItem,
+  type Sponsorship,
+} from '@/lib/ads/placement'
+import { fetchSponsorships } from '@/lib/ads/server'
+import type { AdPlacement } from '@/lib/ads/vocabulary'
 import { estimateEtaMinutes } from '@/lib/geo'
 import { bogotaDate } from '@/lib/plans'
 import {
@@ -115,6 +122,55 @@ export async function fetchStores(
   }))
 }
 
+/** The campaigns on the air for `placement` (see lib/ads/server.ts). */
+export async function fetchSponsored(
+  placement: AdPlacement,
+): Promise<Sponsorship[]> {
+  return fetchSponsorships(await createClient(), placement)
+}
+
+/**
+ * `stores` plus the cards of sponsored stores it does not include. The
+ * visitor's list is capped (24 by rating, or a radius around them), and a
+ * campaign must not disappear because its store fell outside that cap: the
+ * merchant paid for the place. Any failure just leaves the list as it was.
+ */
+export async function withSponsoredStores(
+  stores: StoreCardData[],
+  sponsorships: readonly Sponsorship[],
+): Promise<StoreCardData[]> {
+  const present = new Set(stores.map((store) => store.id))
+  const missing = [
+    ...new Set(
+      sponsorships
+        .map((sponsorship) => sponsorship.storeId)
+        .filter((id) => !present.has(id)),
+    ),
+  ]
+  if (missing.length === 0) return stores
+  try {
+    const supabase = await createClient()
+    const [{ data, error }, favorites] = await Promise.all([
+      supabase
+        .from('stores')
+        .select(STORE_CARD_COLUMNS)
+        .eq('status', 'active')
+        .in('id', missing),
+      readFavoriteIds(),
+    ])
+    if (error || !data) return stores
+    return [
+      ...stores,
+      ...data.map((store) => ({
+        ...store,
+        is_favorite: favorites.has(store.id),
+      })),
+    ]
+  } catch {
+    return stores
+  }
+}
+
 export function categoriesOf(
   stores: StoreCardData[],
 ): { name: string; count: number }[] {
@@ -131,14 +187,24 @@ export function categoriesOf(
 interface StoreGridProps {
   stores: StoreCardData[]
   category: string | null
+  /**
+   * The category's top slot (`category_top` campaigns for this category),
+   * pinned above the grid with their "Patrocinado" label.
+   */
+  sponsored?: SponsoredItem<StoreCardData>[]
 }
 
-export function StoreGrid({ stores, category }: StoreGridProps) {
-  const visible = category
+export function StoreGrid({
+  stores,
+  category,
+  sponsored = [],
+}: StoreGridProps) {
+  const matching = category
     ? stores.filter(
         (store) => store.category?.toLowerCase() === category.toLowerCase(),
       )
     : stores
+  const visible = category ? pinSponsored(matching, sponsored) : matching
 
   if (visible.length === 0) {
     return (

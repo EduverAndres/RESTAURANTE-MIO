@@ -1,4 +1,9 @@
-import { ArrowRightIcon, BikeIcon, CalendarCheckIcon } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  BikeIcon,
+  Building2Icon,
+  CalendarCheckIcon,
+} from 'lucide-react'
 import Link from 'next/link'
 import { AddressPicker } from '@/components/home/address-picker'
 import { SearchBox } from '@/components/home/search-box'
@@ -17,7 +22,9 @@ import type { VisitorLocation } from '@/lib/location'
  * The search card keeps the field first — someone who arrives knowing what
  * they want should not scroll past an advert for the product they are already
  * using. Its header is the intent bar: ordering is what the card does,
- * booking is one tap away. Owners and couriers get their way in from the
+ * booking and ordering for a company are one tap away (the third intent
+ * drops to its own row wherever the card is too narrow for three labels:
+ * a phone, and the two-column hero between `lg` and `xl`). Owners and couriers get their way in from the
  * header, the audience switcher and the footer; the first screen is the
  * customer's.
  *
@@ -47,7 +54,7 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
 
           <div className="rounded-card bg-card shadow-2 max-w-xl space-y-3 p-3 sm:p-4">
             <nav aria-label="¿Qué quieres hacer?">
-              <ul className="bg-muted rounded-pill grid grid-cols-2 gap-1 p-1">
+              <ul className="bg-muted sm:rounded-pill xl:rounded-pill grid grid-cols-2 gap-1 rounded-[1.625rem] p-1 sm:grid-cols-[1fr_1fr_1.4fr] lg:grid-cols-2 lg:rounded-[1.625rem] xl:grid-cols-[1fr_1fr_1.4fr]">
                 <li>
                   <Link
                     href="#restaurantes"
@@ -71,6 +78,18 @@ export function HomeHero({ location }: { location: VisitorLocation | null }) {
                       className="size-4 max-[359px]:hidden"
                     />
                     Reservar mesa
+                  </Link>
+                </li>
+                <li className="col-span-2 sm:col-span-1 lg:col-span-2 xl:col-span-1">
+                  <Link
+                    href="/empresas"
+                    className="rounded-pill text-foreground/75 hover:text-foreground hover:bg-background/60 flex h-11 items-center justify-center gap-2 px-2 text-sm font-medium transition-colors sm:px-3"
+                  >
+                    <Building2Icon
+                      aria-hidden="true"
+                      className="size-4 max-[359px]:hidden"
+                    />
+                    Pedir para mi empresa
                   </Link>
                 </li>
               </ul>

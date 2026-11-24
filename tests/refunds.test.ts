@@ -218,6 +218,25 @@ describe('isRefundable', () => {
     ).toBe(false)
   })
 
+  it('a corporate order is refunded only after delivery: before, cancelling frees the credit', () => {
+    const corporate = {
+      payment_status: 'paid',
+      payment_method: 'corporate',
+    } as const
+    expect(isRefundable({ ...corporate, status: 'delivered' })).toBe(true)
+    // Cancelled: nothing was ever charged to the company, the cancellation
+    // already gave the credit back.
+    expect(isRefundable({ ...corporate, status: 'cancelled' })).toBe(false)
+    expect(isRefundable({ ...corporate, status: 'preparing' })).toBe(false)
+    expect(
+      isRefundable({
+        payment_status: 'pending',
+        payment_method: 'corporate',
+        status: 'delivered',
+      }),
+    ).toBe(false)
+  })
+
   it('matches the payout eligibility rule it mirrors', () => {
     // An order the merchant is settled for is exactly an order that can be
     // reversed; if these two ever disagree, money is counted twice.
@@ -250,6 +269,18 @@ describe('canRecordRefund', () => {
   it('keeps it for an order paid online', () => {
     expect(canRecordRefund(paidOnline, 'merchant')).toBe(true)
     expect(canRecordRefund(paidOnline, 'admin')).toBe(true)
+  })
+
+  it('lets the merchant credit a delivered corporate order (an abono for the company)', () => {
+    const corporate = {
+      status: 'delivered',
+      payment_status: 'paid',
+      payment_method: 'corporate',
+    } as const
+    expect(canRecordRefund(corporate, 'merchant')).toBe(true)
+    expect(
+      canRecordRefund({ ...corporate, status: 'cancelled' }, 'admin'),
+    ).toBe(false)
   })
 
   it('never offers what isRefundable refuses', () => {

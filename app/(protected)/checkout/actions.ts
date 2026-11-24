@@ -1,6 +1,12 @@
 'use server'
 
 import { after } from 'next/server'
+import {
+  fetchMyCorporateBudget,
+  precheckCorporateCharge,
+  type CorporateBudget,
+} from '@/lib/companies/server'
+import { CORPORATE_REJECTION_MESSAGES } from '@/lib/companies/vocabulary'
 import { estimateEtaMinutes, haversineKm, isWithinRadius } from '@/lib/geo'
 import {
   buildOrderTotals,
@@ -210,6 +216,19 @@ export async function placeOrder(
   if (!user)
     return { ok: false, error: 'Tu sesión expiró. Inicia sesión de nuevo.' }
 
+  // A company account pays only for an active member of a company: read
+  // their membership with their own session before anything is priced.
+  let corporate: CorporateBudget | null = null
+  if (values.paymentMethod === 'corporate') {
+    corporate = await fetchMyCorporateBudget(supabase)
+    if (!corporate)
+      return {
+        ok: false,
+        error: CORPORATE_REJECTION_MESSAGES.member_inactive,
+        field: 'paymentMethod',
+      }
+  }
+
   const store = await getCheckoutStore(values.storeId)
   if (!store)
     return { ok: false, error: 'Este restaurante ya no está disponible.' }
@@ -291,6 +310,7 @@ export async function placeOrder(
     subtotal: totals.subtotal,
     couponCode: values.couponCode,
     useReward: values.useReward,
+    corporate: corporate !== null,
   })
   if (!discounts.ok) return discounts
 
@@ -301,6 +321,24 @@ export async function placeOrder(
       error: 'Ese método de pago no está disponible.',
       field: 'paymentMethod',
     }
+
+  // The same limits the database checks on the charge, in the same order, so
+  // the employee hears "over your budget" before an order exists. The
+  // authorisation below decides again, under a lock.
+  if (corporate) {
+    const decision = precheckCorporateCharge(corporate, {
+      total:
+        totals.total - discounts.merchantDiscount - discounts.platformDiscount,
+      subtotal: totals.subtotal,
+      tip: totals.tip,
+    })
+    if (!decision.ok)
+      return {
+        ok: false,
+        error: CORPORATE_REJECTION_MESSAGES[decision.reason],
+        field: 'paymentMethod',
+      }
+  }
 
   const etaMinutes = estimateEtaMinutes({
     distanceKm,
@@ -331,6 +369,13 @@ export async function placeOrder(
       payment_status: 'pending',
       notes: values.notes || null,
       estimated_at: estimatedAt.toISOString(),
+      ...(corporate
+        ? {
+            company_id: corporate.companyId,
+            company_member_id: corporate.memberId,
+            corporate_reference: values.corporateReference || null,
+          }
+        : {}),
     })
     .select('id, short_code')
     .single()

@@ -6,11 +6,97 @@ import { PaymentMark } from './payment-mark'
 import type { CheckoutController } from './use-checkout'
 import { WompiTrust } from '@/components/payments/wompi-trust'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { formatCOP } from '@/lib/format'
 import { TIP_PRESETS, computeTip } from '@/lib/pricing'
 import { cn } from '@/lib/utils'
+
+/**
+ * "Cuenta de empresa — X": only for an active member of a company, so it is
+ * not in the list every customer gets. Shows what is left to spend, and once
+ * chosen asks what the order is for (the company sees it on its statement).
+ * When the company cannot pay today the card stays visible, disabled, with
+ * the reason, so nobody wonders where their company went.
+ */
+function CorporateOption({ checkout }: { checkout: CheckoutController }) {
+  const option = checkout.corporateOption
+  if (!option) return null
+  const checked = checkout.paymentMethod === 'corporate'
+  const title = `Cuenta de empresa — ${option.companyName}`
+
+  if (option.blocked) {
+    return (
+      <div
+        role="radio"
+        aria-checked={false}
+        aria-disabled="true"
+        className="rounded-card border-border bg-muted/40 flex min-h-14 w-full items-center gap-3 border border-dashed p-3"
+      >
+        <PaymentMark method="corporate" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium">{title}</span>
+          <span className="text-muted-foreground block text-xs">
+            {option.blocked}
+          </span>
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <OptionCard
+        checked={checked}
+        onSelect={() => checkout.setPaymentMethod('corporate')}
+        leading={<PaymentMark method="corporate" />}
+        title={title}
+        hint={`Disponible: ${formatCOP(option.available)}${
+          option.perOrderLimit !== null
+            ? ` · tope por pedido ${formatCOP(option.perOrderLimit)}`
+            : ''
+        }`}
+      />
+      {checked ? (
+        <div className="rounded-card bg-primary/6 space-y-1.5 p-3">
+          <Label
+            htmlFor="corporate-reference"
+            className="text-sm font-semibold"
+          >
+            Motivo o centro de costo{' '}
+            <span className="text-muted-foreground font-normal">
+              (opcional)
+            </span>
+          </Label>
+          <Input
+            id="corporate-reference"
+            value={checkout.corporateReference}
+            maxLength={80}
+            onChange={(event) =>
+              checkout.setCorporateReference(event.target.value)
+            }
+            placeholder="Almuerzo de equipo, CC-102…"
+            className="rounded-control bg-card h-11"
+            aria-describedby="corporate-reference-hint"
+          />
+          <p
+            id="corporate-reference-hint"
+            className="text-muted-foreground text-xs text-pretty"
+          >
+            Aparece en el estado de cuenta de tu empresa. Lo paga tu empresa: el
+            premio de sellos y los créditos por invitación no aplican.
+          </p>
+          {checkout.corporateIssue ? (
+            <p role="alert" className="text-destructive text-xs font-medium">
+              {checkout.corporateIssue}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </>
+  )
+}
 
 function TipSelector({ checkout }: { checkout: CheckoutController }) {
   const beneficiary =
@@ -106,6 +192,7 @@ export function PaymentStep({
             hint={option.description}
           />
         ))}
+        <CorporateOption checkout={checkout} />
       </div>
 
       {checkout.paymentOptions.some((option) => option.method === 'wompi') ? (

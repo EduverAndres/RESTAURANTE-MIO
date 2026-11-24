@@ -60,6 +60,7 @@ describe('summarizePayouts', () => {
         commission: 1800,
         cash_collected: 0,
         plan_fee: 0,
+        ads_fee: 0,
         delivery_and_tips: 0,
         carried_in: 0,
         net: 28200,
@@ -72,6 +73,7 @@ describe('summarizePayouts', () => {
         commission: 300,
         cash_collected: 0,
         plan_fee: 0,
+        ads_fee: 0,
         delivery_and_tips: 0,
         carried_in: 0,
         net: 4700,
@@ -116,6 +118,7 @@ describe('summarizePayouts', () => {
         commission: 480,
         cash_collected: 0,
         plan_fee: 0,
+        ads_fee: 0,
         delivery_and_tips: 0,
         carried_in: 0,
         net: 7520,
@@ -263,6 +266,7 @@ describe('plan fees', () => {
         commission: 0,
         cash_collected: 0,
         plan_fee: 30310,
+        ads_fee: 0,
         delivery_and_tips: 0,
         carried_in: 0,
         net: -30310,
@@ -282,6 +286,50 @@ describe('plan fees', () => {
     )
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ plan_fee: 11643, net: 10000 - 600 - 11643 })
+  })
+})
+
+describe('ads fees', () => {
+  it('produce a row, and a debt, for a store that sold nothing', () => {
+    const [row] = summarizePayouts(
+      [],
+      PERIOD,
+      [],
+      [],
+      [],
+      [{ store_id: 'store-9', ads_fee: 45000 }],
+    )
+    expect(row).toMatchObject({
+      store_id: 'store-9',
+      ads_fee: 45000,
+      plan_fee: 0,
+      net: -45000,
+    })
+  })
+
+  it('come out of the net next to the plan fee, and a carry lands on that row', () => {
+    const [row] = summarizePayouts(
+      [order({})],
+      PERIOD,
+      [],
+      [{ store_id: 'store-1', plan_fee: 11643 }],
+      [{ store_id: 'store-1', carried_in: -2000 }],
+      [
+        { store_id: 'store-1', ads_fee: 30000 },
+        { store_id: 'store-2', ads_fee: 0 },
+      ],
+    )
+    expect(row).toMatchObject({
+      ads_fee: 30000,
+      carried_in: -2000,
+      net: 10000 - 600 - 11643 - 30000 - 2000,
+    })
+  })
+
+  it('never creates a row from a zero fee', () => {
+    expect(
+      summarizePayouts([], PERIOD, [], [], [], [{ store_id: 's', ads_fee: 0 }]),
+    ).toEqual([])
   })
 })
 

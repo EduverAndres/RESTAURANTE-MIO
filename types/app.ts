@@ -36,12 +36,22 @@ export type CourierPayout = Tables<'courier_payouts'>
 export type Review = Tables<'reviews'>
 export type ReservationRow = Tables<'reservations'>
 export type ReservationSettingsRow = Tables<'reservation_settings'>
+export type CompanyRow = Tables<'companies'>
+export type CompanyMemberRow = Tables<'company_members'>
+export type CompanyInvitationRow = Tables<'company_invitations'>
+export type CompanyStatementRow = Tables<'company_statements'>
+export type CompanyStatementLineRow = Tables<'company_statement_lines'>
+export type OrderCorporateBillingRow = Tables<'order_corporate_billing'>
 export type Favorite = Tables<'favorites'>
 export type StoreTable = Tables<'store_tables'>
 export type Payout = Tables<'payouts'>
 export type PaymentEvent = Tables<'payment_events'>
 export type Refund = Tables<'refunds'>
 export type PushSubscriptionRow = Tables<'push_subscriptions'>
+export type AdPlacementRow = Tables<'ad_placements'>
+export type AdCampaignRow = Tables<'ad_campaigns'>
+export type AdCampaignPauseRow = Tables<'ad_campaign_pauses'>
+export type AdDailyStatRow = Tables<'ad_daily_stats'>
 
 // ---------------------------------------------------------------------------
 // Inserts / updates
@@ -72,6 +82,8 @@ export type StoresNearbyArgs =
   Database['public']['Functions']['stores_nearby']['Args']
 export type NearbyStore =
   Database['public']['Functions']['stores_nearby']['Returns'][number]
+export type SponsoredStoreRow =
+  Database['public']['Functions']['sponsored_stores']['Returns'][number]
 
 // ---------------------------------------------------------------------------
 // JSON column shapes

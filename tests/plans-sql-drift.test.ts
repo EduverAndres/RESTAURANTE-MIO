@@ -21,6 +21,7 @@ const METHODS: readonly PaymentMethod[] = [
   'wompi',
   'mercadopago',
   'mock',
+  'corporate',
 ]
 // Before, on and after the founder's last day, read in Bogotá.
 const PLACED_AT = [

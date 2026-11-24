@@ -66,11 +66,16 @@ export function LegalDocument({
   title,
   intro,
   sections,
+  version = LEGAL_VERSION,
+  updatedAt = LEGAL_UPDATED_AT,
 }: {
   documentKey: LegalDocumentKey
   title: string
   intro: React.ReactNode
   sections: LegalSection[]
+  /** A document versioned on its own (the Términos para Empresas). */
+  version?: string
+  updatedAt?: string
 }) {
   return (
     <>
@@ -90,7 +95,7 @@ export function LegalDocument({
             {title}
           </h1>
           <p className="text-muted-foreground mt-3 text-sm">
-            Última actualización: {LEGAL_UPDATED_AT} · Versión {LEGAL_VERSION}
+            Última actualización: {updatedAt} · Versión {version}
           </p>
         </div>
       </div>

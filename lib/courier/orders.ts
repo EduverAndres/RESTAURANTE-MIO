@@ -36,6 +36,8 @@ export interface CourierOrderSummary {
   earnings: number
   /** What to collect from the customer on a cash order; null when paid online. */
   cashToCollect: number | null
+  /** Paid with a company account: nothing to collect either. */
+  corporate: boolean
   storeName: string
   addressLine: string | null
   /** Store to customer straight-line distance; null when coordinates are missing. */
@@ -64,6 +66,7 @@ export function toCourierOrderSummary(
     deliveryFee: Number(row.delivery_fee),
     earnings: Number(row.delivery_fee) + Number(row.tip),
     cashToCollect: row.payment_method === 'cash' ? Number(row.total) : null,
+    corporate: row.payment_method === 'corporate',
     storeName: row.stores?.name ?? 'Tienda',
     addressLine: formatAddressLine(address),
     distanceKm: store && customer ? haversineKm(store, customer) : null,

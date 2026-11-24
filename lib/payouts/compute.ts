@@ -8,16 +8,18 @@
 // fee and tip, so they are passed through here (`delivery_and_tips`).
 //
 // What the platform transfers is not the whole sale. Cash the merchant took
-// in person is already in their till, the plan's monthly fee is charged here
-// too, and an unpaid debt from an earlier period is carried in, so
+// in person is already in their till, the plan's monthly fee and the days of
+// sponsored placement (lib/ads/billing.ts) are charged here too, and an
+// unpaid debt from an earlier period is carried in, so
 //
-//   net = gross - commission - cash_collected - plan_fee
+//   net = gross - commission - cash_collected - plan_fee - ads_fee
 //         + delivery_and_tips + carried_in
 //
 // A negative net is a debt to the platform (see `isDebtToPlatform`): a
 // merchant who sells mostly in cash owes the commission on those sales. It is
 // carried into the store's next payout (`lib/payouts/carry.ts`) until it is
 // settled, instead of being forgotten.
+import type { AdsFeeInput } from '@/lib/ads/billing'
 import type {
   OrderStatus,
   OrderType,
@@ -62,6 +64,8 @@ export interface PayoutSummaryRow {
   cash_collected: number
   /** The plan's monthly fee, prorated to the period. */
   plan_fee: number
+  /** Days of sponsored placement that ran in the period (lib/ads/billing.ts). */
+  ads_fee: number
   /**
    * Delivery fees and tips the platform collected online for orders the
    * merchant handed over themselves (see `isPassedThroughToMerchant`).
@@ -143,6 +147,7 @@ export function payoutNet(parts: {
   commission: number
   cash_collected: number
   plan_fee: number
+  ads_fee: number
   delivery_and_tips: number
   carried_in: number
 }): number {
@@ -150,7 +155,8 @@ export function payoutNet(parts: {
     parts.gross -
     parts.commission -
     parts.cash_collected -
-    parts.plan_fee +
+    parts.plan_fee -
+    parts.ads_fee +
     parts.delivery_and_tips +
     parts.carried_in
   )
@@ -239,10 +245,14 @@ export interface PlanFeeInput {
  * still gets a row, and a period whose reversals exceed its sales comes out
  * negative rather than clamped: see `isDebtToPlatform`.
  *
+ * `adsFees` are the days of sponsored placement the store ran this period
+ * (see `adsFeesByStore` in `lib/ads/billing.ts`). Like a plan fee, an ads
+ * fee alone produces a row: the store owes it whether or not it sold.
+ *
  * `carries` are debts from earlier periods (see `lib/payouts/carry.ts`). They
  * only land on a store that has a row for some other reason (a sale, an
- * adjustment or a plan fee), so a dormant store does not get a new row every
- * period that merely restates what it owes.
+ * adjustment, a plan fee or an ads fee), so a dormant store does not get a
+ * new row every period that merely restates what it owes.
  */
 export function summarizePayouts(
   orders: readonly PayoutOrderInput[],
@@ -250,6 +260,7 @@ export function summarizePayouts(
   adjustments: readonly PayoutAdjustmentInput[] = [],
   planFees: readonly PlanFeeInput[] = [],
   carries: readonly CarryInput[] = [],
+  adsFees: readonly AdsFeeInput[] = [],
 ): PayoutSummaryRow[] {
   const fromMs = periodStartMs(periodStart)
   const toExclusiveMs = periodEndExclusive(periodEnd).getTime()
@@ -259,6 +270,7 @@ export function summarizePayouts(
     commission: number
     cash_collected: number
     plan_fee: number
+    ads_fee: number
     delivery_and_tips: number
     carried_in: number
   }
@@ -269,6 +281,7 @@ export function summarizePayouts(
       commission: 0,
       cash_collected: 0,
       plan_fee: 0,
+      ads_fee: 0,
       delivery_and_tips: 0,
       carried_in: 0,
     }
@@ -302,6 +315,12 @@ export function summarizePayouts(
   for (const fee of planFees) {
     if (fee.plan_fee <= 0) continue
     entryOf(fee.store_id).plan_fee += fee.plan_fee
+  }
+
+  // Same for an ads fee: the days ran, so they are owed.
+  for (const fee of adsFees) {
+    if (fee.ads_fee <= 0) continue
+    entryOf(fee.store_id).ads_fee += fee.ads_fee
   }
 
   // Last, and only onto rows that already exist: a carry never creates one.

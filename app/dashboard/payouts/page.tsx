@@ -32,7 +32,7 @@ export default async function DashboardPayoutsPage() {
     supabase
       .from('payouts')
       .select(
-        'id, store_id, period_start, period_end, gross, commission, cash_collected, plan_fee, delivery_and_tips, carried_in, carried_into_payout_id, net, status, paid_at',
+        'id, store_id, period_start, period_end, gross, commission, cash_collected, plan_fee, ads_fee, delivery_and_tips, carried_in, carried_into_payout_id, net, status, paid_at',
       )
       .eq('store_id', store.id)
       .order('period_start', { ascending: false })
@@ -53,13 +53,13 @@ export default async function DashboardPayoutsPage() {
         </h1>
         <p className="text-muted-foreground text-sm text-pretty">
           Lo que te transferimos por periodo: tus ventas, menos la comisión,
-          menos lo que ya cobraste en efectivo (eso ya está en tu caja) y la
-          mensualidad de tu plan. Si tú mismo entregas o despachas un pedido
-          pagado en línea, el domicilio y la propina también son tuyos y te
-          llegan aquí; si lo lleva un domiciliario de Cerquita, son para él. Si
-          vendes sobre todo en efectivo, el periodo puede salir en negativo: es
-          lo que le debes a la plataforma, y se descuenta de tu siguiente
-          liquidación.
+          menos lo que ya cobraste en efectivo (eso ya está en tu caja), la
+          mensualidad de tu plan y los días de publicidad que estuvieron al
+          aire. Si tú mismo entregas o despachas un pedido pagado en línea, el
+          domicilio y la propina también son tuyos y te llegan aquí; si lo lleva
+          un domiciliario de Cerquita, son para él. Si vendes sobre todo en
+          efectivo, el periodo puede salir en negativo: es lo que le debes a la
+          plataforma, y se descuenta de tu siguiente liquidación.
         </p>
         {openDebt > 0 ? (
           <p className="text-destructive text-sm font-medium">
@@ -84,6 +84,7 @@ export default async function DashboardPayoutsPage() {
                   Ya cobraste en efectivo
                 </TableHead>
                 <TableHead className="text-right">Plan</TableHead>
+                <TableHead className="text-right">Publicidad</TableHead>
                 <TableHead className="text-right">
                   Domicilios y propinas
                 </TableHead>
@@ -115,6 +116,9 @@ export default async function DashboardPayoutsPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCOP(Number(payout.plan_fee))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCOP(Number(payout.ads_fee))}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatCOP(Number(payout.delivery_and_tips))}

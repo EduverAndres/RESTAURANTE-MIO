@@ -43,6 +43,7 @@ const METHODS: readonly PaymentMethod[] = [
   'wompi',
   'mercadopago',
   'mock',
+  'corporate',
 ]
 const PAYMENT_STATUSES: readonly PaymentStatus[] = [
   'pending',

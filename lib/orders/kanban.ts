@@ -99,6 +99,15 @@ export function elapsedLabel(isoDate: string, now: Date): string {
   return rest === 0 ? `hace ${hours} h` : `hace ${hours} h ${rest} min`
 }
 
+/** On a card paid with a company account: collect nothing, invoice the company. */
+export const CORPORATE_BADGE_LABEL = 'Empresa · no cobrar'
+
+export function isCorporateOrder(
+  order: Pick<BoardOrder, 'payment_method'>,
+): boolean {
+  return order.payment_method === 'corporate'
+}
+
 const SUMMARY_LIMIT = 3
 
 export function itemsSummary(items: readonly BoardOrderItem[]): string {

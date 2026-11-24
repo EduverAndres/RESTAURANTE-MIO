@@ -1,4 +1,5 @@
-export { cashProvider } from '@/lib/payments/cash';
-export { mockProvider } from '@/lib/payments/mock';
-export { wompiProvider } from '@/lib/payments/wompi/provider';
-export { mercadopagoProvider } from './mercadopago';
+export { cashProvider } from '@/lib/payments/cash'
+export { corporateProvider } from '@/lib/payments/corporate'
+export { mockProvider } from '@/lib/payments/mock'
+export { wompiProvider } from '@/lib/payments/wompi/provider'
+export { mercadopagoProvider } from './mercadopago'

@@ -164,6 +164,42 @@ export default function PartnerTermsPage() {
           ),
         },
         {
+          id: 'comercio-empresas',
+          title: 'Comercios: pedidos de empresas',
+          content: (
+            <>
+              <p>
+                Algunos pedidos los paga una empresa con su cuenta en {B}{' '}
+                («Cuenta de empresa»). En esos pedidos:
+              </p>
+              <ul>
+                <li>
+                  Nadie cobra al entregar: el pedido llega marcado «Empresa · no
+                  cobrar» y ya está autorizado contra el cupo de la empresa.
+                </li>
+                <li>
+                  El Comercio expide la factura electrónica a nombre de la razón
+                  social y el NIT de la empresa, con los datos de facturación
+                  que la Plataforma le muestra en el pedido («Datos para
+                  facturar»).
+                </li>
+                <li>
+                  Se tratan como un pago en línea: además de la comisión del
+                  plan se cobra el cinco por ciento (5 %) de pago en línea, y el
+                  valor del pedido se le paga al Comercio en su liquidación
+                  periódica, aunque la empresa pague a {B} después.
+                </li>
+                <li>
+                  Si el Comercio cancela o rechaza el pedido antes de
+                  entregarlo, no se cobra a la empresa. Un reembolso de un
+                  pedido entregado se descuenta de la liquidación como cualquier
+                  reembolso en línea.
+                </li>
+              </ul>
+            </>
+          ),
+        },
+        {
           id: 'repartidor-relacion',
           title: 'Repartidores: naturaleza de la relación',
           content: (

@@ -243,3 +243,15 @@ export const RESERVATION_CREATE_IP_POLICY: RateLimitPolicy = {
   limit: 20,
   windowSeconds: 3600,
 }
+
+/**
+ * Clicks on one sponsored placement from one network address. The fee is per
+ * day, not per click, so this only keeps the merchant's click count honest:
+ * someone tapping the same ad over and over counts a few times, not fifty.
+ * Past the budget the visitor is still taken to the store, uncounted.
+ */
+export const AD_CLICK_POLICY: RateLimitPolicy = {
+  bucket: 'ad_click',
+  limit: 3,
+  windowSeconds: 1800,
+}

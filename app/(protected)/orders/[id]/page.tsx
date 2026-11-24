@@ -126,6 +126,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   mock: 'Tarjeta de prueba',
   wompi: 'Wompi',
   mercadopago: 'Mercado Pago',
+  corporate: 'Cuenta de empresa',
 }
 
 async function fetchOrder(id: string) {

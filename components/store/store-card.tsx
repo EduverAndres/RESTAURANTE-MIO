@@ -6,6 +6,7 @@ import {
   BikeIcon,
   ClockIcon,
   FlameIcon,
+  MegaphoneIcon,
   NavigationIcon,
   SparklesIcon,
   StarIcon,
@@ -15,6 +16,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { FavoriteButton } from '@/components/store/favorite-button'
 import { MediaChip } from '@/components/ui/media-chip'
+import { sponsoredHref, sponsoredLinkLabel } from '@/lib/ads/placement'
+import { SPONSORED_LABEL } from '@/lib/ads/vocabulary'
 import { formatCOP, initialsOf } from '@/lib/format'
 import { formatDistance } from '@/lib/geo'
 import {
@@ -46,6 +49,11 @@ export type StoreCardData = Pick<
   distance_km?: number | null
   eta_min?: number | null
   is_favorite?: boolean
+  /**
+   * Set when a campaign pays for this card's place (lib/ads/placement.ts).
+   * The card then says so, visibly, and links through the click counter.
+   */
+  sponsoredCampaignId?: string
 }
 
 interface StoreCardProps {
@@ -64,6 +72,38 @@ const SIZES = {
   grid: '(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw',
   rail: '(min-width: 1024px) 33vw, 78vw',
 } as const
+
+/**
+ * The card's one link. A sponsored card goes through the click counter (a
+ * route handler that redirects), so it is a plain anchor: no client-side
+ * navigation and no prefetch, which would count clicks nobody made, and
+ * `rel="sponsored"` for crawlers.
+ */
+function CardLink({
+  href,
+  sponsored,
+  label,
+  children,
+}: {
+  href: string
+  sponsored: boolean
+  label: string
+  children: React.ReactNode
+}) {
+  const className = 'block focus-visible:outline-none'
+  if (sponsored) {
+    return (
+      <a href={href} rel="sponsored" className={className} aria-label={label}>
+        {children}
+      </a>
+    )
+  }
+  return (
+    <Link href={href} className={className} aria-label={label}>
+      {children}
+    </Link>
+  )
+}
 
 const HIGHLIGHTS = {
   popular: { icon: FlameIcon, label: 'Popular' },
@@ -87,6 +127,7 @@ export function StoreCard({
   const minOrder = Number(store.min_order ?? 0)
   const highlight = primaryHighlight(store)
   const Highlight = highlight ? HIGHLIGHTS[highlight] : null
+  const sponsored = store.sponsoredCampaignId
 
   return (
     <motion.article
@@ -97,10 +138,10 @@ export function StoreCard({
         className,
       )}
     >
-      <Link
-        href={`/t/${store.slug}`}
-        className="block focus-visible:outline-none"
-        aria-label={`Ver ${store.name}`}
+      <CardLink
+        href={sponsored ? sponsoredHref(sponsored) : `/t/${store.slug}`}
+        sponsored={Boolean(sponsored)}
+        label={sponsored ? sponsoredLinkLabel(store.name) : `Ver ${store.name}`}
       >
         {/* Edge to edge: the photograph is the card, not an illustration
             inside it. Everything else floats on top of it. */}
@@ -135,7 +176,18 @@ export function StoreCard({
             )}
           />
 
-          <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+          {/* Clear of the favourite button on the right. */}
+          <div className="absolute top-3 right-14 left-3 flex flex-wrap items-center gap-1.5">
+            {/* A paid place says so before anything else, in words anyone
+                can read (Ley 1480), not only in the link's accessible name. */}
+            {sponsored ? (
+              <MediaChip
+                tone="dark"
+                icon={<MegaphoneIcon aria-hidden="true" className="size-3.5" />}
+              >
+                {SPONSORED_LABEL}
+              </MediaChip>
+            ) : null}
             {store.is_open ? (
               <>
                 <MediaChip
@@ -236,7 +288,7 @@ export function StoreCard({
             ) : null}
           </span>
         </div>
-      </Link>
+      </CardLink>
 
       {showFavorite ? (
         <FavoriteButton

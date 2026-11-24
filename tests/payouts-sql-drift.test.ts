@@ -55,6 +55,7 @@ const PAYMENT_METHODS: readonly PaymentMethod[] = [
   'wompi',
   'mercadopago',
   'mock',
+  'corporate',
 ]
 
 function order(
@@ -181,6 +182,7 @@ describe('the SQL mirror of the payout net', () => {
       commission: 5500,
       cash_collected: 12000,
       plan_fee: 1663,
+      ads_fee: 45000,
       delivery_and_tips: 7000,
       carried_in: -2500,
     }
@@ -214,7 +216,7 @@ describe('the SQL mirror of the commission reversal', () => {
 const SQL_PATH = fileURLToPath(
   new URL(
     // The latest migration that defines public.generate_payouts.
-    '../supabase/migrations/20261124000100_payout_carry.sql',
+    '../supabase/migrations/20261124000900_ad_campaigns.sql',
     import.meta.url,
   ),
 )
@@ -236,7 +238,7 @@ function block(name: string): string {
   return sql.slice(from + begin.length, to).trim()
 }
 
-describe('20261124000100_payout_carry.sql', () => {
+describe('20261124000900_ad_campaigns.sql (generate_payouts v4)', () => {
   it('embeds every generated block verbatim', () => {
     for (const [name, sql] of Object.entries(payoutSqlBlocks())) {
       expect(block(name), name).toBe(sql)

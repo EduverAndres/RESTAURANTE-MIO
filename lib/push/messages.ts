@@ -116,6 +116,26 @@ export function deliveryCodeMessage(orderId: string): PushPayload {
 }
 
 /** To a courier, when an admin reviews their profile. */
+/** To a company's admins when Cerquita approves or suspends the account. */
+export function companyReviewMessage(
+  status: 'active' | 'suspended',
+  companyName: string,
+): PushPayload {
+  return status === 'active'
+    ? {
+        title: '¡Cuenta de empresa aprobada!',
+        body: `${companyName} ya puede pedir con su cuenta. Invita a tu equipo.`,
+        url: '/empresa/equipo',
+        tag: 'company-review',
+      }
+    : {
+        title: 'Cuenta de empresa suspendida',
+        body: `Por ahora nadie puede pagar con la cuenta de ${companyName}. Escríbenos para revisarla.`,
+        url: '/empresa',
+        tag: 'company-review',
+      }
+}
+
 export function courierReviewMessage(
   status: 'pending' | 'approved' | 'suspended',
   note: string | null,
@@ -192,5 +212,26 @@ export function reservationCancelledMessage(input: {
     body: `Se liberó la mesa de ${input.partySize} ${input.partySize === 1 ? 'persona' : 'personas'} para ${input.when}.`,
     url: '/dashboard/reservas',
     tag: 'reservation-cancelled',
+  }
+}
+
+/** To the store owner, when an admin decides on a sponsored campaign. */
+export function adCampaignReviewMessage(input: {
+  decision: 'approved' | 'rejected'
+  placement: string
+  dates: string
+  reason?: string | null
+}): PushPayload {
+  return {
+    title:
+      input.decision === 'approved'
+        ? 'Tu campaña fue aprobada'
+        : 'Tu campaña no fue aprobada',
+    body:
+      input.decision === 'approved'
+        ? `${input.placement}, ${input.dates}. Se mostrará como «Patrocinado».`
+        : `${input.placement}, ${input.dates}${input.reason ? `: ${input.reason}` : '.'}`,
+    url: '/dashboard/publicidad',
+    tag: 'ad-campaign-review',
   }
 }

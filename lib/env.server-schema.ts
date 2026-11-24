@@ -27,10 +27,16 @@ export const serverEnvSchema = z.object({
     .regex(/^https?:\/\/[^@\s/]+@[^\s/]+\/\d+$/, 'Must be a Sentry DSN')
     .optional(),
   SENTRY_ENVIRONMENT: z.string().min(1).optional(),
+  // Cuentas de empresa: off unless set to exactly "true", so a deployment
+  // only offers company credit once the migrations and the legal review are
+  // in place.
+  CORPORATE_ACCOUNTS_ENABLED: z.enum(['true', 'false']).optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
-export type ServerEnvSource = Partial<Record<keyof ServerEnv, string | undefined>>
+export type ServerEnvSource = Partial<
+  Record<keyof ServerEnv, string | undefined>
+>
 
 /**
  * A dashboard variable created and left blank, or pasted with a stray space,
@@ -46,7 +52,10 @@ function blankToUndefined(value: string | undefined): string | undefined {
 
 export function parseServerEnv(source: ServerEnvSource) {
   const normalized = Object.fromEntries(
-    Object.entries(source).map(([key, value]) => [key, blankToUndefined(value)]),
+    Object.entries(source).map(([key, value]) => [
+      key,
+      blankToUndefined(value),
+    ]),
   ) as ServerEnvSource
   return serverEnvSchema.safeParse(normalized)
 }
@@ -55,9 +64,9 @@ export function parseServerEnv(source: ServerEnvSource) {
 export function wompiConfiguredFrom(source: ServerEnvSource): boolean {
   return Boolean(
     source.WOMPI_PUBLIC_KEY &&
-      source.WOMPI_PRIVATE_KEY &&
-      source.WOMPI_EVENTS_SECRET &&
-      source.WOMPI_INTEGRITY_SECRET,
+    source.WOMPI_PRIVATE_KEY &&
+    source.WOMPI_EVENTS_SECRET &&
+    source.WOMPI_INTEGRITY_SECRET,
   )
 }
 
@@ -65,8 +74,8 @@ export function wompiConfiguredFrom(source: ServerEnvSource): boolean {
 export function pushConfiguredFrom(source: ServerEnvSource): boolean {
   return Boolean(
     source.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
-      source.VAPID_PRIVATE_KEY &&
-      source.VAPID_SUBJECT,
+    source.VAPID_PRIVATE_KEY &&
+    source.VAPID_SUBJECT,
   )
 }
 
@@ -84,7 +93,12 @@ export function sentryConfiguredFrom(source: ServerEnvSource): boolean {
 export function mercadopagoConfiguredFrom(source: ServerEnvSource): boolean {
   return Boolean(
     source.MERCADOPAGO_ACCESS_TOKEN &&
-      source.MERCADOPAGO_PUBLIC_KEY &&
-      source.MERCADOPAGO_WEBHOOK_SECRET,
+    source.MERCADOPAGO_PUBLIC_KEY &&
+    source.MERCADOPAGO_WEBHOOK_SECRET,
   )
+}
+
+/** True only when company accounts were switched on explicitly. */
+export function corporateAccountsEnabledFrom(source: ServerEnvSource): boolean {
+  return source.CORPORATE_ACCOUNTS_ENABLED?.trim() === 'true'
 }

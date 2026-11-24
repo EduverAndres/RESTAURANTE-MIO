@@ -12,11 +12,17 @@ export default async function ProtectedLayout({
     <>
       <BfcacheGuard />
       <div className="flex min-h-dvh flex-col pb-20 md:pb-0">
-        <SiteHeader />
+        {/* `contents` keeps the header sticky; `print:hidden` keeps the app
+            chrome off a printed page (the company statements). */}
+        <div className="contents print:hidden">
+          <SiteHeader />
+        </div>
         <main id="contenido" className="flex-1">
           {children}
         </main>
-        <MobileNav />
+        <div className="contents print:hidden">
+          <MobileNav />
+        </div>
       </div>
     </>
   )

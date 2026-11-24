@@ -2,12 +2,19 @@
 
 import {
   LoaderCircleIcon,
+  MegaphoneIcon,
   SearchIcon,
   StoreIcon,
   UtensilsIcon,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
+import {
+  sponsoredHref,
+  sponsorshipsForSearch,
+  type Sponsorship,
+} from '@/lib/ads/placement'
+import { SPONSORED_LABEL } from '@/lib/ads/vocabulary'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -17,15 +24,40 @@ interface Suggestion {
   title: string
   subtitle: string
   href: string
+  /** A paid search placement: labelled, and reached through the click counter. */
+  sponsored?: boolean
+}
+
+/**
+ * The search campaigns on the air, once per page view. Any failure (or a
+ * database without the ads migration) means no sponsored suggestions.
+ */
+async function fetchSearchSponsorships(): Promise<Sponsorship[]> {
+  try {
+    const { data, error } = await createClient().rpc('sponsored_stores', {
+      p_placement: 'search_top',
+    })
+    if (error || !data) return []
+    return data.map((row) => ({
+      campaignId: row.campaign_id,
+      storeId: row.store_id,
+      slug: row.slug,
+      name: row.name,
+      category: row.category ?? null,
+    }))
+  } catch {
+    return []
+  }
 }
 
 async function fetchSuggestions(
   query: string,
   signal: AbortSignal,
+  sponsorships: Promise<Sponsorship[]>,
 ): Promise<Suggestion[]> {
   const supabase = createClient()
   const pattern = `%${query.replace(/[%_]/g, '')}%`
-  const [stores, products] = await Promise.all([
+  const [stores, products, campaigns] = await Promise.all([
     supabase
       .from('stores')
       .select('id, slug, name, category')
@@ -35,21 +67,41 @@ async function fetchSuggestions(
       .abortSignal(signal),
     supabase
       .from('products')
-      .select('id, name, stores!inner(slug, name, status)')
+      .select('id, name, store_id, stores!inner(slug, name, status)')
       .eq('is_available', true)
       .eq('stores.status', 'active')
       .ilike('name', pattern)
       .limit(5)
       .abortSignal(signal),
+    sponsorships,
   ])
 
-  const storeItems: Suggestion[] = (stores.data ?? []).map((store) => ({
+  // The paid slot comes first, only when it is relevant to what was typed
+  // (the store, its category or one of its dishes matched), and replaces the
+  // store's own suggestion instead of repeating it.
+  const matched = new Set([
+    ...(stores.data ?? []).map((store) => store.id),
+    ...(products.data ?? []).map((product) => product.store_id),
+  ])
+  const sponsored = sponsorshipsForSearch(campaigns, query, matched)
+  const sponsoredIds = new Set(sponsored.map((item) => item.storeId))
+  const sponsoredItems: Suggestion[] = sponsored.map((item) => ({
     kind: 'store',
-    id: store.id,
-    title: store.name,
-    subtitle: store.category ?? 'Restaurante',
-    href: `/t/${store.slug}`,
+    id: item.campaignId,
+    title: item.name,
+    subtitle: item.category ?? 'Restaurante',
+    href: sponsoredHref(item.campaignId),
+    sponsored: true,
   }))
+  const storeItems: Suggestion[] = (stores.data ?? [])
+    .filter((store) => !sponsoredIds.has(store.id))
+    .map((store) => ({
+      kind: 'store',
+      id: store.id,
+      title: store.name,
+      subtitle: store.category ?? 'Restaurante',
+      href: `/t/${store.slug}`,
+    }))
   const productItems: Suggestion[] = (products.data ?? []).map((product) => ({
     kind: 'product',
     id: product.id,
@@ -57,7 +109,7 @@ async function fetchSuggestions(
     subtitle: product.stores?.name ?? '',
     href: `/t/${product.stores?.slug ?? ''}?buscar=${encodeURIComponent(product.name)}`,
   }))
-  return [...storeItems, ...productItems]
+  return [...sponsoredItems, ...storeItems, ...productItems]
 }
 
 interface SearchBoxProps {
@@ -76,6 +128,7 @@ export function SearchBox({ className, size = 'default' }: SearchBoxProps) {
   const [active, setActive] = useState(-1)
   const [loading, setLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  const sponsorshipsRef = useRef<Promise<Sponsorship[]> | null>(null)
 
   useEffect(() => {
     abortRef.current?.abort()
@@ -89,7 +142,12 @@ export function SearchBox({ className, size = 'default' }: SearchBoxProps) {
     setLoading(true)
     const timer = setTimeout(async () => {
       try {
-        const results = await fetchSuggestions(query.trim(), controller.signal)
+        sponsorshipsRef.current ??= fetchSearchSponsorships()
+        const results = await fetchSuggestions(
+          query.trim(),
+          controller.signal,
+          sponsorshipsRef.current,
+        )
         if (!controller.signal.aborted) {
           setItems(results)
           setOpen(true)
@@ -106,7 +164,10 @@ export function SearchBox({ className, size = 'default' }: SearchBoxProps) {
 
   function go(item: Suggestion) {
     setOpen(false)
-    router.push(item.href)
+    // The click counter is a route handler that redirects: a full
+    // navigation, never a client-side one (nor a prefetch).
+    if (item.sponsored) window.location.assign(item.href)
+    else router.push(item.href)
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -186,13 +247,15 @@ export function SearchBox({ className, size = 'default' }: SearchBoxProps) {
                 )}
               >
                 <span className="rounded-control bg-primary/10 text-primary-on-tint flex size-8 shrink-0 items-center justify-center">
-                  {item.kind === 'store' ? (
+                  {item.sponsored ? (
+                    <MegaphoneIcon aria-hidden="true" className="size-4" />
+                  ) : item.kind === 'store' ? (
                     <StoreIcon aria-hidden="true" className="size-4" />
                   ) : (
                     <UtensilsIcon aria-hidden="true" className="size-4" />
                   )}
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">
                     {item.title}
                   </span>
@@ -202,6 +265,12 @@ export function SearchBox({ className, size = 'default' }: SearchBoxProps) {
                       : `Plato en ${item.subtitle}`}
                   </span>
                 </span>
+                {/* Visible, in words (Ley 1480). */}
+                {item.sponsored ? (
+                  <span className="rounded-pill bg-foreground/80 text-background shrink-0 px-2 py-0.5 text-xs font-medium">
+                    {SPONSORED_LABEL}
+                  </span>
+                ) : null}
               </button>
             </li>
           ))}

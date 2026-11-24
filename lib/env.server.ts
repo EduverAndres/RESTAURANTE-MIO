@@ -1,6 +1,7 @@
 import 'server-only'
 
 import {
+  corporateAccountsEnabledFrom,
   parseServerEnv,
   pushConfiguredFrom,
   sentryConfiguredFrom,
@@ -27,6 +28,7 @@ const parsed = parseServerEnv({
   VAPID_SUBJECT: process.env.VAPID_SUBJECT,
   SENTRY_DSN: process.env.SENTRY_DSN,
   SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT,
+  CORPORATE_ACCOUNTS_ENABLED: process.env.CORPORATE_ACCOUNTS_ENABLED,
 })
 
 if (!parsed.success) {
@@ -56,4 +58,9 @@ export function sentryConfigured(): boolean {
 /** Whether Mercado Pago has every key it needs to create and verify payments. */
 export function mercadopagoConfigured(): boolean {
   return mercadopagoConfiguredFrom(serverEnv)
+}
+
+/** Whether "Cuenta de empresa" may be offered and charged. Off by default. */
+export function corporateAccountsEnabled(): boolean {
+  return corporateAccountsEnabledFrom(serverEnv)
 }

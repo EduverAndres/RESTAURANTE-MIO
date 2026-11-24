@@ -6,7 +6,10 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
+import { daysLabel, type AdPlacementSettings } from '@/lib/ads/pricing'
+import { SPONSORED_LABEL, type AdPlacement } from '@/lib/ads/vocabulary'
 import { APP_NAME } from '@/lib/env'
+import { formatCOP } from '@/lib/format'
 import { ONLINE_PAYMENT_PCT, PLAN_LABELS } from '@/lib/plans'
 
 interface Feature {
@@ -26,7 +29,7 @@ interface Feature {
  * what it is — paid, by the day, and labelled "Patrocinado" wherever it
  * shows. The ids are anchors the footer links to.
  */
-const FEATURES: readonly Feature[] = [
+const BASE_FEATURES: readonly Feature[] = [
   {
     id: 'reservas',
     icon: CalendarCheckIcon,
@@ -51,21 +54,62 @@ const FEATURES: readonly Feature[] = [
       `${APP_NAME} te lo liquida como un pago en línea (comisión del plan más ${ONLINE_PAYMENT_PCT} %).`,
     ],
   },
-  {
-    id: 'destacados',
-    icon: MegaphoneIcon,
-    eyebrow: 'Publicidad opcional',
-    title: 'Destacados patrocinados',
-    text: 'Cuando quieras más visibilidad, apareces primero donde los clientes eligen.',
-    points: [
-      'En la página principal, en tu categoría o en la búsqueda.',
-      'Pagas por día, solo los días que corre tu campaña.',
-      'Siempre se muestra marcado como "Patrocinado".',
-    ],
-  },
 ]
 
-export function MerchantFeatures() {
+const WHERE: Record<AdPlacement, string> = {
+  home_featured: 'en la página principal',
+  category_top: 'primero en tu categoría',
+  search_top: 'primero en la búsqueda',
+}
+
+/**
+ * The sponsored-placement card, with the prices and rules as they are in the
+ * price list today. Without them (the read failed) it describes the product
+ * and quotes nothing: a stale price in an ad is a false one.
+ */
+function sponsoredFeature(placements: readonly AdPlacementSettings[]): Feature {
+  const base = {
+    id: 'destacados',
+    icon: MegaphoneIcon,
+    title: 'Destacados patrocinados',
+    text: `Cuando quieras más visibilidad, apareces primero donde los clientes eligen. Lo pides desde tu panel y el equipo de ${APP_NAME} lo aprueba.`,
+  }
+  const labelled = `Siempre se muestra marcado como «${SPONSORED_LABEL}», con cupos limitados por día.`
+  if (placements.length === 0) {
+    return {
+      ...base,
+      eyebrow: 'Publicidad opcional',
+      points: [
+        'En la página principal, en tu categoría o en la búsqueda.',
+        'Pagas por día, solo los días que tu anuncio está al aire, descontados de tu liquidación.',
+        labelled,
+      ],
+    }
+  }
+  const cheapest = Math.min(...placements.map((row) => row.daily_price))
+  const where = placements.map(
+    (row) => `${WHERE[row.placement]} (${formatCOP(row.daily_price)} al día)`,
+  )
+  const minDays = Math.min(...placements.map((row) => row.min_days))
+  const maxDays = Math.max(...placements.map((row) => row.max_days))
+  return {
+    ...base,
+    eyebrow: `Publicidad opcional · desde ${formatCOP(cheapest)} al día`,
+    points: [
+      `Apareces ${new Intl.ListFormat('es', { type: 'disjunction' }).format(where)}.`,
+      `Campañas de ${minDays} a ${daysLabel(maxDays)}. Pagas solo los días que tu anuncio está al aire, descontados de tu liquidación; los días en pausa no se cobran.`,
+      labelled,
+    ],
+  }
+}
+
+export function MerchantFeatures({
+  adPlacements = [],
+}: {
+  /** The price list (lib/marketing/public-data.ts#fetchAdPlacements). */
+  adPlacements?: readonly AdPlacementSettings[]
+}) {
+  const features = [...BASE_FEATURES, sponsoredFeature(adPlacements)]
   return (
     <section
       aria-labelledby="vende-mas-title"
@@ -89,7 +133,7 @@ export function MerchantFeatures() {
         </Reveal>
 
         <ul className="gap-card grid lg:grid-cols-3">
-          {FEATURES.map(({ id, icon: Icon, eyebrow, title, text, points }) => (
+          {features.map(({ id, icon: Icon, eyebrow, title, text, points }) => (
             <Reveal
               as="li"
               key={id}

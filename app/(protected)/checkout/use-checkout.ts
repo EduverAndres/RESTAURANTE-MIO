@@ -18,6 +18,10 @@ import {
   type Step,
 } from './steps'
 import {
+  corporateCheckoutIssue,
+  type CorporateCheckoutOption,
+} from '@/lib/companies/checkout'
+import {
   clampDiscounts,
   couponDiscount,
   creditDiscount,
@@ -43,6 +47,7 @@ import type { Address, PaymentMethod } from '@/types/app'
 interface UseCheckoutOptions {
   addresses: Address[]
   paymentOptions: PaymentOption[]
+  corporateOption: CorporateCheckoutOption | null
 }
 
 /**
@@ -56,6 +61,7 @@ interface UseCheckoutOptions {
 export function useCheckout({
   addresses: initialAddresses,
   paymentOptions,
+  corporateOption,
 }: UseCheckoutOptions) {
   const router = useRouter()
   const cart = useCartStore()
@@ -78,6 +84,7 @@ export function useCheckout({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [tipPercent, setTipPercent] = useState(0)
   const [notes, setNotes] = useState('')
+  const [corporateReference, setCorporateReference] = useState('')
   const [step, setStep] = useState<Step>('entrega')
   const [pending, startTransition] = useTransition()
   const [perks, setPerks] = useState<CheckoutPerks>({
@@ -98,9 +105,11 @@ export function useCheckout({
   useEffect(() => {
     if (!hydrated) return
     const remembered = preferences.paymentMethod
-    const available = paymentOptions.some(
-      (option) => option.method === remembered,
-    )
+    const available =
+      paymentOptions.some((option) => option.method === remembered) ||
+      (remembered === 'corporate' &&
+        corporateOption !== null &&
+        corporateOption.blocked === null)
     setPaymentMethod(
       available && remembered
         ? remembered
@@ -190,16 +199,21 @@ export function useCheckout({
         coupon.usage,
       )
     : null
-  const rewardAvailable = (perks.loyalty?.available ?? 0) > 0
+  // The company pays: the stamp reward and referral credits are personal and
+  // never spent on its bill (the server refuses them too).
+  const corporate = paymentMethod === 'corporate'
+  const rewardAvailable = !corporate && (perks.loyalty?.available ?? 0) > 0
   const merchantDiscount =
     useReward && rewardAvailable && perks.loyalty
       ? rewardDiscount(perks.loyalty.rewardValue, subtotal)
       : couponCheck?.ok
         ? couponCheck.amount
         : 0
-  const credit = perks.credits.find(
-    (entry) => creditDiscount(entry, subtotal - merchantDiscount) > 0,
-  )
+  const credit = corporate
+    ? undefined
+    : perks.credits.find(
+        (entry) => creditDiscount(entry, subtotal - merchantDiscount) > 0,
+      )
   const discounts = clampDiscounts(
     subtotal,
     merchantDiscount,
@@ -207,6 +221,14 @@ export function useCheckout({
   )
   const payable =
     totals.total - discounts.merchantDiscount - discounts.platformDiscount
+  const corporateIssue =
+    corporateOption && corporate
+      ? corporateCheckoutIssue(corporateOption, {
+          total: payable,
+          subtotal: totals.subtotal,
+          tip,
+        })
+      : null
 
   function applyCoupon(code: string) {
     if (!storeId || code.trim() === '') return
@@ -245,6 +267,7 @@ export function useCheckout({
     }
     if (target === 'resumen' && !paymentMethod)
       return 'Elige un método de pago.'
+    if (target === 'resumen' && corporateIssue) return corporateIssue
     return null
   }
 
@@ -277,6 +300,7 @@ export function useCheckout({
       notes,
       couponCode: couponCheck?.ok ? (coupon?.code ?? '') : '',
       useReward: useReward && rewardAvailable,
+      corporateReference: corporate ? corporateReference : '',
       items: cart.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -352,6 +376,10 @@ export function useCheckout({
     tip,
     notes,
     setNotes,
+    corporateOption,
+    corporateReference,
+    setCorporateReference,
+    corporateIssue,
     // money
     totals,
     minimumOk,

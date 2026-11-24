@@ -32,10 +32,16 @@
 // the migration: change the rule, run the test, paste the new output in.
 //
 // Pure: no React, no Supabase, safe on client and server.
+import type { AdPauseSpan, BillableCampaign } from '@/lib/ads/billing'
+import { dayNumber } from '@/lib/ads/pricing'
+import { AD_BILLED_STATUSES } from '@/lib/ads/vocabulary'
 import { BILLABLE_DAYS_RULE } from '@/lib/plans-sql'
+import { bogotaDate, type DatePeriod } from '@/lib/plans'
 import type { CarryCandidate } from '@/lib/payouts/carry'
 import type { PayoutOrderInput } from '@/lib/payouts/compute'
 import { REFUND_REVERSES_PLATFORM_FEE } from '@/lib/payouts/reversal'
+import { sqlValueList } from '@/lib/refunds/vocabulary'
+import { addDays } from '@/lib/store/hours'
 
 /**
  * Date-only period bounds, in UTC.
@@ -156,7 +162,98 @@ export const CARRYABLE_RULE = {
  * `totals t` and the carried debt `ct` of `generate_payouts`.
  */
 export const PAYOUT_NET_SQL =
-  't.gross - t.commission - t.cash_collected - t.plan_fee + t.delivery_and_tips + coalesce(ct.carried_in, 0)'
+  't.gross - t.commission - t.cash_collected - t.plan_fee - t.ads_fee + t.delivery_and_tips + coalesce(ct.carried_in, 0)'
+
+// ---------------------------------------------------------------------------
+// Paid placements (supabase/migrations/20261124000900_ad_campaigns.sql)
+// ---------------------------------------------------------------------------
+
+/** A timestamp column read as a Bogotá calendar date, like `bogotaDate`. */
+function bogotaDateSql(column: string): string {
+  return `(${column} at time zone 'America/Bogota')::date`
+}
+
+/** Mirror of `isAdBilled`: the statuses `ads_fees` charges. */
+export const AD_BILLED_STATUSES_SQL = sqlValueList(AD_BILLED_STATUSES)
+
+// The campaign's charged window inside the period, before pauses: from the
+// later of its first day and the period's, to the earliest of its last day,
+// the day before an early end, and the period's last day.
+const AD_FIRST_DAY_SQL = 'greatest(c.starts_on, p_period_start)'
+const AD_LAST_DAY_SQL = `least(c.ends_on, coalesce(${bogotaDateSql('c.ended_at')} - 1, c.ends_on), p_period_end)`
+
+/**
+ * Mirror of `adBillableDays` in `lib/ads/billing.ts`, against a campaign `c`
+ * and the period `p_period_start`..`p_period_end` of `generate_payouts`.
+ *
+ * The TypeScript rule counts day by day; the SQL subtracts the paused days
+ * from the window, clipping each pause to it. They agree because a campaign
+ * has at most one open pause at a time (`ad_campaign_pauses_open_key`), so
+ * its pauses never overlap: a pause covers the day it started up to the day
+ * before it was lifted, and the next one cannot start before that.
+ * `matches` reads the way the SQL does; tests/ads-billing.test.ts compares it
+ * with `adBillableDays` over every combination.
+ */
+export const AD_BILLABLE_DAYS_RULE = {
+  sql: [
+    `greatest(0, ${AD_LAST_DAY_SQL} - ${AD_FIRST_DAY_SQL} + 1)`,
+    '      - coalesce((',
+    `        select sum(greatest(0, least(${AD_LAST_DAY_SQL}, coalesce(${bogotaDateSql('pz.resumed_at')} - 1, p_period_end)) - greatest(${AD_FIRST_DAY_SQL}, ${bogotaDateSql('pz.paused_at')}) + 1))`,
+    '        from public.ad_campaign_pauses pz',
+    '        where pz.campaign_id = c.id',
+    '      ), 0)',
+  ].join('\n'),
+  matches: (
+    campaign: Pick<BillableCampaign, 'starts_on' | 'ends_on' | 'ended_at'>,
+    pauses: readonly AdPauseSpan[],
+    period: DatePeriod,
+  ): number => {
+    const least = (...days: string[]) => days.reduce((a, b) => (b < a ? b : a))
+    const greatest = (...days: string[]) =>
+      days.reduce((a, b) => (b > a ? b : a))
+    const span = (from: string, to: string) =>
+      Math.max(0, dayNumber(to) - dayNumber(from) + 1)
+    const first = greatest(campaign.starts_on, period.periodStart)
+    const last = least(
+      campaign.ends_on,
+      campaign.ended_at === null
+        ? campaign.ends_on
+        : addDays(bogotaDate(new Date(campaign.ended_at)), -1),
+      period.periodEnd,
+    )
+    const paused = pauses.reduce(
+      (total, pause) =>
+        total +
+        span(
+          greatest(first, bogotaDate(new Date(pause.paused_at))),
+          least(
+            last,
+            pause.resumed_at === null
+              ? period.periodEnd
+              : addDays(bogotaDate(new Date(pause.resumed_at)), -1),
+          ),
+        ),
+      0,
+    )
+    return span(first, last) - paused
+  },
+}
+
+/**
+ * Mirror of `isAdRunning` in `lib/ads/billing.ts`, against a campaign `c`
+ * and the Bogotá date `v_today`. Used where a campaign is shown
+ * (`sponsored_stores`) and where its clicks are counted (`record_ad_click`).
+ */
+export const AD_RUNNING_RULE = {
+  sql: "c.status = 'active' and c.starts_on <= v_today and c.ends_on >= v_today",
+  matches: (
+    campaign: Pick<BillableCampaign, 'status' | 'starts_on' | 'ends_on'>,
+    today: string,
+  ): boolean =>
+    campaign.status === 'active' &&
+    campaign.starts_on <= today &&
+    campaign.ends_on >= today,
+}
 
 /** Mirror of `settledGross` in `lib/payouts/compute.ts`, against `orders o`. */
 export const SETTLED_GROSS_SQL = '(o.subtotal - o.merchant_discount)'
@@ -190,5 +287,10 @@ export function payoutSqlBlocks(): Record<string, string> {
     carryable_lock: CARRYABLE_RULE.sql,
     carryable: CARRYABLE_RULE.sql,
     payout_net: PAYOUT_NET_SQL,
+    // Paid placements (v4): what the period charges, and what is on the air.
+    ad_billed_statuses: AD_BILLED_STATUSES_SQL,
+    ad_billable_days: AD_BILLABLE_DAYS_RULE.sql,
+    ad_running_sponsored: AD_RUNNING_RULE.sql,
+    ad_running_click: AD_RUNNING_RULE.sql,
   }
 }

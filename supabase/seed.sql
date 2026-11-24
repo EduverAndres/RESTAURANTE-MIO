@@ -6,6 +6,7 @@
 --   4... products                5... product options 6... option values
 --   7... addresses               8... orders          9... order items
 --   a... store tables            b... reviews         c... payouts
+--   d0.. companies               d1.. company members
 
 -- ---------------------------------------------------------------------------
 -- Auth users (profiles are created by the handle_new_user trigger)
@@ -599,3 +600,42 @@ select id, true, 'Guardamos tu mesa 15 minutos. Para grupos de más de 8 persona
 from public.stores
 where slug = 'la-parrilla-del-norte'
 on conflict (store_id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Company accounts: one company waiting for approval, signed up by
+-- cliente2@tienda.app (its admin). e2e/corporate.spec.ts approves it, invites
+-- cliente3@tienda.app, pays an order with the company account and, at the
+-- end, removes the employee and suspends the company again so the run can be
+-- repeated ("Reactivar" approves a suspended company the same way).
+-- NIT 900.123.456-8: the check digit is the DIAN one (nit_check_digit).
+-- ---------------------------------------------------------------------------
+insert into public.companies (
+  id, legal_name, trade_name, nit, dv, billing_email, billing_address, city,
+  contact_name, contact_phone, status, terms_version, terms_accepted_by, created_by
+)
+values (
+  'd0000000-0000-4000-8000-000000000001',
+  'Constructora del Caribe S.A.S.',
+  'Constructora del Caribe',
+  '900123456',
+  8,
+  'facturas@constructoradelcaribe.co',
+  'Calle 77 # 59-35, oficina 902',
+  'Barranquilla',
+  'Santiago Pérez',
+  '+573200000022',
+  'pending',
+  '2026-11-24',
+  '10000000-0000-4000-8000-000000000022',
+  '10000000-0000-4000-8000-000000000022'
+)
+on conflict (id) do nothing;
+
+insert into public.company_members (id, company_id, user_id, role)
+values (
+  'd1000000-0000-4000-8000-000000000001',
+  'd0000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000022',
+  'admin'
+)
+on conflict do nothing;

@@ -39,6 +39,10 @@ const PROTECTED_PREFIXES: readonly ProtectedPrefix[] = [
   { prefix: '/account', roles: [] },
   { prefix: '/checkout', roles: [] },
   { prefix: '/orders', roles: [] },
+  // The company panel: any signed-in user (a member, or someone signing a
+  // company up or accepting an invitation). Not to be confused with the
+  // public landing `/empresas`, which `matchesPrefix` keeps apart.
+  { prefix: '/empresa', roles: [] },
 ]
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
