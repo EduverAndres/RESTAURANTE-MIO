@@ -109,6 +109,30 @@ elif [ -n "$public_ip" ] && ! [[ "$site_host" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
   fi
 fi
 
+# Wompi no abre su checkout si la dirección de regreso es una IP o localhost:
+# su firewall (CloudFront) responde "403 Request blocked" antes de mirar el
+# pedido, y la app oculta Wompi en ese caso (lib/payments/wompi/status.ts).
+wompi_key=$(grep -hE '^WOMPI_PUBLIC_KEY=.+' .env.production.local .env.local .env.production .env 2>/dev/null | head -n 1 || true)
+if [ -n "$wompi_key" ] \
+  && { [[ "$site_host" =~ ^[0-9]+(\.[0-9]+){3}$ ]] || [ "$site_host" = "localhost" ]; }; then
+  echo "AVISO: Wompi bloquea los pagos mientras el sitio se publique como ${site_host}."
+  echo "Su firewall rechaza direcciones con IP: el checkout mostraría un 403 de CloudFront,"
+  echo "así que la app no ofrecerá Wompi. La solución definitiva es un dominio (docs/HTTPS.md)."
+  ip_for_name="${public_ip:-$site_host}"
+  if [[ "$ip_for_name" =~ ^[0-9]+(\.[0-9]+){3}$ ]] && [ "$site_file" != "(entorno del shell)" ]; then
+    sslip_url="${site_scheme}://${ip_for_name//./-}.sslip.io"
+    echo "Para probar ya, sin dominio: ${sslip_url} apunta a esta misma IP y Wompi lo acepta."
+    if ask "¿Cambio NEXT_PUBLIC_SITE_URL a ${sslip_url} en ${site_file} (con respaldo)?"; then
+      cp "$site_file" "$site_file.bak.$(date +%s)"
+      sed -i "s#^NEXT_PUBLIC_SITE_URL=.*#NEXT_PUBLIC_SITE_URL=${sslip_url}#" "$site_file"
+      echo "Actualizado: $(grep -E '^NEXT_PUBLIC_SITE_URL=' "$site_file")"
+      echo "Después del despliegue:"
+      echo "  - Entra a la app por ${sslip_url} (no por la IP) e inicia sesión de nuevo."
+      echo "  - Supabase → Authentication → URL Configuration → Redirect URLs: agrega ${sslip_url}/**"
+    fi
+  fi
+fi
+
 step "3. Memoria para compilar"
 mem_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
 swap_mb=$(awk '/SwapTotal/ {print int($2/1024)}' /proc/meminfo)

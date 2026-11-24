@@ -19,6 +19,32 @@ vi.mock('@/lib/env.server', () => ({
   wompiConfigured: () => true,
 }))
 
+const site = vi.hoisted(() => ({ url: 'https://tienda.app' }))
+vi.mock('@/lib/site-url', () => ({ siteUrl: () => site.url }))
+
+describe('wompiProvider.isAvailable', () => {
+  afterEach(() => {
+    site.url = 'https://tienda.app'
+  })
+
+  it('is offered when the site has a domain', () => {
+    expect(wompiProvider.isAvailable()).toBe(true)
+  })
+
+  it('is withheld, with one log line, while the site is on an IP', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    site.url = 'http://44.213.146.211'
+
+    expect(wompiProvider.isAvailable()).toBe(false)
+    expect(wompiProvider.isAvailable()).toBe(false)
+
+    const lines = warn.mock.calls.map(([line]) => String(line))
+    expect(
+      lines.filter((line) => line.includes('wompi.provider.site_url_blocked')),
+    ).toHaveLength(1)
+  })
+})
+
 const TRANSACTION = {
   id: 'tx_1',
   status: 'APPROVED',
@@ -106,7 +132,9 @@ describe('wompiProvider.createPayment', () => {
     vi.useFakeTimers()
     const now = new Date('2026-09-12T10:00:00.000Z')
     vi.setSystemTime(now)
-    const expirationTime = new Date(now.getTime() + CHECKOUT_TTL_MS).toISOString()
+    const expirationTime = new Date(
+      now.getTime() + CHECKOUT_TTL_MS,
+    ).toISOString()
 
     const result = await wompiProvider.createPayment({
       orderId: '11111111-1111-4111-8111-111111111111',
