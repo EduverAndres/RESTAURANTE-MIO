@@ -17,12 +17,28 @@ export type RealtimeEventType = '*' | 'INSERT' | 'UPDATE' | 'DELETE'
  * channel and not twenty. The filter always travels here, server-side, and is
  * never applied in the browser.
  */
-export interface ChannelDescriptor {
+export interface ChangesDescriptor {
+  kind?: 'changes'
   name: string
   table: string
   event?: RealtimeEventType
   filter?: string
 }
+
+/**
+ * A Broadcast topic: messages the database sends with `realtime.send()` the
+ * moment a row commits. No WAL decoding and no per-subscriber RLS query on
+ * the way, so it arrives in milliseconds. `name` is the topic; a private one
+ * is authorised once, on join, by the policies on `realtime.messages`.
+ */
+export interface BroadcastDescriptor {
+  kind: 'broadcast'
+  name: string
+  event: string
+  private: boolean
+}
+
+export type ChannelDescriptor = ChangesDescriptor | BroadcastDescriptor
 
 export interface ChannelSubscriber<TPayload = unknown> {
   onEvent?: (payload: TPayload) => void

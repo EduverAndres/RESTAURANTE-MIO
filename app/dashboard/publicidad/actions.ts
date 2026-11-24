@@ -171,7 +171,7 @@ export async function requestAdCampaign(
 
   revalidatePath('/dashboard/publicidad')
   revalidatePath('/admin/publicidad')
-  after(() =>
+  after(
     notify(
       { admins: true },
       adRequestedNotification({

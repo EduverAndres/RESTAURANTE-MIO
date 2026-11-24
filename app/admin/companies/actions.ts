@@ -45,7 +45,7 @@ function notifyAdmins(
   status: 'active' | 'suspended',
   companyName: string,
 ) {
-  after(() =>
+  after(
     notify(
       { companyAdmins: companyId },
       fromPush('company_reviewed', companyReviewMessage(status, companyName)),

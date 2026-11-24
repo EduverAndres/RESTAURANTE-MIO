@@ -139,9 +139,7 @@ export async function createStore(
   revalidateStorePages()
   revalidatePath('/admin/stores')
   const storeName = parsed.data.name
-  after(() =>
-    notify({ admins: true }, storeRegisteredNotification({ storeName })),
-  )
+  after(notify({ admins: true }, storeRegisteredNotification({ storeName })))
   return { ok: true, storeId: data.id, slug: data.slug }
 }
 

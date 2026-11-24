@@ -16,7 +16,10 @@ import {
   useState,
 } from 'react'
 import { MotionProvider } from '@/components/motion/motion-provider'
-import { createDebouncer } from '@/lib/realtime/debounce'
+import {
+  createDebouncer,
+  createLeadingDebouncer,
+} from '@/lib/realtime/debounce'
 import {
   createChannelRegistry,
   type ChannelDescriptor,
@@ -40,7 +43,10 @@ import type { Database } from '@/types/database'
  * looking fresh.
  */
 
-/** One user action can write twice; collapse it into a single refresh. */
+/**
+ * The first event refreshes at once; more within this window (one action can
+ * write twice) fold into a single extra refresh when it closes.
+ */
 const REFRESH_DEBOUNCE_MS = 250
 /** Tab focus, a reconnect and a pending event can all land together. */
 const RESYNC_DEBOUNCE_MS = 300
@@ -49,8 +55,17 @@ export type RealtimeEvent = RealtimePostgresChangesPayload<
   Record<string, unknown>
 >
 
+/** What a Broadcast channel delivers: the payload `realtime.send()` sent. */
+export interface BroadcastMessage {
+  type: 'broadcast'
+  event: string
+  payload: Record<string, unknown>
+}
+
+type RealtimeMessage = RealtimeEvent | BroadcastMessage
+
 interface RealtimeContextValue {
-  acquire: ChannelRegistry<RealtimeEvent>['acquire']
+  acquire: ChannelRegistry<RealtimeMessage>['acquire']
   /** Debounced `router.refresh()`; the shared path back to server truth. */
   refresh: () => void
   status: RealtimeStatus
@@ -60,9 +75,26 @@ const RealtimeContext = createContext<RealtimeContextValue | null>(null)
 
 function createSupabaseTransport(
   client: SupabaseClient<Database>,
-): RealtimeTransport<RealtimeEvent> {
+): RealtimeTransport<RealtimeMessage> {
   return {
     open(descriptor, handlers) {
+      if (descriptor.kind === 'broadcast') {
+        // A private topic joins with the signed-in user's token, which
+        // supabase-js hands to Realtime itself; the join is refused unless a
+        // policy on realtime.messages lets this user read the topic.
+        const channel = client
+          .channel(descriptor.name, {
+            config: { private: descriptor.private },
+          })
+          .on('broadcast', { event: descriptor.event }, (message) =>
+            handlers.onEvent(message as BroadcastMessage),
+          )
+          .subscribe((status) => handlers.onStatus(status))
+        return () => {
+          void client.removeChannel(channel)
+        }
+      }
+
       // `.on('postgres_changes', …)` is overloaded per literal event, so a
       // descriptor whose event is only known at runtime is typed through the
       // wildcard filter; the payload shape is identical either way.
@@ -97,7 +129,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   }, [router])
 
   const refreshDebouncer = useMemo(
-    () => createDebouncer(REFRESH_DEBOUNCE_MS),
+    () => createLeadingDebouncer(REFRESH_DEBOUNCE_MS),
     [],
   )
   const resyncDebouncer = useMemo(() => createDebouncer(RESYNC_DEBOUNCE_MS), [])
@@ -110,7 +142,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   // per-page singleton; memoising keeps the registry stable across renders.
   const registry = useMemo(
     () =>
-      createChannelRegistry<RealtimeEvent>(
+      createChannelRegistry<RealtimeMessage>(
         createSupabaseTransport(createClient()),
         setStatus,
       ),
@@ -219,8 +251,59 @@ export function useRealtimeChannel(options: UseRealtimeChannelOptions): void {
     if (!enabled) return
     const descriptor: ChannelDescriptor = { name, table, event, filter }
     return acquire(descriptor, {
-      onEvent: (payload) => handlers.current.onEvent?.(payload),
+      onEvent: (payload) =>
+        handlers.current.onEvent?.(payload as RealtimeEvent),
       onResync: () => (handlers.current.onResync ?? refresh)(),
     })
   }, [acquire, refresh, enabled, name, table, event, filter])
+}
+
+export interface UseBroadcastChannelOptions {
+  /** The topic, e.g. `user:<uuid>`. Same topic, same subscription. */
+  topic: string
+  event: string
+  /** Private topics are authorised by RLS on realtime.messages. */
+  private?: boolean
+  onMessage?: (payload: Record<string, unknown>) => void
+  /** Backfill after a drop or a tab focus. Defaults to the shared refresh. */
+  onResync?: () => void
+  enabled?: boolean
+}
+
+/**
+ * Subscribes to a Broadcast topic for as long as the component is mounted:
+ * the fast path, for messages the database sends as a row commits. Shares the
+ * provider's bookkeeping (status, reconnect backfill, tab-focus backfill)
+ * with `useRealtimeChannel`.
+ */
+export function useBroadcastChannel(options: UseBroadcastChannelOptions): void {
+  const { acquire, refresh } = useRealtimeContext()
+  const { topic, event, enabled = true } = options
+  const isPrivate = options.private ?? true
+
+  const handlers = useRef({
+    onMessage: options.onMessage,
+    onResync: options.onResync,
+  })
+  useEffect(() => {
+    handlers.current = {
+      onMessage: options.onMessage,
+      onResync: options.onResync,
+    }
+  })
+
+  useEffect(() => {
+    if (!enabled) return
+    const descriptor: ChannelDescriptor = {
+      kind: 'broadcast',
+      name: topic,
+      event,
+      private: isPrivate,
+    }
+    return acquire(descriptor, {
+      onEvent: (message) =>
+        handlers.current.onMessage?.((message as BroadcastMessage).payload),
+      onResync: () => (handlers.current.onResync ?? refresh)(),
+    })
+  }, [acquire, refresh, enabled, topic, event, isPrivate])
 }

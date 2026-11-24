@@ -178,6 +178,76 @@ describe('20261125000100_notifications.sql', () => {
   })
 })
 
+const read = (path: string) =>
+  readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8').replace(
+    /\r\n/g,
+    '\n',
+  )
+
+describe('20261125000200_notifications_broadcast.sql', () => {
+  const BROADCAST = read(
+    '../supabase/migrations/20261125000200_notifications_broadcast.sql',
+  )
+  const ROLLBACK = read(
+    '../supabase/rollbacks/20261125000200_notifications_broadcast.down.sql',
+  )
+
+  it('sends each new row to its recipient’s private topic as it commits', () => {
+    expect(BROADCAST).toContain(
+      'after insert on public.notifications\n  for each row execute function public.broadcast_notification();',
+    )
+    expect(BROADCAST).toContain("'user:' || new.recipient_id::text,")
+    expect(BROADCAST).toMatch(
+      /realtime\.send\([\s\S]*'notification',[\s\S]*true\n {2}\);/,
+    )
+  })
+
+  it('carries exactly what the bell shows, no one else’s data', () => {
+    const payload = BROADCAST.slice(
+      BROADCAST.indexOf('jsonb_build_object('),
+      BROADCAST.indexOf("'notification',"),
+    )
+    expect(payload.match(/'[a-z_]+', new\./g)).toEqual([
+      "'id', new.",
+      "'kind', new.",
+      "'title', new.",
+      "'body', new.",
+      "'url', new.",
+      "'read_at', new.",
+      "'created_at', new.",
+    ])
+  })
+
+  it('lets a signed-in user join only their own topic', () => {
+    expect(BROADCAST).toContain(
+      'on realtime.messages for select to authenticated',
+    )
+    expect(BROADCAST).toContain(
+      "and realtime.topic() = 'user:' || (select auth.uid())::text",
+    )
+    expect(BROADCAST).not.toMatch(/on realtime\.messages for insert/)
+  })
+
+  it('keeps the trigger function out of the API', () => {
+    expect(BROADCAST).toContain("security definer\nset search_path = ''")
+    expect(BROADCAST).toContain(
+      'revoke all on function public.broadcast_notification() from public, anon, authenticated;',
+    )
+  })
+
+  it('leaves the slow Postgres Changes path; the rollback restores it', () => {
+    expect(BROADCAST).toContain(
+      'alter publication supabase_realtime drop table public.notifications;',
+    )
+    expect(ROLLBACK).toContain(
+      'alter publication supabase_realtime add table public.notifications;',
+    )
+    expect(ROLLBACK).toContain(
+      'drop function if exists public.broadcast_notification();',
+    )
+  })
+})
+
 // ---------------------------------------------------------------------------
 // notify()
 // ---------------------------------------------------------------------------

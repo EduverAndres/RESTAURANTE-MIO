@@ -525,21 +525,26 @@ export async function saveCourierProfile(
   // A first profile, or an approved courier whose identity changed, waits for
   // an admin. Edits to a profile already waiting do not ring again.
   if (!previous || backToReview) {
-    const userId = user.id
-    after(async () => {
-      const { data: profile } = await admin
-        .from('profiles')
-        .select('full_name')
-        .eq('id', userId)
-        .maybeSingle()
-      await notify(
-        { admins: true },
-        courierSubmittedNotification({
-          courierName: profile?.full_name?.trim() || 'Un domiciliario',
-          again: backToReview,
-        }),
-      )
-    })
+    after(notifyCourierSubmitted(user.id, backToReview))
   }
   return { ok: true, status }
+}
+
+/**
+ * Tells the admins a courier profile waits for review. Passed to `after()`
+ * as a running promise, so it starts now, not once the response has finished.
+ */
+async function notifyCourierSubmitted(userId: string, again: boolean) {
+  const { data: profile } = await createAdminClient()
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .maybeSingle()
+  await notify(
+    { admins: true },
+    courierSubmittedNotification({
+      courierName: profile?.full_name?.trim() || 'Un domiciliario',
+      again,
+    }),
+  )
 }

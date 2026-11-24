@@ -127,7 +127,7 @@ export async function registerCompany(
   })
   revalidatePath('/empresa')
   revalidatePath('/admin/companies')
-  after(() =>
+  after(
     notify(
       { admins: true },
       companyRegisteredNotification({
@@ -177,31 +177,32 @@ export async function acceptInvitation(
   })
   revalidatePath('/empresa')
   revalidatePath('/empresa/equipo')
-  const companyId = row.company_id
-  after(async () => {
-    const admin = createAdminClient()
-    const [{ data: company }, { data: profile }] = await Promise.all([
-      admin
-        .from('companies')
-        .select('legal_name, trade_name')
-        .eq('id', companyId)
-        .maybeSingle(),
-      admin
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .maybeSingle(),
-    ])
-    if (!company) return
-    await notify(
-      { companyAdmins: companyId },
-      companyMemberJoinedNotification({
-        memberName: profile?.full_name?.trim() || 'Una persona de tu equipo',
-        companyName: companyDisplayName(company),
-      }),
-    )
-  })
+  after(notifyMemberJoined(row.company_id, user.id))
   return { ok: true }
+}
+
+/**
+ * Tells a company's admins someone joined. Passed to `after()` as a running
+ * promise, so it starts now, not once the response has finished.
+ */
+async function notifyMemberJoined(companyId: string, userId: string) {
+  const admin = createAdminClient()
+  const [{ data: company }, { data: profile }] = await Promise.all([
+    admin
+      .from('companies')
+      .select('legal_name, trade_name')
+      .eq('id', companyId)
+      .maybeSingle(),
+    admin.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
+  ])
+  if (!company) return
+  await notify(
+    { companyAdmins: companyId },
+    companyMemberJoinedNotification({
+      memberName: profile?.full_name?.trim() || 'Una persona de tu equipo',
+      companyName: companyDisplayName(company),
+    }),
+  )
 }
 
 export type CreateInvitationResult =
