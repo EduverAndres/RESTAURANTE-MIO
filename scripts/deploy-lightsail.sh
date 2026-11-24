@@ -109,6 +109,43 @@ elif [ -n "$public_ip" ] && ! [[ "$site_host" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
   fi
 fi
 
+# La app solo atiende en esta dirección: quien entre por otra (la IP, un
+# nombre de prueba) es redirigido a ella. Si todavía es la IP o el nombre
+# temporal de sslip.io y ya hay dominio, este es el momento de cambiarla.
+if [[ "$site_host" =~ ^[0-9]+(\.[0-9]+){3}$ || "$site_host" == *.sslip.io ]] \
+  && [ "$site_file" != "(entorno del shell)" ]; then
+  echo "AVISO: ${site_host} es una dirección provisional, no un dominio propio."
+  read -r -p "Si ya tienes dominio, escríbelo (ej. cerquita.duckdns.org) o Enter para seguir: " new_domain \
+    || new_domain=""
+  new_domain="${new_domain#http://}"; new_domain="${new_domain#https://}"
+  new_domain="${new_domain%%/*}"; new_domain=$(echo "$new_domain" | tr -d '[:space:]' | tr 'A-Z' 'a-z')
+  if [ -n "$new_domain" ]; then
+    if ! [[ "$new_domain" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]]; then
+      echo "ERROR: '${new_domain}' no parece un dominio."
+      exit 1
+    fi
+    resolved=$(getent hosts "$new_domain" | awk '{print $1}' | head -n 1 || true)
+    if [ -n "$public_ip" ] && [ "$resolved" != "$public_ip" ]; then
+      echo "AVISO: ${new_domain} resuelve a '${resolved:-nada}', no a ${public_ip}."
+      ask "¿Lo uso de todas formas?" || exit 1
+    fi
+    cp "$site_file" "$site_file.bak.$(date +%s)"
+    sed -i "s#^NEXT_PUBLIC_SITE_URL=.*#NEXT_PUBLIC_SITE_URL=${site_scheme}://${new_domain}#" "$site_file"
+    if grep -q '^NEXT_PUBLIC_ROOT_DOMAIN=' "$site_file"; then
+      sed -i "s#^NEXT_PUBLIC_ROOT_DOMAIN=.*#NEXT_PUBLIC_ROOT_DOMAIN=${new_domain}#" "$site_file"
+    else
+      echo "NEXT_PUBLIC_ROOT_DOMAIN=${new_domain}" >> "$site_file"
+    fi
+    site_url="${site_scheme}://${new_domain}"
+    site_host="$new_domain"
+    echo "Actualizado (con respaldo): $(grep -E '^NEXT_PUBLIC_(SITE_URL|ROOT_DOMAIN)=' "$site_file" | tr '\n' ' ')"
+    echo "Después del despliegue, cambia también:"
+    echo "  - Supabase → Authentication → URL Configuration: Site URL ${site_url}"
+    echo "    y en Redirect URLs agrega ${site_url}/**"
+    echo "  - Wompi → URL de eventos: ${site_url}/api/webhooks/wompi"
+  fi
+fi
+
 # Wompi no abre su checkout si la dirección de regreso es una IP o localhost:
 # su firewall (CloudFront) responde "403 Request blocked" antes de mirar el
 # pedido, y la app oculta Wompi en ese caso (lib/payments/wompi/status.ts).

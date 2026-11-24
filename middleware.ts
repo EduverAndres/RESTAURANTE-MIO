@@ -2,32 +2,46 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { resolveUserRole } from '@/lib/auth/resolve-role'
 import { canAccess, requiredRolesFor } from '@/lib/auth/roles'
 import { env } from '@/lib/env'
-import { foreignPublicHost, requestOrigin } from '@/lib/http/request-origin'
+import { canonicalRedirectUrl } from '@/lib/http/canonical-host'
+import { requestOrigin } from '@/lib/http/request-origin'
 import { ACCEPT_PATH, needsLegalAcceptance } from '@/lib/legal/consent'
 import { logger } from '@/lib/log/logger'
 import { siteUrl } from '@/lib/site-url'
 import { rewriteForStore, storeSlugFromHost } from '@/lib/subdomain'
 import { updateSession } from '@/lib/supabase/middleware'
 
-// One warning per server process is enough to spot a stale site URL in the
-// logs without writing a line per request.
-let warnedForeignHost = false
-
-function warnIfSiteUrlIsStale(headers: Headers): void {
-  if (warnedForeignHost || process.env.NODE_ENV !== 'production') return
-  const site = siteUrl()
-  const host = foreignPublicHost(headers, site)
-  if (!host) return
-  warnedForeignHost = true
-  logger.warn('site_url.host_mismatch', {
-    host,
-    siteUrl: site,
-    hint: 'NEXT_PUBLIC_SITE_URL does not match the host visitors use: redirects, QR codes, payment and email links point to siteUrl. Fix it and rebuild (scripts/deploy-lightsail.sh checks it).',
-  })
-}
+// One log line per server process is enough to spot visitors arriving on
+// another host (or a stale site URL) without writing a line per request.
+let loggedForeignHost = false
 
 export async function middleware(request: NextRequest) {
-  warnIfSiteUrlIsStale(request.headers)
+  // Only the official address: the IP, an old test name or `www.` go to the
+  // same path on NEXT_PUBLIC_SITE_URL before anything else runs. Temporary
+  // (307), so correcting a wrong site URL takes effect at once instead of
+  // staying cached in browsers.
+  const official = canonicalRedirectUrl({
+    headers: request.headers,
+    method: request.method,
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    siteUrl: siteUrl(),
+    rootDomain: env.NEXT_PUBLIC_ROOT_DOMAIN,
+    production: process.env.NODE_ENV === 'production',
+  })
+  if (official) {
+    if (!loggedForeignHost) {
+      loggedForeignHost = true
+      logger.warn('site_url.host_mismatch', {
+        host:
+          request.headers.get('x-forwarded-host') ??
+          request.headers.get('host'),
+        siteUrl: siteUrl(),
+        hint: 'Visitors on this host are redirected to NEXT_PUBLIC_SITE_URL. If that address is wrong, fix it and rebuild (scripts/deploy-lightsail.sh checks it).',
+      })
+    }
+    return NextResponse.redirect(official, 307)
+  }
+
   const { supabase, response, user } = await updateSession(request)
   const { pathname, search } = request.nextUrl
 

@@ -12,8 +12,9 @@ import { storePublicUrl } from '@/lib/subdomain'
 // whose public IP changed therefore kept sending everyone to the old one
 // until it was rebuilt. Two guards make that visible instead of silent:
 // scripts/deploy-lightsail.sh compares the value with the instance's public
-// IP before building, and the middleware logs `site_url.host_mismatch` when
-// visitors arrive on a public host that is not this one.
+// IP before building, and the middleware redirects visitors who arrive on
+// another public host to this one (lib/http/canonical-host.ts), logging
+// `site_url.host_mismatch` once.
 //
 // Pure: no server-only import, so it also runs in the edge middleware.
 
