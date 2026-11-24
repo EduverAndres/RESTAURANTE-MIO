@@ -18,6 +18,7 @@ const EVENTS: SoundEvent[] = [
   'new_order',
   'new_reservation',
   'reservation_cancelled',
+  'notification',
   'pending',
   'accepted',
   'preparing',

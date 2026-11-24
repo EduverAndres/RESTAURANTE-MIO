@@ -5,8 +5,9 @@ import { headers } from 'next/headers'
 import { after } from 'next/server'
 import { clientIp } from '@/lib/http/client-ip'
 import { logger } from '@/lib/log/logger'
+import { fromPush } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { newReservationMessage } from '@/lib/push/messages'
-import { sendPushToStoreOwner } from '@/lib/push/send'
 import {
   RESERVATION_CREATE_IP_POLICY,
   RESERVATION_CREATE_POLICY,
@@ -182,9 +183,12 @@ export async function createReservation(
     when: formatReservationWhen(startsAt),
     storeName: store.name,
   })
-  after(() => sendPushToStoreOwner(store.id, message))
+  after(() =>
+    notify({ storeOwner: store.id }, fromPush('reservation_new', message)),
+  )
 
   revalidatePath('/account/reservas')
+  revalidatePath('/dashboard/reservas')
   revalidatePath(`/t/${store.slug}/reservar`)
   return { ok: true, reservationId: row.reservation_id, code: row.code }
 }

@@ -66,6 +66,7 @@ export default async function DashboardLayout({
         variant="merchant"
         appName={APP_NAME}
         user={{
+          id: user.id,
           name:
             profile?.full_name?.trim() ||
             user.email?.split('@')[0] ||

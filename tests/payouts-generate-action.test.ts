@@ -3,6 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }))
+// Work scheduled for after the response (telling the owners their payout is
+// ready) is collected, not run: it reads the committed rows, outside the
+// transaction this suite is about.
+const scheduled: (() => unknown)[] = []
+vi.mock('next/server', () => ({
+  after: (task: () => unknown) => {
+    scheduled.push(task)
+  },
+}))
 vi.mock('@/lib/auth', () => ({
   requireRole: async () => ({ user: { id: 'admin-1' }, role: 'admin' }),
 }))
@@ -63,6 +72,7 @@ const RUN = {
 
 beforeEach(() => {
   vi.resetModules()
+  scheduled.length = 0
 })
 
 afterEach(() => {
@@ -87,6 +97,16 @@ describe('generatePayouts', () => {
       },
     ])
     expect(result).toEqual({ ok: true, created: 3, skipped: 1 })
+    // The owners hear about it once the run has committed.
+    expect(scheduled).toHaveLength(1)
+  })
+
+  it('tells nobody when the run created nothing', async () => {
+    current = fakeAdmin({ data: [{ ...RUN, payouts_created: 0 }] })
+
+    await generate()
+
+    expect(scheduled).toEqual([])
   })
 
   it('reports failure when the transaction did not commit', async () => {

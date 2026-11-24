@@ -11,7 +11,11 @@
 import type { OrderStatus } from '@/types/app'
 
 export type SoundEvent =
-  OrderStatus | 'new_order' | 'new_reservation' | 'reservation_cancelled'
+  | OrderStatus
+  | 'new_order'
+  | 'new_reservation'
+  | 'reservation_cancelled'
+  | 'notification'
 
 /** One note: pitch in Hz, offset and length in seconds. */
 export interface ToneStep {
@@ -99,6 +103,9 @@ const SEQUENCES: Record<SoundEvent, ToneStep[]> = {
     { freq: NOTE.C6, at: 0.2, duration: 0.24 },
   ],
   reservation_cancelled: pair(NOTE.G5, NOTE.E5, 0.26),
+  // The bell: a light upward fifth, shorter than any order or reservation
+  // tone so it reads as "something to look at", not "something to cook".
+  notification: pair(NOTE.D5, NOTE.A5, 0.2, 0.12),
 }
 
 export function toneSequenceFor(event: SoundEvent): ToneStep[] {

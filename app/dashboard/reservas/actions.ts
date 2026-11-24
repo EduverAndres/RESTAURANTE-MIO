@@ -5,8 +5,9 @@ import { after } from 'next/server'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { logger } from '@/lib/log/logger'
 import { planHas, planOfStore } from '@/lib/plans'
+import { fromPush } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { reservationStatusMessage } from '@/lib/push/messages'
-import { sendPushToUsers } from '@/lib/push/send'
 import { formatReservationWhen } from '@/lib/reservations/format'
 import { actionTarget, checkTransition } from '@/lib/reservations/transitions'
 import type { ReservationStatus } from '@/lib/reservations/vocabulary'
@@ -167,7 +168,12 @@ export async function actOnReservation(
         when: formatReservationWhen(row.starts_at),
         reason,
       })
-      after(() => sendPushToUsers([row.customer_id], message))
+      after(() =>
+        notify(
+          { userIds: [row.customer_id] },
+          fromPush('reservation_updated', message),
+        ),
+      )
     }
   }
 

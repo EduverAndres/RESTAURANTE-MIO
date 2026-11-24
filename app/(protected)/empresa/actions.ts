@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
+import { after } from 'next/server'
 import { requireUser } from '@/lib/auth'
 import {
   INVITATION_OUTCOME_MESSAGES,
@@ -12,10 +13,19 @@ import {
 } from '@/lib/companies/invitations'
 import { newInvitationToken } from '@/lib/companies/invitations.server'
 import { parseNit } from '@/lib/companies/nit'
-import { COMPANY_TERMS_VERSION } from '@/lib/companies/vocabulary'
+import {
+  COMPANY_TERMS_VERSION,
+  companyDisplayName,
+} from '@/lib/companies/vocabulary'
 import { logConsent } from '@/lib/legal/record'
 import { logger } from '@/lib/log/logger'
+import {
+  companyMemberJoinedNotification,
+  companyRegisteredNotification,
+} from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { siteUrl } from '@/lib/site-url'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import {
   companyBillingSchema,
@@ -117,6 +127,14 @@ export async function registerCompany(
   })
   revalidatePath('/empresa')
   revalidatePath('/admin/companies')
+  after(() =>
+    notify(
+      { admins: true },
+      companyRegisteredNotification({
+        companyName: values.tradeName?.trim() || values.legalName,
+      }),
+    ),
+  )
   return { ok: true }
 }
 
@@ -159,6 +177,30 @@ export async function acceptInvitation(
   })
   revalidatePath('/empresa')
   revalidatePath('/empresa/equipo')
+  const companyId = row.company_id
+  after(async () => {
+    const admin = createAdminClient()
+    const [{ data: company }, { data: profile }] = await Promise.all([
+      admin
+        .from('companies')
+        .select('legal_name, trade_name')
+        .eq('id', companyId)
+        .maybeSingle(),
+      admin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle(),
+    ])
+    if (!company) return
+    await notify(
+      { companyAdmins: companyId },
+      companyMemberJoinedNotification({
+        memberName: profile?.full_name?.trim() || 'Una persona de tu equipo',
+        companyName: companyDisplayName(company),
+      }),
+    )
+  })
   return { ok: true }
 }
 

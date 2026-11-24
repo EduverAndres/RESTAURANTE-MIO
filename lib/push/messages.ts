@@ -166,6 +166,14 @@ export function courierReviewMessage(
 // Reservations
 // ---------------------------------------------------------------------------
 
+/**
+ * Closes a sentence that may already end in a period: a time reads
+ * "7:30 p. m.", and "p. m.." is what the bell showed.
+ */
+function endSentence(text: string): string {
+  return text.endsWith('.') ? text : `${text}.`
+}
+
 /** To the store owner, when a customer asks for a table. */
 export function newReservationMessage(input: {
   partySize: number
@@ -174,7 +182,7 @@ export function newReservationMessage(input: {
 }): PushPayload {
   return {
     title: `Nueva reserva · ${input.partySize} ${input.partySize === 1 ? 'persona' : 'personas'}`,
-    body: `${input.storeName}: ${input.when}. Confírmala desde tu panel.`,
+    body: `${input.storeName}: ${endSentence(input.when)} Confírmala desde tu panel.`,
     url: '/dashboard/reservas',
     tag: 'new-reservation',
   }
@@ -192,8 +200,10 @@ export function reservationStatusMessage(
   } as const
   const body =
     status === 'confirmed'
-      ? `${input.storeName} te espera ${input.when}.`
-      : `${input.storeName}, ${input.when}${input.reason ? `: ${input.reason}` : '.'}`
+      ? `${input.storeName} te espera ${endSentence(input.when)}`
+      : input.reason
+        ? `${input.storeName}, ${input.when}: ${input.reason}`
+        : `${input.storeName}, ${endSentence(input.when)}`
   return {
     title: titles[status],
     body,
@@ -209,7 +219,7 @@ export function reservationCancelledMessage(input: {
 }): PushPayload {
   return {
     title: 'Reserva cancelada',
-    body: `Se liberó la mesa de ${input.partySize} ${input.partySize === 1 ? 'persona' : 'personas'} para ${input.when}.`,
+    body: `Se liberó la mesa de ${input.partySize} ${input.partySize === 1 ? 'persona' : 'personas'} para ${endSentence(input.when)}`,
     url: '/dashboard/reservas',
     tag: 'reservation-cancelled',
   }

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { BfcacheGuard } from '@/components/auth/bfcache-guard'
 import { Wordmark } from '@/components/layout/site-header'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { PushToggle } from '@/components/notifications/push-toggle'
 import { SoundToggle } from '@/components/notifications/sound-toggle'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
@@ -49,6 +50,7 @@ export default async function CourierLayout({
                 className="hidden sm:flex"
               />
               <SoundToggle compact className="hidden sm:flex" />
+              <NotificationBell userId={user.id} />
               <ThemeToggle />
               <form action="/auth/sign-out" method="post">
                 <Button
