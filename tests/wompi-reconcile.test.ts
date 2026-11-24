@@ -22,6 +22,7 @@ vi.mock('@/lib/env.server', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => state.admin,
 }))
+vi.mock('@/lib/site-url', () => ({ siteUrl: () => 'https://tienda.app' }))
 vi.mock('@/lib/push/send', () => ({
   sendPushToStoreOwner: state.sendPushToStoreOwner,
 }))

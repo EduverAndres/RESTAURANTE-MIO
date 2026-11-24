@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { welcomeFor } from '@/lib/auth/welcome'
+import { welcomeFor, type WelcomeScene } from '@/lib/auth/welcome'
 import { APP_NAME } from '@/lib/env'
 import type { UserRole } from '@/types/app'
 
@@ -116,11 +116,13 @@ export function WelcomeOverlay({
   leaving?: boolean
 }) {
   const { phrase, scene } = welcomeFor(role)
+  const Scene = SCENES[scene]
   return (
     <div
       role="status"
       aria-live="polite"
       data-role={role ?? 'customer'}
+      data-scene={scene}
       className={`${leaving ? 'animate-success-out' : 'animate-success-fade'} bg-background fixed inset-0 z-[100] grid place-items-center px-6`}
       style={{
         backgroundImage:
@@ -128,16 +130,14 @@ export function WelcomeOverlay({
       }}
     >
       <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
-        {scene ? <PinScene /> : null}
+        <Scene />
         <p className="animate-welcome-brand font-display font-display-soft text-foreground text-4xl font-semibold tracking-tight lowercase sm:text-5xl">
           {APP_NAME}
           <span className="text-primary">.</span>
         </p>
-        {phrase ? (
-          <p className="animate-welcome-phrase text-muted-foreground text-lg text-balance sm:text-xl">
-            {phrase}
-          </p>
-        ) : null}
+        <p className="animate-welcome-phrase text-muted-foreground text-lg text-balance sm:text-xl">
+          {phrase}
+        </p>
       </div>
     </div>
   )
@@ -227,4 +227,161 @@ function PinScene() {
       </g>
     </svg>
   )
+}
+
+/**
+ * The merchant's side of the same story, with less on screen: a storefront
+ * in thin lines, the dotted route leaving it, and a home in the brand colour
+ * that pulses as the order arrives. Store to home, where the customer's
+ * scene reads home to store.
+ */
+function StoreToHomeScene() {
+  const route = 'M72 84 C 102 46, 140 46, 168 84'
+  return (
+    <svg
+      viewBox="0 0 240 120"
+      aria-hidden="true"
+      className="w-full max-w-[17rem] overflow-visible"
+    >
+      <path
+        d="M24 98 H216"
+        stroke="var(--border)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+
+      {/* The store, where the route starts. */}
+      <g
+        className="animate-welcome-dot welcome-origin"
+        fill="none"
+        stroke="var(--foreground)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M34 62 L37 52 H63 L66 62" />
+        <path d="M34 62 a4 4 0 0 0 8 0 a4 4 0 0 0 8 0 a4 4 0 0 0 8 0 a4 4 0 0 0 8 0" />
+        <path d="M37 67 V96 H63 V67" />
+        <path d="M46 96 V83 H54 V96" />
+      </g>
+
+      {/* The route, drawn from the store to the door. */}
+      <defs>
+        <mask id="welcome-dispatch-mask" maskUnits="userSpaceOnUse">
+          <path
+            d={route}
+            fill="none"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            pathLength={1}
+            className="animate-welcome-route"
+            style={{ strokeDasharray: 1 }}
+          />
+        </mask>
+      </defs>
+      <path
+        d={route}
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeDasharray="0.1 9"
+        mask="url(#welcome-dispatch-mask)"
+      />
+
+      {/* Arrival: a ripple at the door, and the home in the brand colour. */}
+      <ellipse
+        cx="192"
+        cy="98"
+        rx="18"
+        ry="5"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="2"
+        className="animate-welcome-ripple welcome-origin"
+      />
+      <g
+        className="animate-welcome-arrive welcome-origin"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M172 76 L192 58 L212 76" />
+        <path d="M177 71 V96 H207 V71" />
+        <path d="M188 96 V84 H196 V96" />
+      </g>
+    </svg>
+  )
+}
+
+/**
+ * Admins run the platform: a small panel whose three bars rise one after
+ * the other, the last in the brand colour. Nothing to sell, just "all here".
+ */
+function DashboardScene() {
+  return (
+    <svg
+      viewBox="0 0 240 120"
+      aria-hidden="true"
+      className="w-full max-w-[17rem] overflow-visible"
+    >
+      <g className="animate-welcome-panel">
+        <rect
+          x="62"
+          y="16"
+          width="116"
+          height="88"
+          rx="14"
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth="2"
+        />
+        <path
+          d="M80 88 H160"
+          stroke="var(--border)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <circle cx="160" cy="32" r="3.5" fill="var(--primary)" />
+      </g>
+      <rect
+        x="84"
+        y="62"
+        width="16"
+        height="24"
+        rx="4"
+        fill="var(--foreground)"
+        opacity="0.22"
+        className="animate-welcome-bar-1 welcome-bar"
+      />
+      <rect
+        x="112"
+        y="48"
+        width="16"
+        height="38"
+        rx="4"
+        fill="var(--foreground)"
+        opacity="0.38"
+        className="animate-welcome-bar-2 welcome-bar"
+      />
+      <rect
+        x="140"
+        y="34"
+        width="16"
+        height="52"
+        rx="4"
+        fill="var(--primary)"
+        className="animate-welcome-bar-3 welcome-bar"
+      />
+    </svg>
+  )
+}
+
+const SCENES: Record<WelcomeScene, () => React.JSX.Element> = {
+  'route-pin': PinScene,
+  'store-to-home': StoreToHomeScene,
+  dashboard: DashboardScene,
 }

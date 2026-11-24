@@ -4,8 +4,32 @@ import {
   mapWompiStatus,
   orderIdFromReference,
   paymentReference,
+  wompiAcceptsRedirect,
   wompiBaseUrl,
 } from '@/lib/payments/wompi/status'
+
+describe('wompiAcceptsRedirect', () => {
+  // Each case was probed against the live checkout.wompi.co.
+  it('accepts a return address on a domain, http or https', () => {
+    expect(wompiAcceptsRedirect('https://ejemplo.com/orders/1')).toBe(true)
+    expect(wompiAcceptsRedirect('http://ejemplo.com/orders/1')).toBe(true)
+    expect(wompiAcceptsRedirect('http://44-213-146-211.sslip.io')).toBe(true)
+  })
+
+  it('refuses one on an IP address, which its firewall blocks with a 403', () => {
+    expect(wompiAcceptsRedirect('http://44.213.146.211')).toBe(false)
+    expect(wompiAcceptsRedirect('https://44.213.146.211/orders/1')).toBe(false)
+    // The IP inside a hostname is still an IP to the firewall.
+    expect(wompiAcceptsRedirect('http://44.213.146.211.nip.io')).toBe(false)
+    expect(wompiAcceptsRedirect('http://[::1]:3000')).toBe(false)
+  })
+
+  it('refuses localhost, and anything that is not a URL', () => {
+    expect(wompiAcceptsRedirect('http://localhost:3000')).toBe(false)
+    expect(wompiAcceptsRedirect('http://app.localhost:3000')).toBe(false)
+    expect(wompiAcceptsRedirect('no es una url')).toBe(false)
+  })
+})
 
 describe('mapWompiStatus', () => {
   it('maps APPROVED to paid, without cancelling the order', () => {
@@ -54,9 +78,7 @@ describe('wompiBaseUrl', () => {
   })
 
   it('picks the production host for prod keys', () => {
-    expect(wompiBaseUrl('pub_prod_abc')).toBe(
-      'https://production.wompi.co/v1',
-    )
+    expect(wompiBaseUrl('pub_prod_abc')).toBe('https://production.wompi.co/v1')
   })
 })
 
@@ -73,9 +95,7 @@ describe('buildCheckoutUrl', () => {
       customerFullName: 'Ana Pérez',
     })
     const parsed = new URL(url)
-    expect(parsed.origin + parsed.pathname).toBe(
-      'https://checkout.wompi.co/p/',
-    )
+    expect(parsed.origin + parsed.pathname).toBe('https://checkout.wompi.co/p/')
     expect(parsed.searchParams.get('public-key')).toBe('pub_test_abc')
     expect(parsed.searchParams.get('currency')).toBe('COP')
     expect(parsed.searchParams.get('amount-in-cents')).toBe('4900000')
@@ -87,9 +107,7 @@ describe('buildCheckoutUrl', () => {
     expect(parsed.searchParams.get('customer-data:email')).toBe(
       'ana@example.com',
     )
-    expect(parsed.searchParams.get('customer-data:full-name')).toBe(
-      'Ana Pérez',
-    )
+    expect(parsed.searchParams.get('customer-data:full-name')).toBe('Ana Pérez')
   })
 
   it('omits optional customer data when not provided', () => {
