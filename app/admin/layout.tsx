@@ -3,6 +3,7 @@ import { DashboardShell } from '@/components/dashboard/dashboard-shell'
 import { BfcacheGuard } from '@/components/auth/bfcache-guard'
 import { requireRole } from '@/lib/auth'
 import { APP_NAME } from '@/lib/env'
+import { pushConfigured } from '@/lib/env.server'
 
 export const metadata: Metadata = {
   title: {
@@ -23,6 +24,7 @@ export default async function AdminLayout({
         variant="admin"
         appName={APP_NAME}
         user={{
+          id: user.id,
           name:
             profile?.full_name?.trim() ||
             user.email?.split('@')[0] ||
@@ -30,6 +32,7 @@ export default async function AdminLayout({
           email: user.email ?? '',
           role,
         }}
+        pushEnabled={pushConfigured()}
       >
         {children}
       </DashboardShell>

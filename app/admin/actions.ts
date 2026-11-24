@@ -9,10 +9,18 @@ import {
 } from '@/lib/couriers/profile'
 import type { VehicleType } from '@/lib/couriers/vocabulary'
 import { isUuid } from '@/lib/dashboard/active-store'
+import { formatCOP } from '@/lib/format'
+import { formatDateCO } from '@/lib/format-date'
 import { logger } from '@/lib/log/logger'
+import {
+  courierPayoutNotification,
+  fromPush,
+  payoutNotification,
+  storeReviewedNotification,
+} from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { bogotaDate } from '@/lib/plans'
 import { courierReviewMessage } from '@/lib/push/messages'
-import { sendPushToUsers } from '@/lib/push/send'
 import { recordRefund } from '@/lib/refunds/record'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -40,6 +48,34 @@ export type AdminActionResult = { ok: true } | { ok: false; error: string }
 
 const GENERIC_ERROR = 'No pudimos completar la acción. Inténtalo de nuevo.'
 
+/** "17 nov 2026 – 23 nov 2026", as the payout tables show a period. */
+function periodRange(start: string, end: string): string {
+  const day = (value: string) => formatDateCO(new Date(`${value}T12:00:00`))
+  return `${day(start)} – ${day(end)}`
+}
+
+/** Tells a store owner about one of their payouts. */
+function notifyPayout(
+  stage: 'generated' | 'paid',
+  payout: {
+    store_id: string
+    net: number
+    period_start: string
+    period_end: string
+  },
+) {
+  const net = Number(payout.net)
+  return notify(
+    { storeOwner: payout.store_id },
+    payoutNotification({
+      stage,
+      periodLabel: periodRange(payout.period_start, payout.period_end),
+      amountLabel: formatCOP(Math.abs(net)),
+      owes: net < 0,
+    }),
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Stores
 // ---------------------------------------------------------------------------
@@ -54,10 +90,12 @@ export async function setStoreStatus(
 
   await requireRole(['admin'])
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data: store, error } = await admin
     .from('stores')
     .update({ status: parsed.data })
     .eq('id', storeId)
+    .select('name')
+    .maybeSingle()
   if (error) {
     console.error('Failed to update store status', error)
     return { ok: false, error: 'No pudimos actualizar el estado de la tienda.' }
@@ -70,6 +108,18 @@ export async function setStoreStatus(
   revalidatePath('/admin')
   revalidatePath('/admin/publicidad')
   revalidatePath('/')
+  if (store) {
+    const storeStatus = parsed.data
+    after(() =>
+      notify(
+        { storeOwner: storeId },
+        storeReviewedNotification({
+          storeName: store.name,
+          status: storeStatus,
+        }),
+      ),
+    )
+  }
   return { ok: true }
 }
 
@@ -263,6 +313,9 @@ export async function generatePayouts(
 
   await requireRole(['admin'])
   const admin = createAdminClient()
+  // Payouts this run writes are the ones created from now on: running the
+  // same period again notifies nobody twice.
+  const startedAt = new Date().toISOString()
 
   const { data, error } = await admin.rpc('generate_payouts', {
     p_period_start: parsedStart.data,
@@ -293,6 +346,23 @@ export async function generatePayouts(
 
   revalidatePath('/admin/payouts')
   revalidatePath('/dashboard/payouts')
+  if (Number(row.payouts_created) > 0) {
+    after(async () => {
+      const { data: created, error: loadError } = await createAdminClient()
+        .from('payouts')
+        .select('store_id, net, period_start, period_end')
+        .eq('period_start', parsedStart.data)
+        .eq('period_end', parsedEnd.data)
+        .gte('created_at', startedAt)
+      if (loadError) {
+        logger.error('payouts.notify_load_failed', { periodStart }, loadError)
+        return
+      }
+      await Promise.all(
+        (created ?? []).map((payout) => notifyPayout('generated', payout)),
+      )
+    })
+  }
   return {
     ok: true,
     created: Number(row.payouts_created),
@@ -317,7 +387,7 @@ export async function markPayoutPaid(
     .eq('id', payoutId)
     .eq('status', 'pending')
     .is('carried_into_payout_id', null)
-    .select('id')
+    .select('id, store_id, net, period_start, period_end')
   if (error) {
     console.error('Failed to mark payout as paid', error)
     return {
@@ -335,6 +405,8 @@ export async function markPayoutPaid(
 
   revalidatePath('/admin/payouts')
   revalidatePath('/dashboard/payouts')
+  const paid = data[0]
+  after(() => notifyPayout('paid', paid))
   return { ok: true }
 }
 
@@ -511,7 +583,12 @@ export async function setCourierStatus(
     return { ok: false, error: GENERIC_ERROR }
   }
 
-  after(() => sendPushToUsers([userId], courierReviewMessage(status, note)))
+  after(() =>
+    notify(
+      { userIds: [userId] },
+      fromPush('courier_reviewed', courierReviewMessage(status, note)),
+    ),
+  )
 
   revalidatePath('/admin/domiciliarios')
   return { ok: true }
@@ -544,6 +621,7 @@ export async function generateCourierPayouts(
   }
 
   await requireRole(['admin'])
+  const startedAt = new Date().toISOString()
   const { data, error } = await createAdminClient().rpc(
     'generate_courier_payouts',
     { p_period_start: parsedStart.data, p_period_end: parsedEnd.data },
@@ -571,6 +649,35 @@ export async function generateCourierPayouts(
 
   revalidatePath('/admin/domiciliarios/liquidaciones')
   revalidatePath('/courier/ganancias')
+  if (Number(row.payouts_created) > 0) {
+    after(async () => {
+      const { data: created, error: loadError } = await createAdminClient()
+        .from('courier_payouts')
+        .select('courier_id, net')
+        .eq('period_start', parsedStart.data)
+        .eq('period_end', parsedEnd.data)
+        .gte('created_at', startedAt)
+      if (loadError) {
+        logger.error(
+          'courier_payouts.notify_load_failed',
+          { periodStart },
+          loadError,
+        )
+        return
+      }
+      await Promise.all(
+        (created ?? []).map((payout) =>
+          notify(
+            { userIds: [payout.courier_id] },
+            courierPayoutNotification({
+              stage: 'generated',
+              amountLabel: formatCOP(Number(payout.net)),
+            }),
+          ),
+        ),
+      )
+    })
+  }
   return {
     ok: true,
     created: Number(row.payouts_created),
@@ -591,7 +698,7 @@ export async function markCourierPayoutPaid(
     .eq('id', payoutId)
     .eq('status', 'pending')
     .is('carried_into_payout_id', null)
-    .select('id')
+    .select('id, courier_id, net')
   if (error) {
     logger.error('courier_payouts.mark_paid_failed', { payoutId }, error)
     return { ok: false, error: 'No pudimos marcar la liquidación como pagada.' }
@@ -605,6 +712,16 @@ export async function markCourierPayoutPaid(
   }
   revalidatePath('/admin/domiciliarios/liquidaciones')
   revalidatePath('/courier/ganancias')
+  const paid = data[0]
+  after(() =>
+    notify(
+      { userIds: [paid.courier_id] },
+      courierPayoutNotification({
+        stage: 'paid',
+        amountLabel: formatCOP(Number(paid.net)),
+      }),
+    ),
+  )
   return { ok: true }
 }
 
@@ -635,5 +752,16 @@ export async function recordCourierLedgerEntry(
   }
   revalidatePath('/admin/domiciliarios')
   revalidatePath('/courier/ganancias')
+  if (kind === 'deposit') {
+    after(() =>
+      notify(
+        { userIds: [courierId] },
+        courierPayoutNotification({
+          stage: 'deposit',
+          amountLabel: formatCOP(Math.abs(amount)),
+        }),
+      ),
+    )
+  }
   return { ok: true }
 }

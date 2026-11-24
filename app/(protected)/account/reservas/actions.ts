@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import { isUuid } from '@/lib/dashboard/active-store'
 import { logger } from '@/lib/log/logger'
+import { fromPush } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { reservationCancelledMessage } from '@/lib/push/messages'
-import { sendPushToStoreOwner } from '@/lib/push/send'
 import { formatReservationWhen } from '@/lib/reservations/format'
 import { checkTransition } from '@/lib/reservations/transitions'
 import type { ReservationStatus } from '@/lib/reservations/vocabulary'
@@ -78,7 +79,12 @@ export async function cancelMyReservation(
     partySize: row.party_size,
     when: formatReservationWhen(row.starts_at),
   })
-  after(() => sendPushToStoreOwner(row.store_id, message))
+  after(() =>
+    notify(
+      { storeOwner: row.store_id },
+      fromPush('reservation_cancelled', message),
+    ),
+  )
 
   revalidatePath('/account/reservas')
   revalidatePath('/account')

@@ -1,11 +1,18 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { hasCapacity, overlapsOwn, type SlotCampaign } from '@/lib/ads/capacity'
-import { quoteAdCampaign } from '@/lib/ads/pricing'
-import { AD_HOLDING_STATUSES, type AdStatus } from '@/lib/ads/vocabulary'
+import { formatAdRange, quoteAdCampaign } from '@/lib/ads/pricing'
+import {
+  AD_HOLDING_STATUSES,
+  AD_PLACEMENT_LABELS,
+  type AdStatus,
+} from '@/lib/ads/vocabulary'
 import { requireActiveStoreRow } from '@/lib/dashboard/store-context'
 import { logger } from '@/lib/log/logger'
+import { adRequestedNotification } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { bogotaDate } from '@/lib/plans'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -164,6 +171,16 @@ export async function requestAdCampaign(
 
   revalidatePath('/dashboard/publicidad')
   revalidatePath('/admin/publicidad')
+  after(() =>
+    notify(
+      { admins: true },
+      adRequestedNotification({
+        storeName: store.name,
+        placement: AD_PLACEMENT_LABELS[placement],
+        dates: formatAdRange(startsOn, endsOn),
+      }),
+    ),
+  )
   return { ok: true }
 }
 

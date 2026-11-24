@@ -11,8 +11,9 @@ import {
 import { requireRole } from '@/lib/auth'
 import { logger } from '@/lib/log/logger'
 import { bogotaDate } from '@/lib/plans'
+import { adStatusNotification, fromPush } from '@/lib/notifications/messages'
+import { notify } from '@/lib/notifications/send'
 import { adCampaignReviewMessage } from '@/lib/push/messages'
-import { sendPushToStoreOwner } from '@/lib/push/send'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   adCampaignIdSchema,
@@ -90,9 +91,12 @@ export async function approveAdCampaign(input: {
   after(async () => {
     const campaign = await describeCampaign(campaignId)
     if (!campaign) return
-    await sendPushToStoreOwner(
-      campaign.storeId,
-      adCampaignReviewMessage({ decision: 'approved', ...campaign }),
+    await notify(
+      { storeOwner: campaign.storeId },
+      fromPush(
+        'ad_reviewed',
+        adCampaignReviewMessage({ decision: 'approved', ...campaign }),
+      ),
     )
   })
   return { ok: true }
@@ -130,9 +134,12 @@ export async function rejectAdCampaign(
   after(async () => {
     const campaign = await describeCampaign(campaignId)
     if (!campaign) return
-    await sendPushToStoreOwner(
-      campaign.storeId,
-      adCampaignReviewMessage({ decision: 'rejected', reason, ...campaign }),
+    await notify(
+      { storeOwner: campaign.storeId },
+      fromPush(
+        'ad_reviewed',
+        adCampaignReviewMessage({ decision: 'rejected', reason, ...campaign }),
+      ),
     )
   })
   return { ok: true }
@@ -202,6 +209,17 @@ export async function setAdCampaignStatus(
   }
 
   revalidateAds()
+  const change = (
+    { pause: 'paused', resume: 'resumed', end: 'ended' } as const
+  )[action]
+  after(async () => {
+    const campaign = await describeCampaign(campaignId)
+    if (!campaign) return
+    await notify(
+      { storeOwner: campaign.storeId },
+      adStatusNotification({ change, placement: campaign.placement }),
+    )
+  })
   return { ok: true }
 }
 

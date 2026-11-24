@@ -2,6 +2,7 @@ import { LogInIcon } from 'lucide-react'
 import Link from 'next/link'
 import { AccessibilityMenu } from '@/components/a11y/accessibility-menu'
 import { DesktopNav, MobileMenu } from '@/components/layout/site-nav'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { UserMenu } from '@/components/layout/user-menu'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ export async function SiteHeader() {
         <div className="flex items-center gap-1">
           <AccessibilityMenu className="hidden size-11 md:inline-flex" />
           <ThemeToggle className="hidden size-11 md:inline-flex" />
+          {current ? <NotificationBell userId={current.user.id} /> : null}
           {current ? (
             <UserMenu
               name={displayName}
